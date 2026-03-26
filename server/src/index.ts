@@ -14,6 +14,7 @@ import paymentRoutes from './modules/payment/payment.routes';
 import claimRoutes from './modules/claim/claim.routes';
 import followUpRoutes from './modules/followup/followup.routes';
 import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import searchRoutes from './modules/search/search.routes';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/claims', claimRoutes);
 app.use('/api/follow-ups', followUpRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/search', searchRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

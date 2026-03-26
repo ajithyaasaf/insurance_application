@@ -15,6 +15,8 @@ import {
     HiOutlineTrendingUp,
 } from 'react-icons/hi';
 
+import GlobalSearch from '../components/ui/GlobalSearch';
+
 const navItems = [
     { to: '/', icon: HiOutlineViewGrid, label: 'Dashboard' },
     { to: '/leads', icon: HiOutlineTrendingUp, label: 'Leads' },
@@ -119,20 +121,34 @@ const AppLayout: React.FC = () => {
             {/* Main content */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Top bar */}
-                <header className="flex items-center justify-between px-4 sm:px-6 py-3 bg-white border-b border-surface-200 lg:hidden">
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="p-2 rounded-xl text-surface-600 hover:bg-surface-100"
-                    >
-                        <HiOutlineMenu className="w-5 h-5" />
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center">
-                            <HiOutlineShieldCheck className="w-4 h-4 text-white" />
+                <header className="flex items-center justify-between px-4 sm:px-6 py-3 bg-white border-b border-surface-200">
+                    <div className="flex items-center gap-4 lg:gap-0">
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            className="p-2 rounded-xl text-surface-600 hover:bg-surface-100 lg:hidden"
+                        >
+                            <HiOutlineMenu className="w-5 h-5" />
+                        </button>
+                        <div className="hidden lg:block">
+                            <h2 className="text-lg font-bold text-surface-900 capitalize">
+                                {window.location.pathname.replace('/', '') || 'Dashboard'}
+                            </h2>
                         </div>
-                        <span className="font-bold text-sm text-surface-900">InsureCRM</span>
                     </div>
-                    <div className="w-9" /> {/* Spacer */}
+
+                    <div className="flex-1 max-w-md mx-4">
+                        <GlobalSearch />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="hidden sm:block text-right">
+                            <p className="text-sm font-medium text-surface-900">{user?.name}</p>
+                            <p className="text-[10px] text-surface-500 uppercase tracking-wider">{user?.role}</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-primary-600/10 flex items-center justify-center text-primary-600 font-bold text-xs">
+                            {user?.name?.charAt(0).toUpperCase()}
+                        </div>
+                    </div>
                 </header>
 
                 {/* Page content */}

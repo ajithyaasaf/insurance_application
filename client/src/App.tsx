@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Customers from './pages/Customers';
 import Policies from './pages/Policies';
+import PolicyDetail from './pages/PolicyDetail';
 import Payments from './pages/Payments';
 import Claims from './pages/Claims';
 import FollowUps from './pages/FollowUps';
@@ -73,6 +74,7 @@ const App: React.FC = () => {
                             <Route path="/leads" element={<Leads />} />
                             <Route path="/customers" element={<Customers />} />
                             <Route path="/policies" element={<Policies />} />
+                            <Route path="/policies/:id" element={<PolicyDetail />} />
                             <Route path="/payments" element={<Payments />} />
                             <Route path="/claims" element={<Claims />} />
                             <Route path="/follow-ups" element={<FollowUps />} />

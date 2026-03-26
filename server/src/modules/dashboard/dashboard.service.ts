@@ -20,6 +20,7 @@ export class DashboardService {
             totalActivePolicies,
             totalLeads,
             recentClaims,
+            companyGrouping
         ] = await Promise.all([
             // Policies expiring in next 30 days
             prisma.policy.findMany({
@@ -91,7 +92,32 @@ export class DashboardService {
                 orderBy: { createdAt: 'desc' },
                 take: 5,
             }),
+
+            // Company stats (grouped by company)
+            prisma.policy.groupBy({
+                by: ['companyId'],
+                where: { userId, status: 'active', deletedAt: null },
+                _count: { _all: true },
+                _sum: { premiumAmount: true },
+            }),
         ]);
+
+        // Fetch company names for the stats
+        const companyIds = companyGrouping.map((s) => s.companyId);
+        const companies = await prisma.company.findMany({
+            where: { id: { in: companyIds } },
+            select: { id: true, name: true }
+        });
+
+        const companyStats = companyGrouping.map((s) => {
+            const company = companies.find((c) => c.id === s.companyId);
+            return {
+                companyId: s.companyId,
+                companyName: company?.name || 'Unknown',
+                count: s._count._all,
+                totalPremium: s._sum.premiumAmount || 0,
+            };
+        });
 
         return {
             stats: {
@@ -108,6 +134,7 @@ export class DashboardService {
             pendingPayments,
             overduePayments,
             recentClaims,
+            companyStats,
         };
     }
 }

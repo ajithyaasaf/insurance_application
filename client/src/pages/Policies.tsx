@@ -5,13 +5,15 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate } from '../utils/format';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';
+import { useNavigate } from 'react-router-dom';
 
 const policyTypes = ['motor', 'health', 'life', 'fire', 'marine', 'travel', 'property', 'liability', 'other'];
 const premiumModes = ['monthly', 'quarterly', 'halfYearly', 'yearly', 'single'];
 const statusOptions = ['active', 'expired', 'cancelled', 'lost'];
 
 const Policies: React.FC = () => {
+    const navigate = useNavigate();
     const [policies, setPolicies] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
     const [companies, setCompanies] = useState<any[]>([]);
@@ -162,6 +164,7 @@ const Policies: React.FC = () => {
                                         <td><span className={getStatusColor(p.status)}>{p.status}</span></td>
                                         <td>
                                             <div className="flex items-center gap-1">
+                                                <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-ghost btn-sm text-primary-600" title="View"><HiOutlineEye className="w-3.5 h-3.5" /></button>
                                                 <button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
                                                 {p.status === 'active' && <button onClick={() => openRenew(p)} className="btn-ghost btn-sm text-emerald-600" title="Renew"><HiOutlineRefresh className="w-3.5 h-3.5" /></button>}
                                                 <button onClick={() => handleDelete(p.id)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
@@ -188,6 +191,7 @@ const Policies: React.FC = () => {
                                     <span className={`text-xs ${daysUntil(p.expiryDate) <= 30 ? 'text-amber-600' : 'text-surface-500'}`}>{formatRelativeDate(p.expiryDate)}</span>
                                 </div>
                                 <div className="flex gap-2">
+                                    <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-secondary btn-sm flex-1">View</button>
                                     <button onClick={() => openEdit(p)} className="btn-secondary btn-sm flex-1">Edit</button>
                                     {p.status === 'active' && <button onClick={() => openRenew(p)} className="btn-primary btn-sm flex-1">Renew</button>}
                                     <button onClick={() => handleDelete(p.id)} className="btn-danger btn-sm">Del</button>
