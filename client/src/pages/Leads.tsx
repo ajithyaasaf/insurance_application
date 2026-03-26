@@ -1,0 +1,208 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import api from '../api/client';
+import Modal from '../components/ui/Modal';
+import Pagination from '../components/ui/Pagination';
+import EmptyState from '../components/ui/EmptyState';
+import { formatDate, getStatusColor } from '../utils/format';
+import toast from 'react-hot-toast';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUserAdd, HiOutlineTrendingUp } from 'react-icons/hi';
+
+const statusOptions = ['new', 'contacted', 'interested', 'converted', 'lost'];
+
+const Leads: React.FC = () => {
+    const [leads, setLeads] = useState<any[]>([]);
+    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [convertModalOpen, setConvertModalOpen] = useState(false);
+    const [editing, setEditing] = useState<any>(null);
+    const [convertingLead, setConvertingLead] = useState<any>(null);
+    const [form, setForm] = useState({ name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '' });
+    const [convertForm, setConvertForm] = useState({ address: '', email: '' });
+
+    const fetchLeads = useCallback(async (page = 1) => {
+        setLoading(true);
+        try {
+            const res = await api.get('/leads', { params: { page, limit: 20, search: search || undefined, status: statusFilter || undefined } });
+            setLeads(res.data.data);
+            setMeta(res.data.meta);
+        } catch { toast.error('Failed to fetch leads'); } finally { setLoading(false); }
+    }, [search, statusFilter]);
+
+    useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+    const openCreate = () => {
+        setEditing(null);
+        setForm({ name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '' });
+        setModalOpen(true);
+    };
+
+    const openEdit = (lead: any) => {
+        setEditing(lead);
+        setForm({
+            name: lead.name, phone: lead.phone || '', interestedProduct: lead.interestedProduct || '',
+            status: lead.status, nextFollowUpDate: lead.nextFollowUpDate?.split('T')[0] || '', notes: lead.notes || '',
+        });
+        setModalOpen(true);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const payload = { ...form, nextFollowUpDate: form.nextFollowUpDate || undefined };
+            if (editing) {
+                await api.put(`/leads/${editing.id}`, payload);
+                toast.success('Lead updated');
+            } else {
+                await api.post('/leads', payload);
+                toast.success('Lead created');
+            }
+            setModalOpen(false);
+            fetchLeads(meta.page);
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Delete this lead?')) return;
+        try {
+            await api.delete(`/leads/${id}`);
+            toast.success('Lead deleted');
+            fetchLeads(meta.page);
+        } catch { toast.error('Failed to delete'); }
+    };
+
+    const openConvert = (lead: any) => {
+        setConvertingLead(lead);
+        setConvertForm({ address: '', email: '' });
+        setConvertModalOpen(true);
+    };
+
+    const handleConvert = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await api.post(`/leads/${convertingLead.id}/convert`, convertForm);
+            toast.success('Lead converted to customer!');
+            setConvertModalOpen(false);
+            fetchLeads(meta.page);
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+    };
+
+    return (
+        <div className="space-y-4 animate-fade-in">
+            <div className="page-header">
+                <h1 className="page-title">Leads</h1>
+                <button onClick={openCreate} className="btn-primary"><HiOutlinePlus className="w-4 h-4" /> Add Lead</button>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                    <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                    <input className="input pl-10" placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
+                <select className="select w-full sm:w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="">All Status</option>
+                    {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                </select>
+            </div>
+
+            {/* Table */}
+            {loading ? (
+                <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>
+            ) : leads.length === 0 ? (
+                <EmptyState message="No leads found" icon={<HiOutlineTrendingUp className="w-12 h-12" />} />
+            ) : (
+                <>
+                    {/* Desktop Table */}
+                    <div className="table-container hidden sm:block">
+                        <table className="table">
+                            <thead>
+                                <tr><th>Name</th><th>Phone</th><th>Product</th><th>Status</th><th>Follow-up</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody>
+                                {leads.map((lead) => (
+                                    <tr key={lead.id}>
+                                        <td className="font-medium text-surface-900">{lead.name}</td>
+                                        <td>{lead.phone || '—'}</td>
+                                        <td>{lead.interestedProduct || '—'}</td>
+                                        <td><span className={getStatusColor(lead.status)}>{lead.status}</span></td>
+                                        <td>{lead.nextFollowUpDate ? formatDate(lead.nextFollowUpDate) : '—'}</td>
+                                        <td>
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => openEdit(lead)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
+                                                {lead.status !== 'converted' && <button onClick={() => openConvert(lead)} className="btn-ghost btn-sm text-emerald-600"><HiOutlineUserAdd className="w-3.5 h-3.5" /></button>}
+                                                <button onClick={() => handleDelete(lead.id)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile Cards */}
+                    <div className="sm:hidden space-y-3">
+                        {leads.map((lead) => (
+                            <div key={lead.id} className="card card-body">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p className="font-semibold text-surface-900">{lead.name}</p>
+                                        <p className="text-xs text-surface-500">{lead.phone || 'No phone'}</p>
+                                    </div>
+                                    <span className={getStatusColor(lead.status)}>{lead.status}</span>
+                                </div>
+                                {lead.interestedProduct && <p className="text-xs text-surface-500 mb-2">Product: {lead.interestedProduct}</p>}
+                                <div className="flex gap-2 mt-2">
+                                    <button onClick={() => openEdit(lead)} className="btn-secondary btn-sm flex-1">Edit</button>
+                                    {lead.status !== 'converted' && <button onClick={() => openConvert(lead)} className="btn-primary btn-sm flex-1">Convert</button>}
+                                    <button onClick={() => handleDelete(lead.id)} className="btn-danger btn-sm">Delete</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <Pagination page={meta.page} totalPages={meta.totalPages} onPageChange={(p) => fetchLeads(p)} />
+                </>
+            )}
+
+            {/* Create/Edit Modal */}
+            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Lead' : 'New Lead'}>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div><label className="label">Name *</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                    <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                    <div><label className="label">Interested Product</label><input className="input" value={form.interestedProduct} onChange={(e) => setForm({ ...form, interestedProduct: e.target.value })} /></div>
+                    <div><label className="label">Status</label>
+                        <select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                            {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                        </select>
+                    </div>
+                    <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
+                    <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
+                        <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Convert Modal */}
+            <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)} title="Convert Lead to Customer">
+                <form onSubmit={handleConvert} className="space-y-4">
+                    <p className="text-sm text-surface-500">Converting <strong>{convertingLead?.name}</strong> to a customer.</p>
+                    <div><label className="label">Email</label><input type="email" className="input" value={convertForm.email} onChange={(e) => setConvertForm({ ...convertForm, email: e.target.value })} /></div>
+                    <div><label className="label">Address</label><textarea className="input" rows={2} value={convertForm.address} onChange={(e) => setConvertForm({ ...convertForm, address: e.target.value })} /></div>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setConvertModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
+                        <button type="submit" className="btn-primary flex-1">Convert</button>
+                    </div>
+                </form>
+            </Modal>
+
+            <button onClick={openCreate} className="fab lg:hidden"><HiOutlinePlus className="w-6 h-6" /></button>
+        </div>
+    );
+};
+
+export default Leads;

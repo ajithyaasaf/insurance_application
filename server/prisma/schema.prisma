@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum Role {
+  agent
+  staff
+}
+
+enum LeadStatus {
+  new
+  contacted
+  interested
+  converted
+  lost
+}
+
+enum PolicyStatus {
+  active
+  expired
+  cancelled
+  lost
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  partial
+  overdue
+}
+
+enum FollowUpStatus {
+  pending
+  completed
+  cancelled
+}
+
+enum PremiumMode {
+  monthly
+  quarterly
+  halfYearly
+  yearly
+  single
+}
+
+enum PolicyType {
+  motor
+  health
+  life
+  fire
+  marine
+  travel
+  property
+  liability
+  other
+}
+
+// ─── User ───────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(agent)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  leads     Lead[]
+  customers Customer[]
+  policies  Policy[]
+  claims    Claim[]
+  payments  Payment[]
+  followUps FollowUp[]
+
+  @@index([email])
+}
+
+// ─── Lead ───────────────────────────────────────────────
+
+model Lead {
+  id               String     @id @default(uuid())
+  userId           String
+  name             String
+  phone            String?
+  interestedProduct String?
+  status           LeadStatus @default(new)
+  nextFollowUpDate DateTime?
+  notes            String?
+  createdBy        String     // "agent" | "staff"
+  updatedBy        String     // "agent" | "staff"
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([phone])
+  @@index([createdAt])
+  @@index([status])
+}
+
+// ─── Customer ───────────────────────────────────────────
+
+model Customer {
+  id        String    @id @default(uuid())
+  userId    String
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdBy String
+  updatedBy String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user      User       @relation(fields: [userId], references: [id])
+  policies  Policy[]
+  claims    Claim[]
+  payments  Payment[]
+  followUps FollowUp[]
+
+  @@index([userId])
+  @@index([phone])
+  @@index([createdAt])
+}
+
+// ─── Company ────────────────────────────────────────────
+
+model Company {
+  id       String  @id @default(uuid())
+  name     String
+  type     String? // insurer, TPA, etc.
+  category String? // life, general, health
+
+  policies Policy[]
+
+  @@index([name])
+}
+
+// ─── Policy ─────────────────────────────────────────────
+
+model Policy {
+  id             String       @id @default(uuid())
+  userId         String
+  customerId     String
+  companyId      String
+  policyNumber   String?
+  policyType     PolicyType
+  vehicleNumber  String?
+  startDate      DateTime
+  expiryDate     DateTime
+  sumInsured     Float?
+  premiumAmount  Float
+  premiumMode    PremiumMode  @default(yearly)
+  productName    String?
+  noOfYears      Int          @default(1)
+  status         PolicyStatus @default(active)
+  parentPolicyId String?
+  lostReason     String?
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  user         User      @relation(fields: [userId], references: [id])
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  company      Company   @relation(fields: [companyId], references: [id])
+  parentPolicy Policy?   @relation("PolicyRenewal", fields: [parentPolicyId], references: [id])
+  renewals     Policy[]  @relation("PolicyRenewal")
+  claims       Claim[]
+  payments     Payment[]
+  followUps    FollowUp[]
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([companyId])
+  @@index([expiryDate])
+  @@index([createdAt])
+  @@index([status])
+}
+
+// ─── Claim ──────────────────────────────────────────────
+
+model Claim {
+  id          String   @id @default(uuid())
+  userId      String
+  policyId    String
+  customerId  String
+  claimNumber String?
+  claimAmount Float
+  claimDate   DateTime
+  status      String   @default("filed") // filed, approved, rejected, settled
+  reason      String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  policy   Policy   @relation(fields: [policyId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([userId])
+  @@index([policyId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+// ─── Payment ────────────────────────────────────────────
+
+model Payment {
+  id         String        @id @default(uuid())
+  userId     String
+  policyId   String
+  customerId String
+  amount     Float
+  dueDate    DateTime
+  paidDate   DateTime?
+  paidAmount Float?
+  status     PaymentStatus @default(pending)
+  notes      String?
+  createdBy  String
+  createdAt  DateTime      @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  policy   Policy   @relation(fields: [policyId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([userId])
+  @@index([policyId])
+  @@index([customerId])
+  @@index([dueDate])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─── FollowUp ───────────────────────────────────────────
+
+model FollowUp {
+  id               String         @id @default(uuid())
+  userId           String
+  customerId       String
+  policyId         String?
+  nextFollowUpDate DateTime
+  notes            String?
+  status           FollowUpStatus @default(pending)
+  createdBy        String
+  createdAt        DateTime       @default(now())
+
+  user     User      @relation(fields: [userId], references: [id])
+  customer Customer  @relation(fields: [customerId], references: [id])
+  policy   Policy?   @relation(fields: [policyId], references: [id])
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([nextFollowUpDate])
+  @@index([status])
+  @@index([createdAt])
+}
