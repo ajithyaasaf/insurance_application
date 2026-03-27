@@ -20,21 +20,21 @@ export class PaymentController {
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const payment = await paymentService.findById(req.user!.userId, req.params.id);
+            const payment = await paymentService.findById(req.user!.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Payment found', data: payment });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const payment = await paymentService.update(req.user!.userId, req.params.id, req.body);
+            const payment = await paymentService.update(req.user!.userId, req.params.id as string, req.body);
             sendSuccess({ res, statusCode: 200, message: 'Payment updated', data: payment });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await paymentService.delete(req.user!.userId, req.params.id);
+            await paymentService.delete(req.user!.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Payment deleted' });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }

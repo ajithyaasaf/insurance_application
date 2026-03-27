@@ -60,7 +60,7 @@ export class PaymentService {
         status?: string,
         search?: string
     ) {
-        const where: Prisma.PaymentWhereInput = {
+        const where: any = {
             userId,
             ...(status && { status: status as any }),
             ...(search && {
@@ -115,7 +115,7 @@ export class PaymentService {
             throw Object.assign(new Error('Paid amount cannot exceed the installment amount'), { statusCode: 400 });
         }
 
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: any) => {
             let newStatus = data.status as any;
 
             // Auto-detect status based on paid amount

@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 
-const policyTypes = ['motor', 'health', 'life', 'fire', 'marine', 'travel', 'property', 'liability', 'other'];
+const policyTypes = ['motor', 'health', 'life', 'other'];
 const premiumModes = ['monthly', 'quarterly', 'halfYearly', 'yearly', 'single'];
 const statusOptions = ['active', 'expired', 'cancelled', 'lost'];
 
@@ -21,6 +21,7 @@ const Policies: React.FC = () => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
+    const [companyFilter, setCompanyFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [renewModalOpen, setRenewModalOpen] = useState(false);
@@ -35,11 +36,11 @@ const Policies: React.FC = () => {
     const fetchPolicies = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/policies', { params: { page, limit: 20, search: search || undefined, status: statusFilter || undefined, policyType: typeFilter || undefined } });
+            const res = await api.get('/policies', { params: { page, limit: 20, search: search || undefined, status: statusFilter || undefined, policyType: typeFilter || undefined, companyId: companyFilter || undefined } });
             setPolicies(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch policies'); } finally { setLoading(false); }
-    }, [search, statusFilter, typeFilter]);
+    }, [search, statusFilter, typeFilter, companyFilter]);
 
     useEffect(() => { fetchPolicies(); }, [fetchPolicies]);
 
@@ -137,6 +138,19 @@ const Policies: React.FC = () => {
                     <option value="">All Types</option>
                     {policyTypes.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                 </select>
+                <select className="select w-full sm:w-36" value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)}>
+                    <option value="">All Companies</option>
+                     {companies
+                         .filter(c => {
+                             if (!typeFilter) return true;
+                             if (typeFilter === 'life') return c.name === 'LIC';
+                             if (typeFilter === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
+                             if (typeFilter === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
+                             return true;
+                         })
+                         .map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                    }
+                </select>
             </div>
 
             {loading ? (
@@ -216,7 +230,15 @@ const Policies: React.FC = () => {
                         <div><label className="label">Company *</label>
                             <select className="select" required value={form.companyId} onChange={(e) => setForm({ ...form, companyId: e.target.value })}>
                                 <option value="">Select Company</option>
-                                {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                {companies
+                                    .filter(c => {
+                                        if (form.policyType === 'life') return c.name === 'LIC';
+                                        if (form.policyType === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
+                                        if (form.policyType === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
+                                        return true; // fallback for 'other'
+                                    })
+                                    .map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                                }
                             </select>
                         </div>
                         <div><label className="label">Policy Type *</label>
@@ -224,7 +246,7 @@ const Policies: React.FC = () => {
                                 {policyTypes.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                             </select>
                         </div>
-                        <div><label className="label">Policy Number</label><input className="input" value={form.policyNumber} onChange={(e) => setForm({ ...form, policyNumber: e.target.value })} /></div>
+                        <div><label className="label">Policy Number *</label><input className="input" required value={form.policyNumber} onChange={(e) => setForm({ ...form, policyNumber: e.target.value })} /></div>
                         {needsVehicle && <div><label className="label">Vehicle Number *</label><input className="input" required={needsVehicle} value={form.vehicleNumber} onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value })} /></div>}
                         <div><label className="label">Product Name</label><input className="input" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} /></div>
                         <div><label className="label">Start Date *</label><input type="date" className="input" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
@@ -255,7 +277,7 @@ const Policies: React.FC = () => {
             <Modal isOpen={renewModalOpen} onClose={() => setRenewModalOpen(false)} title="Renew Policy">
                 <form onSubmit={handleRenew} className="space-y-4">
                     <p className="text-sm text-surface-500">Renewing policy for <strong>{renewingPolicy?.customer?.name}</strong></p>
-                    <div><label className="label">New Policy Number</label><input className="input" value={renewForm.policyNumber} onChange={(e) => setRenewForm({ ...renewForm, policyNumber: e.target.value })} /></div>
+                    <div><label className="label">New Policy Number *</label><input className="input" required value={renewForm.policyNumber} onChange={(e) => setRenewForm({ ...renewForm, policyNumber: e.target.value })} /></div>
                     <div><label className="label">Start Date *</label><input type="date" className="input" required value={renewForm.startDate} onChange={(e) => setRenewForm({ ...renewForm, startDate: e.target.value })} /></div>
                     <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={renewForm.expiryDate} onChange={(e) => setRenewForm({ ...renewForm, expiryDate: e.target.value })} /></div>
                     <div><label className="label">Premium Amount *</label><input type="number" className="input" required value={renewForm.premiumAmount} onChange={(e) => setRenewForm({ ...renewForm, premiumAmount: e.target.value })} /></div>

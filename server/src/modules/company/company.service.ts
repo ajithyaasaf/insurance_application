@@ -25,6 +25,10 @@ export class CompanyService {
 
     async delete(id: string) {
         await this.findById(id);
+        const policyCount = await prisma.policy.count({ where: { companyId: id, deletedAt: null } });
+        if (policyCount > 0) {
+            throw Object.assign(new Error('Cannot delete company because it has existing policies'), { statusCode: 400 });
+        }
         return prisma.company.delete({ where: { id } });
     }
 }

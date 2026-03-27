@@ -50,11 +50,11 @@ const Customers: React.FC = () => {
         e.preventDefault();
         try {
             if (editing) {
-                await api.put(`/customers/${editing.id}`, form);
-                toast.success('Customer updated');
+                const response = await api.put(`/customers/${editing.id}`, form);
+                toast.success(response.data?.message || 'Customer updated');
             } else {
-                await api.post('/customers', form);
-                toast.success('Customer created');
+                const response = await api.post('/customers', form);
+                toast.success(response.data?.message || 'Customer created', { duration: 5000 });
             }
             setModalOpen(false);
             fetchCustomers(meta.page);

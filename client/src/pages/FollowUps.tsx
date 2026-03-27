@@ -154,7 +154,7 @@ const FollowUps: React.FC = () => {
                         <select className="select" value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })}>
                             <option value="">None</option>
                             {policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => (
-                                <option key={p.id} value={p.id}>{p.productName || p.policyType} - {p.customer?.name}</option>
+                                <option key={p.id} value={p.id}>{p.productName || p.policyType} • {p.status.charAt(0).toUpperCase() + p.status.slice(1)} ({formatDate(p.expiryDate)})</option>
                             ))}
                         </select>
                     </div>

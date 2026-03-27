@@ -20,17 +20,11 @@ export class ClaimController {
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const claim = await claimService.findById(req.user!.userId, req.params.id);
+            const claim = await claimService.findById(req.user!.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Claim found', data: claim });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
-    async update(req: Request, res: Response, next: NextFunction) {
-        try {
-            const claim = await claimService.update(req.user!.userId, req.params.id, req.body);
-            sendSuccess({ res, statusCode: 200, message: 'Claim updated', data: claim });
-        } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
-    }
 }
 
 export const claimController = new ClaimController();

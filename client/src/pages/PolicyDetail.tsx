@@ -204,8 +204,18 @@ const PolicyDetail: React.FC = () => {
                     {/* Claims Card */}
                     <div className="card">
                         <div className="px-5 py-3 border-b border-surface-100 flex items-center justify-between bg-surface-50/50">
-                            <h3 className="text-xs font-bold text-surface-900 uppercase tracking-wider">Claims</h3>
-                            <span className="text-[10px] font-bold bg-surface-200 text-surface-600 px-1.5 py-0.5 rounded-full">{policy.claims?.length || 0}</span>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-xs font-bold text-surface-900 uppercase tracking-wider">Claims</h3>
+                                <span className="text-[10px] font-bold bg-surface-200 text-surface-600 px-1.5 py-0.5 rounded-full">{policy.claims?.length || 0}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] uppercase font-bold text-surface-500">NCB:</span>
+                                {policy.hasNCB ? (
+                                    <span className="text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">YES</span>
+                                ) : (
+                                    <span className="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">NO</span>
+                                )}
+                            </div>
                         </div>
                         <div className="p-4">
                             {policy.claims?.length === 0 ? (

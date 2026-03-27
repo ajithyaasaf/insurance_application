@@ -59,14 +59,6 @@ export class ClaimService {
         return claim;
     }
 
-    async update(userId: string, id: string, data: { status?: string; reason?: string }) {
-        await this.findById(userId, id);
-        return prisma.claim.update({
-            where: { id },
-            data: { status: data.status, reason: data.reason },
-            include: { customer: true, policy: true },
-        });
-    }
 }
 
 export const claimService = new ClaimService();

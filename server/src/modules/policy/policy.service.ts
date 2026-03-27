@@ -62,9 +62,10 @@ export class PolicyService {
         limit = 20,
         search?: string,
         status?: string,
-        policyType?: string
+        policyType?: string,
+        companyId?: string
     ) {
-        const where: Prisma.PolicyWhereInput = {
+        const where: any = {
             userId,
             deletedAt: null,
             ...(search && {
@@ -76,6 +77,7 @@ export class PolicyService {
             }),
             ...(status && { status: status as any }),
             ...(policyType && { policyType: policyType as any }),
+            ...(companyId && { companyId }),
         };
 
         const [data, total] = await Promise.all([
@@ -106,7 +108,8 @@ export class PolicyService {
         });
 
         if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
-        return policy;
+        const hasNCB = policy.claims.length === 0;
+        return { ...policy, hasNCB };
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
@@ -146,7 +149,7 @@ export class PolicyService {
     async renew(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
         const originalPolicy = await this.findById(userId, id);
 
-        return prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx: any) => {
             // Mark original as expired
             await tx.policy.update({
                 where: { id },

@@ -17,12 +17,7 @@ const companies = [
     { name: 'Tata AIG', type: 'insurer', category: 'general' },
     { name: 'Star Health Insurance', type: 'insurer', category: 'health' },
     { name: 'Care Insurance', type: 'insurer', category: 'health' },
-    { name: 'LIC', type: 'insurer', category: 'life' },
-    { name: 'ICICI Prudential', type: 'insurer', category: 'life' },
-    { name: 'SBI Life', type: 'insurer', category: 'life' },
-    { name: 'Max Life Insurance', type: 'insurer', category: 'life' },
-    { name: 'HDFC Life', type: 'insurer', category: 'life' },
-    { name: 'Kotak Life Insurance', type: 'insurer', category: 'life' },
+    { name: 'LIC', type: 'insurer', category: 'life' }
 ];
 
 async function main() {
@@ -36,11 +31,8 @@ async function main() {
         });
     }
 
-    // Use createMany with skipDuplicates as a fallback
-    await prisma.company.createMany({
-        data: companies,
-        skipDuplicates: true,
-    });
+    // The createMany fallback was removing unique checks and causing duplicates.
+    // We strictly use upsert now.
 
     const count = await prisma.company.count();
     console.log(`✅ Seeded ${count} companies`);

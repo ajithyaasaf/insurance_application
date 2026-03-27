@@ -12,36 +12,36 @@ export class PolicyController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { page, limit, search, status, policyType } = req.query as any;
-            const result = await policyService.findAll(req.user!.userId, +page || 1, +limit || 20, search, status, policyType);
+            const { page, limit, search, status, policyType, companyId } = req.query as any;
+            const result = await policyService.findAll(req.user!.userId, +page || 1, +limit || 20, search, status, policyType, companyId);
             sendSuccess({ res, statusCode: 200, message: 'Policies fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const policy = await policyService.findById(req.user!.userId, req.params.id);
+            const policy = await policyService.findById(req.user!.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Policy found', data: policy });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const policy = await policyService.update(req.user!.userId, req.user!.role, req.params.id, req.body);
+            const policy = await policyService.update(req.user!.userId, req.user!.role, req.params.id as string, req.body);
             sendSuccess({ res, statusCode: 200, message: 'Policy updated', data: policy });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await policyService.softDelete(req.user!.userId, req.params.id);
+            await policyService.softDelete(req.user!.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Policy deleted' });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async renew(req: Request, res: Response, next: NextFunction) {
         try {
-            const policy = await policyService.renew(req.user!.userId, req.user!.role, req.params.id, req.body);
+            const policy = await policyService.renew(req.user!.userId, req.user!.role, req.params.id as string, req.body);
             sendSuccess({ res, statusCode: 201, message: 'Policy renewed', data: policy });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }

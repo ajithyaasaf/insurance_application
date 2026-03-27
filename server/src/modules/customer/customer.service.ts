@@ -33,7 +33,7 @@ export class CustomerService {
     }
 
     async findAll(userId: string, page = 1, limit = 20, search?: string) {
-        const where: Prisma.CustomerWhereInput = {
+        const where: any = {
             userId,
             deletedAt: null,
             ...(search && {

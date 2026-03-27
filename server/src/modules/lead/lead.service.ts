@@ -45,7 +45,7 @@ export class LeadService {
         search?: string,
         status?: string
     ) {
-        const where: Prisma.LeadWhereInput = {
+        const where: any = {
             userId,
             deletedAt: null,
             ...(search && {

@@ -26,7 +26,7 @@ export class FollowUpService {
     }
 
     async findAll(userId: string, page = 1, limit = 20, status?: string, date?: string) {
-        const where: Prisma.FollowUpWhereInput = {
+        const where: any = {
             userId,
             ...(status && { status: status as any }),
             ...(date && {

@@ -103,13 +103,13 @@ export class DashboardService {
         ]);
 
         // Fetch company names for the stats
-        const companyIds = companyGrouping.map((s) => s.companyId);
+        const companyIds = companyGrouping.map((s: any) => s.companyId);
         const companies = await prisma.company.findMany({
             where: { id: { in: companyIds } },
             select: { id: true, name: true }
         });
 
-        const companyStats = companyGrouping.map((s) => {
+        const companyStats = companyGrouping.map((s: any) => {
             const company = companies.find((c) => c.id === s.companyId);
             return {
                 companyId: s.companyId,

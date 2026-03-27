@@ -126,11 +126,11 @@ const Claims: React.FC = () => {
                         <select className="select" required value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })}>
                             <option value="">Select</option>
                             {policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => (
-                                <option key={p.id} value={p.id}>{p.productName || p.policyType} - {p.customer?.name}</option>
+                                <option key={p.id} value={p.id}>{p.productName || p.policyType} • {p.status.charAt(0).toUpperCase() + p.status.slice(1)} ({formatDate(p.expiryDate)})</option>
                             ))}
                         </select>
                     </div>
-                    <div><label className="label">Claim Number</label><input className="input" value={form.claimNumber} onChange={(e) => setForm({ ...form, claimNumber: e.target.value })} /></div>
+                    <div><label className="label">Claim Number *</label><input className="input" required value={form.claimNumber} onChange={(e) => setForm({ ...form, claimNumber: e.target.value })} /></div>
                     <div><label className="label">Claim Amount *</label><input type="number" className="input" required value={form.claimAmount} onChange={(e) => setForm({ ...form, claimAmount: e.target.value })} /></div>
                     <div><label className="label">Claim Date *</label><input type="date" className="input" required value={form.claimDate} onChange={(e) => setForm({ ...form, claimDate: e.target.value })} /></div>
                     <div><label className="label">Reason</label><textarea className="input" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>
