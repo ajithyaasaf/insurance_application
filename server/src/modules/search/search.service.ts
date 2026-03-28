@@ -35,11 +35,12 @@ export class SearchService {
             prisma.policy.findMany({
                 where: {
                     userId,
-                    deletedAt: null,
                     OR: [
                         { policyNumber: { contains: query, mode: 'insensitive' } },
                         { vehicleNumber: { contains: query, mode: 'insensitive' } },
                         { productName: { contains: query, mode: 'insensitive' } },
+                        { make: { contains: query, mode: 'insensitive' } },
+                        { model: { contains: query, mode: 'insensitive' } },
                     ],
                 },
                 include: { customer: true, company: true },

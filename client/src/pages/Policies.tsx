@@ -17,6 +17,7 @@ const Policies: React.FC = () => {
     const [policies, setPolicies] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
     const [companies, setCompanies] = useState<any[]>([]);
+    const [dealers, setDealers] = useState<any[]>([]);
     const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -30,6 +31,7 @@ const Policies: React.FC = () => {
     const [form, setForm] = useState({
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
         sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', status: 'active', lostReason: '',
+        make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: ''
     });
     const [renewForm, setRenewForm] = useState({ startDate: '', expiryDate: '', premiumAmount: '', policyNumber: '' });
 
@@ -47,9 +49,10 @@ const Policies: React.FC = () => {
     useEffect(() => {
         const loadDropdowns = async () => {
             try {
-                const [custRes, compRes] = await Promise.all([api.get('/customers?limit=100'), api.get('/companies')]);
+                const [custRes, compRes, dealerRes] = await Promise.all([api.get('/customers?limit=100'), api.get('/companies'), api.get('/dealers?limit=100')]);
                 setCustomers(custRes.data.data);
                 setCompanies(compRes.data.data);
+                setDealers(dealerRes.data.data);
             } catch { }
         };
         loadDropdowns();
@@ -57,7 +60,7 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', status: 'active', lostReason: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', status: 'active', lostReason: '', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: '' });
         setModalOpen(true);
     };
 
@@ -68,6 +71,9 @@ const Policies: React.FC = () => {
             vehicleNumber: p.vehicleNumber || '', startDate: p.startDate.split('T')[0], expiryDate: p.expiryDate.split('T')[0],
             sumInsured: p.sumInsured?.toString() || '', premiumAmount: p.premiumAmount.toString(), premiumMode: p.premiumMode,
             productName: p.productName || '', noOfYears: p.noOfYears.toString(), status: p.status, lostReason: p.lostReason || '',
+            make: p.make || '', model: p.model || '', vehicleClass: p.vehicleClass || '', idv: p.idv?.toString() || '',
+            od: p.od?.toString() || '', tp: p.tp?.toString() || '', tax: p.tax?.toString() || '', totalPremium: p.totalPremium?.toString() || '',
+            paymentMethod: p.paymentMethod || '', dealerId: p.dealerId || ''
         });
         setModalOpen(true);
     };
@@ -78,6 +84,16 @@ const Policies: React.FC = () => {
             const payload = {
                 ...form, sumInsured: form.sumInsured ? parseFloat(form.sumInsured) : undefined,
                 premiumAmount: parseFloat(form.premiumAmount), noOfYears: parseInt(form.noOfYears),
+                idv: form.idv ? parseFloat(form.idv) : undefined,
+                od: form.od ? parseFloat(form.od) : undefined,
+                tp: form.tp ? parseFloat(form.tp) : undefined,
+                tax: form.tax ? parseFloat(form.tax) : undefined,
+                totalPremium: form.totalPremium ? parseFloat(form.totalPremium) : undefined,
+                make: form.make || undefined,
+                model: form.model || undefined,
+                vehicleClass: form.vehicleClass || undefined,
+                paymentMethod: form.paymentMethod || undefined,
+                dealerId: form.dealerId || undefined,
                 lostReason: form.status === 'lost' ? form.lostReason : undefined,
             };
             if (editing) { await api.put(`/policies/${editing.id}`, payload); toast.success('Policy updated'); }
@@ -247,7 +263,17 @@ const Policies: React.FC = () => {
                             </select>
                         </div>
                         <div><label className="label">Policy Number *</label><input className="input" required value={form.policyNumber} onChange={(e) => setForm({ ...form, policyNumber: e.target.value })} /></div>
-                        {needsVehicle && <div><label className="label">Vehicle Number *</label><input className="input" required={needsVehicle} value={form.vehicleNumber} onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value })} /></div>}
+                        {needsVehicle && <>
+                            <div><label className="label">Vehicle Number *</label><input className="input" required={needsVehicle} value={form.vehicleNumber} onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value })} /></div>
+                            <div><label className="label">Make</label><input className="input" value={form.make} onChange={(e) => setForm({ ...form, make: e.target.value })} /></div>
+                            <div><label className="label">Model</label><input className="input" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
+                            <div><label className="label">Vehicle Class</label>
+                                <select className="select" value={form.vehicleClass} onChange={(e) => setForm({ ...form, vehicleClass: e.target.value })}>
+                                    <option value="">Select Class</option>
+                                    {['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others'].map(c => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
+                                </select>
+                            </div>
+                        </>}
                         <div><label className="label">Product Name</label><input className="input" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} /></div>
                         <div><label className="label">Start Date *</label><input type="date" className="input" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
                         <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
@@ -256,6 +282,25 @@ const Policies: React.FC = () => {
                         <div><label className="label">Premium Mode</label>
                             <select className="select" value={form.premiumMode} onChange={(e) => setForm({ ...form, premiumMode: e.target.value })}>
                                 {premiumModes.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+                        {needsVehicle && <>
+                            <div><label className="label">IDV</label><input type="number" step="0.01" className="input" value={form.idv} onChange={(e) => setForm({ ...form, idv: e.target.value })} /></div>
+                            <div><label className="label">OD Premium</label><input type="number" step="0.01" className="input" value={form.od} onChange={(e) => setForm({ ...form, od: e.target.value })} /></div>
+                            <div><label className="label">TP Premium</label><input type="number" step="0.01" className="input" value={form.tp} onChange={(e) => setForm({ ...form, tp: e.target.value })} /></div>
+                            <div><label className="label">Tax (GST)</label><input type="number" step="0.01" className="input" value={form.tax} onChange={(e) => setForm({ ...form, tax: e.target.value })} /></div>
+                            <div><label className="label">Total Premium (Computed)</label><input type="number" step="0.01" className="input" value={form.totalPremium} onChange={(e) => setForm({ ...form, totalPremium: e.target.value })} /></div>
+                        </>}
+                        <div><label className="label">Payment Method</label>
+                            <select className="select" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
+                                <option value="">Select Method</option>
+                                {['Cash', 'UPI', 'Cheque', 'Online', 'NEFT'].map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+                        <div><label className="label">Referred By Dealer</label>
+                            <select className="select" value={form.dealerId} onChange={(e) => setForm({ ...form, dealerId: e.target.value })}>
+                                <option value="">None / Direct</option>
+                                {dealers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                             </select>
                         </div>
                         <div><label className="label">No. of Years</label><input type="number" className="input" min="1" value={form.noOfYears} onChange={(e) => setForm({ ...form, noOfYears: e.target.value })} /></div>

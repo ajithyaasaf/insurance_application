@@ -115,7 +115,7 @@ const Payments: React.FC = () => {
                                 {payments.map((p) => (
                                     <tr key={p.id}>
                                         <td className="font-medium text-surface-900">{p.customer?.name}</td>
-                                        <td className="text-xs">{p.policy?.productName || p.policy?.policyType || '—'}</td>
+                                        <td className="text-xs">{p.policy?.productName || p.policy?.policyType || '—'} {p.policy?.vehicleNumber && `(${p.policy.vehicleNumber})`}</td>
                                         <td className="font-medium">{formatCurrency(p.amount)}</td>
                                         <td className="text-xs">{formatDate(p.dueDate)}</td>
                                         <td className="text-xs">{p.paidAmount ? formatCurrency(p.paidAmount) : '—'}</td>
@@ -160,7 +160,7 @@ const Payments: React.FC = () => {
                                 <select className="select" required value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })}>
                                     <option value="">Select</option>
                                     {policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => (
-                                        <option key={p.id} value={p.id}>{p.productName || p.policyType} • {p.status.charAt(0).toUpperCase() + p.status.slice(1)} ({formatDate(p.expiryDate)})</option>
+                                        <option key={p.id} value={p.id}>{p.productName || p.policyType} {p.vehicleNumber && `(${p.vehicleNumber})`} - {p.customer?.name}</option>
                                     ))}
                                 </select>
                             </div>

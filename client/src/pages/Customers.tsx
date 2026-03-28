@@ -152,11 +152,23 @@ const Customers: React.FC = () => {
                         {detail.policies?.length > 0 && (
                             <div>
                                 <h4 className="font-semibold text-sm mb-2">Policies ({detail.policies.length})</h4>
-                                <div className="space-y-2">
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
                                     {detail.policies.map((p: any) => (
                                         <div key={p.id} className="p-3 bg-surface-50 rounded-xl text-sm">
-                                            <div className="flex justify-between"><span className="font-medium">{p.productName || p.policyType}</span><span className={`${p.status === 'active' ? 'text-emerald-600' : 'text-surface-500'} text-xs`}>{p.status}</span></div>
-                                            <p className="text-xs text-surface-500">{formatDate(p.startDate)} → {formatDate(p.expiryDate)}</p>
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium capitalize">{p.productName || p.policyType}</span>
+                                                        {p.vehicleNumber && (
+                                                            <span className="px-1.5 py-0.5 rounded bg-white text-surface-600 text-[10px] font-semibold tracking-wider uppercase shadow-sm border border-surface-200">
+                                                                {p.vehicleNumber}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-surface-500 mt-0.5">{formatDate(p.startDate)} → {formatDate(p.expiryDate)}</p>
+                                                </div>
+                                                <span className={`${p.status === 'active' ? 'text-emerald-600' : 'text-surface-500'} text-xs font-medium`}>{p.status}</span>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

@@ -62,6 +62,18 @@ enum PolicyType {
   other
 }
 
+enum PolicyVehicleClass {
+  TW
+  CVP
+  PVT
+  GCV
+  Misc_D
+  CCP
+  Fire
+  Public_Liability
+  Others
+}
+
 // ─── User ───────────────────────────────────────────────
 
 model User {
@@ -79,8 +91,30 @@ model User {
   claims    Claim[]
   payments  Payment[]
   followUps FollowUp[]
+  dealers   Dealer[]
 
   @@index([email])
+}
+
+// ─── Dealer ─────────────────────────────────────────────
+
+model Dealer {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  phone     String?
+  address   String?
+  createdBy String
+  updatedBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  user      User     @relation(fields: [userId], references: [id])
+  policies  Policy[]
+
+  @@index([userId])
+  @@index([name])
 }
 
 // ─── Lead ───────────────────────────────────────────────
@@ -164,6 +198,19 @@ model Policy {
   premiumMode    PremiumMode  @default(yearly)
   productName    String?
   noOfYears      Int          @default(1)
+  
+  // Motor Specific Fields
+  make           String?
+  model          String?
+  vehicleClass   PolicyVehicleClass?
+  idv            Float?
+  od             Float?
+  tp             Float?
+  tax            Float?
+  totalPremium   Float?
+  paymentMethod  String?
+  dealerId       String?
+
   status         PolicyStatus @default(active)
   parentPolicyId String?
   lostReason     String?
@@ -176,6 +223,7 @@ model Policy {
   user         User      @relation(fields: [userId], references: [id])
   customer     Customer  @relation(fields: [customerId], references: [id])
   company      Company   @relation(fields: [companyId], references: [id])
+  dealer       Dealer?   @relation(fields: [dealerId], references: [id])
   parentPolicy Policy?   @relation("PolicyRenewal", fields: [parentPolicyId], references: [id])
   renewals     Policy[]  @relation("PolicyRenewal")
   claims       Claim[]

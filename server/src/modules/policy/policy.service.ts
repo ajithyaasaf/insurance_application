@@ -17,6 +17,16 @@ interface CreatePolicyInput {
     status?: string;
     parentPolicyId?: string;
     lostReason?: string;
+    make?: string;
+    model?: string;
+    vehicleClass?: string;
+    idv?: number;
+    od?: number;
+    tp?: number;
+    tax?: number;
+    totalPremium?: number;
+    paymentMethod?: string;
+    dealerId?: string;
 }
 
 export class PolicyService {
@@ -49,10 +59,20 @@ export class PolicyService {
                 status: (data.status as any) || 'active',
                 parentPolicyId: data.parentPolicyId,
                 lostReason: data.lostReason,
+                make: data.make,
+                model: data.model,
+                vehicleClass: data.vehicleClass as any,
+                idv: data.idv,
+                od: data.od,
+                tp: data.tp,
+                tax: data.tax,
+                totalPremium: data.totalPremium,
+                paymentMethod: data.paymentMethod,
+                dealerId: data.dealerId,
                 createdBy: role,
                 updatedBy: role,
             },
-            include: { customer: true, company: true },
+            include: { customer: true, company: true, dealer: true },
         });
     }
 
@@ -86,7 +106,7 @@ export class PolicyService {
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: { createdAt: 'desc' },
-                include: { customer: true, company: true },
+                include: { customer: true, company: true, dealer: true },
             }),
             prisma.policy.count({ where }),
         ]);
@@ -100,6 +120,7 @@ export class PolicyService {
             include: {
                 customer: true,
                 company: true,
+                dealer: true,
                 parentPolicy: true,
                 renewals: { where: { deletedAt: null } },
                 claims: true,
@@ -134,9 +155,10 @@ export class PolicyService {
                 policyType: data.policyType as any,
                 premiumMode: data.premiumMode as any,
                 status: data.status as any,
+                vehicleClass: data.vehicleClass as any,
                 updatedBy: role,
             },
-            include: { customer: true, company: true },
+            include: { customer: true, company: true, dealer: true },
         });
     }
 
@@ -174,10 +196,20 @@ export class PolicyService {
                     noOfYears: data.noOfYears || originalPolicy.noOfYears,
                     status: 'active',
                     parentPolicyId: id,
+                    make: data.make || originalPolicy.make,
+                    model: data.model || originalPolicy.model,
+                    vehicleClass: (data.vehicleClass as any) || originalPolicy.vehicleClass,
+                    idv: data.idv ?? originalPolicy.idv,
+                    od: data.od ?? originalPolicy.od,
+                    tp: data.tp ?? originalPolicy.tp,
+                    tax: data.tax ?? originalPolicy.tax,
+                    totalPremium: data.totalPremium ?? originalPolicy.totalPremium,
+                    paymentMethod: data.paymentMethod || originalPolicy.paymentMethod,
+                    dealerId: data.dealerId || originalPolicy.dealerId,
                     createdBy: role,
                     updatedBy: role,
                 },
-                include: { customer: true, company: true },
+                include: { customer: true, company: true, dealer: true },
             });
 
             return renewedPolicy;

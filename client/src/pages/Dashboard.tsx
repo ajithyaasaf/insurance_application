@@ -125,7 +125,7 @@ const Dashboard: React.FC = () => {
                             View All <HiOutlineChevronRight className="w-3 h-3" />
                         </button>
                     </div>
-                    <div className="divide-y divide-surface-100">
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
                         {data.expiringPolicies.length === 0 ? (
                             <p className="px-5 py-8 text-center text-sm text-surface-400">No expiring policies</p>
                         ) : (
@@ -133,7 +133,14 @@ const Dashboard: React.FC = () => {
                                 <div key={policy.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50 cursor-pointer" onClick={() => navigate(`/policies`)}>
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-surface-900 truncate">{policy.customer?.name}</p>
-                                        <p className="text-xs text-surface-500">{policy.productName || policy.policyType} • {policy.company?.name}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <p className="text-xs text-surface-500 truncate">{policy.productName || policy.policyType} • {policy.company?.name}</p>
+                                            {policy.vehicleNumber && (
+                                                <span className="px-1.5 py-0.5 rounded flex-shrink-0 bg-surface-100 text-surface-600 text-[10px] font-semibold tracking-wider uppercase border border-surface-200">
+                                                    {policy.vehicleNumber}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="text-right flex-shrink-0 ml-4">
                                         <p className={`text-xs font-medium ${daysUntil(policy.expiryDate) <= 7 ? 'text-red-600' : 'text-amber-600'}`}>
@@ -155,7 +162,7 @@ const Dashboard: React.FC = () => {
                             View All <HiOutlineChevronRight className="w-3 h-3" />
                         </button>
                     </div>
-                    <div className="divide-y divide-surface-100">
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
                         {data.todayFollowUps.length === 0 ? (
                             <p className="px-5 py-8 text-center text-sm text-surface-400">No follow-ups today</p>
                         ) : (
@@ -180,7 +187,7 @@ const Dashboard: React.FC = () => {
                             View All <HiOutlineChevronRight className="w-3 h-3" />
                         </button>
                     </div>
-                    <div className="divide-y divide-surface-100">
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
                         {data.pendingPayments.length === 0 ? (
                             <p className="px-5 py-8 text-center text-sm text-surface-400">No pending payments</p>
                         ) : (
@@ -205,7 +212,7 @@ const Dashboard: React.FC = () => {
                             View All <HiOutlineChevronRight className="w-3 h-3" />
                         </button>
                     </div>
-                    <div className="divide-y divide-surface-100">
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
                         {data.overduePayments.length === 0 ? (
                             <p className="px-5 py-8 text-center text-sm text-surface-400">No overdue payments 🎉</p>
                         ) : (

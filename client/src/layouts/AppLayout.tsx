@@ -25,6 +25,7 @@ const navItems = [
     { to: '/payments', icon: HiOutlineCreditCard, label: 'Payments' },
     { to: '/claims', icon: HiOutlineShieldCheck, label: 'Claims' },
     { to: '/follow-ups', icon: HiOutlinePhone, label: 'Follow-ups' },
+    { to: '/dealers', icon: HiOutlineUserGroup, label: 'Dealers' },
 ];
 
 const AppLayout: React.FC = () => {

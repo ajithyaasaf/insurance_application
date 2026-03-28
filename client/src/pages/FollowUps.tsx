@@ -109,7 +109,7 @@ const FollowUps: React.FC = () => {
                                         <p className="font-semibold text-surface-900">{f.customer?.name}</p>
                                         <span className={getStatusColor(f.status)}>{f.status}</span>
                                     </div>
-                                    <p className="text-xs text-surface-500">{formatDate(f.nextFollowUpDate)} • {f.policy?.productName || f.policy?.policyType || 'No policy linked'}</p>
+                                    <p className="text-xs text-surface-500">{formatDate(f.nextFollowUpDate)} • {f.policy?.productName || f.policy?.policyType || 'No policy linked'}{f.policy?.vehicleNumber && ` (${f.policy.vehicleNumber})`}</p>
                                     {f.notes && <p className="text-sm text-surface-600 mt-1">{f.notes}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -154,7 +154,7 @@ const FollowUps: React.FC = () => {
                         <select className="select" value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })}>
                             <option value="">None</option>
                             {policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => (
-                                <option key={p.id} value={p.id}>{p.productName || p.policyType} • {p.status.charAt(0).toUpperCase() + p.status.slice(1)} ({formatDate(p.expiryDate)})</option>
+                                <option key={p.id} value={p.id}>{p.productName || p.policyType} {p.vehicleNumber && `(${p.vehicleNumber})`} - {p.customer?.name}</option>
                             ))}
                         </select>
                     </div>

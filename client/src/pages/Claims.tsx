@@ -81,7 +81,7 @@ const Claims: React.FC = () => {
                                 {claims.map((c) => (
                                     <tr key={c.id}>
                                         <td className="font-medium text-surface-900">{c.customer?.name}</td>
-                                        <td className="text-xs">{c.policy?.productName || c.policy?.policyType}</td>
+                                        <td className="text-xs">{c.policy?.productName || c.policy?.policyType} {c.policy?.vehicleNumber && `(${c.policy.vehicleNumber})`}</td>
                                         <td className="text-xs">{c.claimNumber || '—'}</td>
                                         <td className="font-medium">{formatCurrency(c.claimAmount)}</td>
                                         <td className="text-xs">{formatDate(c.claimDate)}</td>
@@ -98,7 +98,7 @@ const Claims: React.FC = () => {
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
                                         <p className="font-semibold text-surface-900">{c.customer?.name}</p>
-                                        <p className="text-xs text-surface-500">{c.policy?.productName || c.policy?.policyType}</p>
+                                        <p className="text-xs text-surface-500">{c.policy?.productName || c.policy?.policyType} {c.policy?.vehicleNumber && `(${c.policy.vehicleNumber})`}</p>
                                     </div>
                                     <span className={getStatusColor(c.status)}>{c.status}</span>
                                 </div>
@@ -126,11 +126,11 @@ const Claims: React.FC = () => {
                         <select className="select" required value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })}>
                             <option value="">Select</option>
                             {policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => (
-                                <option key={p.id} value={p.id}>{p.productName || p.policyType} • {p.status.charAt(0).toUpperCase() + p.status.slice(1)} ({formatDate(p.expiryDate)})</option>
+                                <option key={p.id} value={p.id}>{p.productName || p.policyType} {p.vehicleNumber && `(${p.vehicleNumber})`} - {p.customer?.name}</option>
                             ))}
                         </select>
                     </div>
-                    <div><label className="label">Claim Number *</label><input className="input" required value={form.claimNumber} onChange={(e) => setForm({ ...form, claimNumber: e.target.value })} /></div>
+                    <div><label className="label">Claim Number</label><input className="input" value={form.claimNumber} onChange={(e) => setForm({ ...form, claimNumber: e.target.value })} /></div>
                     <div><label className="label">Claim Amount *</label><input type="number" className="input" required value={form.claimAmount} onChange={(e) => setForm({ ...form, claimAmount: e.target.value })} /></div>
                     <div><label className="label">Claim Date *</label><input type="date" className="input" required value={form.claimDate} onChange={(e) => setForm({ ...form, claimDate: e.target.value })} /></div>
                     <div><label className="label">Reason</label><textarea className="input" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>

@@ -11,7 +11,8 @@ import {
     HiOutlineClock,
     HiOutlineShieldCheck,
     HiOutlineRefresh,
-    HiOutlineExclamationCircle
+    HiOutlineExclamationCircle,
+    HiOutlineUserGroup
 } from 'react-icons/hi';
 
 const PolicyDetail: React.FC = () => {
@@ -74,6 +75,16 @@ const PolicyDetail: React.FC = () => {
                                     <p className="text-xs text-surface-500">{policy.company?.category}</p>
                                 </div>
                             </div>
+                            {policy.dealer && (
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><HiOutlineUserGroup className="w-5 h-5" /></div>
+                                    <div>
+                                        <p className="text-xs font-bold text-surface-400 uppercase tracking-wider">Dealer</p>
+                                        <p className="text-sm font-medium text-surface-900">{policy.dealer?.name}</p>
+                                        <p className="text-xs text-surface-500">{policy.dealer?.phone || 'Referred'}</p>
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-amber-50 rounded-lg text-amber-600"><HiOutlineDocumentText className="w-5 h-5" /></div>
                                 <div>
@@ -92,6 +103,52 @@ const PolicyDetail: React.FC = () => {
                                 </div>
                             )}
                         </div>
+
+                        {policy.policyType === 'motor' && (policy.make || policy.model || policy.vehicleClass || policy.paymentMethod) && (
+                            <div className="pt-4 border-t border-surface-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                {policy.make && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Make</p>
+                                    <p className="text-sm font-medium text-surface-900">{policy.make}</p>
+                                </div>}
+                                {policy.model && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Model</p>
+                                    <p className="text-sm font-medium text-surface-900">{policy.model}</p>
+                                </div>}
+                                {policy.vehicleClass && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Class</p>
+                                    <p className="text-sm font-medium text-surface-900 uppercase">{policy.vehicleClass?.replace('_', ' ')}</p>
+                                </div>}
+                                {policy.paymentMethod && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Payment Method</p>
+                                    <p className="text-sm font-medium text-surface-900 capitalize">{policy.paymentMethod}</p>
+                                </div>}
+                            </div>
+                        )}
+
+                        {policy.policyType === 'motor' && (policy.idv || policy.od || policy.tp || policy.tax || policy.totalPremium) && (
+                            <div className="pt-4 border-t border-surface-100 grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                {policy.idv && <div>
+                                    <p className="text-xs text-surface-500 mb-1">IDV</p>
+                                    <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.idv)}</p>
+                                </div>}
+                                {policy.od && <div>
+                                    <p className="text-xs text-surface-500 mb-1">OD Premium</p>
+                                    <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.od)}</p>
+                                </div>}
+                                {policy.tp && <div>
+                                    <p className="text-xs text-surface-500 mb-1">TP Premium</p>
+                                    <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.tp)}</p>
+                                </div>}
+                                {policy.tax && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Tax</p>
+                                    <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.tax)}</p>
+                                </div>}
+                                {policy.totalPremium && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Total Computed</p>
+                                    <p className="text-sm font-bold text-surface-900">{formatCurrency(policy.totalPremium)}</p>
+                                </div>}
+                            </div>
+                        )}
 
                         <div className="pt-6 border-t border-surface-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <div>
