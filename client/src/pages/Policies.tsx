@@ -277,19 +277,19 @@ const Policies: React.FC = () => {
                         <div><label className="label">Product Name</label><input className="input" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} /></div>
                         <div><label className="label">Start Date *</label><input type="date" className="input" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
                         <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
-                        <div><label className="label">Sum Insured</label><input type="number" className="input" value={form.sumInsured} onChange={(e) => setForm({ ...form, sumInsured: e.target.value })} /></div>
-                        <div><label className="label">Premium Amount *</label><input type="number" className="input" required value={form.premiumAmount} onChange={(e) => setForm({ ...form, premiumAmount: e.target.value })} /></div>
+                        <div><label className="label">Sum Insured</label><input type="number" min="0" step="0.01" className="input" value={form.sumInsured} onChange={(e) => setForm({ ...form, sumInsured: e.target.value })} /></div>
+                        <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.premiumAmount} onChange={(e) => setForm({ ...form, premiumAmount: e.target.value })} /></div>
                         <div><label className="label">Premium Mode</label>
                             <select className="select" value={form.premiumMode} onChange={(e) => setForm({ ...form, premiumMode: e.target.value })}>
                                 {premiumModes.map(m => <option key={m} value={m}>{m}</option>)}
                             </select>
                         </div>
                         {needsVehicle && <>
-                            <div><label className="label">IDV</label><input type="number" step="0.01" className="input" value={form.idv} onChange={(e) => setForm({ ...form, idv: e.target.value })} /></div>
-                            <div><label className="label">OD Premium</label><input type="number" step="0.01" className="input" value={form.od} onChange={(e) => setForm({ ...form, od: e.target.value })} /></div>
-                            <div><label className="label">TP Premium</label><input type="number" step="0.01" className="input" value={form.tp} onChange={(e) => setForm({ ...form, tp: e.target.value })} /></div>
-                            <div><label className="label">Tax (GST)</label><input type="number" step="0.01" className="input" value={form.tax} onChange={(e) => setForm({ ...form, tax: e.target.value })} /></div>
-                            <div><label className="label">Total Premium (Computed)</label><input type="number" step="0.01" className="input" value={form.totalPremium} onChange={(e) => setForm({ ...form, totalPremium: e.target.value })} /></div>
+                            <div><label className="label">IDV</label><input type="number" min="0" step="0.01" className="input" value={form.idv} onChange={(e) => setForm({ ...form, idv: e.target.value })} /></div>
+                            <div><label className="label">OD Premium</label><input type="number" min="0" step="0.01" className="input" value={form.od} onChange={(e) => setForm({ ...form, od: e.target.value })} /></div>
+                            <div><label className="label">TP Premium</label><input type="number" min="0" step="0.01" className="input" value={form.tp} onChange={(e) => setForm({ ...form, tp: e.target.value })} /></div>
+                            <div><label className="label">Tax (GST)</label><input type="number" min="0" step="0.01" className="input" value={form.tax} onChange={(e) => setForm({ ...form, tax: e.target.value })} /></div>
+                            <div><label className="label">Total Premium (Computed)</label><input type="number" min="0" step="0.01" className="input" value={form.totalPremium} onChange={(e) => setForm({ ...form, totalPremium: e.target.value })} /></div>
                         </>}
                         <div><label className="label">Payment Method</label>
                             <select className="select" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
@@ -325,7 +325,7 @@ const Policies: React.FC = () => {
                     <div><label className="label">New Policy Number *</label><input className="input" required value={renewForm.policyNumber} onChange={(e) => setRenewForm({ ...renewForm, policyNumber: e.target.value })} /></div>
                     <div><label className="label">Start Date *</label><input type="date" className="input" required value={renewForm.startDate} onChange={(e) => setRenewForm({ ...renewForm, startDate: e.target.value })} /></div>
                     <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={renewForm.expiryDate} onChange={(e) => setRenewForm({ ...renewForm, expiryDate: e.target.value })} /></div>
-                    <div><label className="label">Premium Amount *</label><input type="number" className="input" required value={renewForm.premiumAmount} onChange={(e) => setRenewForm({ ...renewForm, premiumAmount: e.target.value })} /></div>
+                    <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={renewForm.premiumAmount} onChange={(e) => setRenewForm({ ...renewForm, premiumAmount: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setRenewModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <button type="submit" className="btn-primary flex-1">Renew</button>

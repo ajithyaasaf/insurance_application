@@ -398,8 +398,8 @@ const Reports: React.FC = () => {
                                 key={opt.value}
                                 onClick={() => { setSource(opt.value); setGroupBy(''); setFilters({}); setPage(1); setHiddenColumns([]); setShowColumns(false); }}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${source === opt.value
-                                        ? 'bg-primary-600 text-white shadow-md shadow-primary-600/25'
-                                        : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+                                    ? 'bg-primary-600 text-white shadow-md shadow-primary-600/25'
+                                    : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
                                     }`}
                             >
                                 <opt.icon className="w-4 h-4" />
@@ -604,7 +604,7 @@ const Reports: React.FC = () => {
                                             className="w-4 h-4 text-primary-600 rounded border-surface-300 focus:ring-primary-500"
                                             checked={!isHidden}
                                             onChange={() => {
-                                                setHiddenColumns(prev => 
+                                                setHiddenColumns(prev =>
                                                     isHidden ? prev.filter(k => k !== col.key) : [...prev, col.key]
                                                 );
                                             }}
@@ -745,8 +745,8 @@ const Reports: React.FC = () => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === tab.id
-                                ? 'bg-white text-surface-900 shadow-sm'
-                                : 'text-surface-500 hover:text-surface-700'
+                            ? 'bg-white text-surface-900 shadow-sm'
+                            : 'text-surface-500 hover:text-surface-700'
                             }`}
                     >
                         <tab.icon className="w-4 h-4" />

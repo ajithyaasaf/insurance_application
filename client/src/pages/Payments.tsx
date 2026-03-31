@@ -166,10 +166,10 @@ const Payments: React.FC = () => {
                             </div>
                         </>
                     )}
-                    <div><label className="label">Amount *</label><input type="number" className="input" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
+                    <div><label className="label">Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
                     <div><label className="label">Due Date *</label><input type="date" className="input" required value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
                     <div><label className="label">Paid Date</label><input type="date" className="input" value={form.paidDate} onChange={(e) => setForm({ ...form, paidDate: e.target.value })} /></div>
-                    <div><label className="label">Paid Amount</label><input type="number" className="input" value={form.paidAmount} onChange={(e) => setForm({ ...form, paidAmount: e.target.value })} placeholder="Partial or full" /></div>
+                    <div><label className="label">Paid Amount</label><input type="number" min="0" step="0.01" className="input" value={form.paidAmount} onChange={(e) => setForm({ ...form, paidAmount: e.target.value })} placeholder="Partial or full" /></div>
                     <div><label className="label">Status</label>
                         <select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                             {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
