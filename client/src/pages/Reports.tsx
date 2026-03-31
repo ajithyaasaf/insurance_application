@@ -688,36 +688,36 @@ const Reports: React.FC = () => {
             <div className="space-y-6">
                 {/* Big KPI Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider">Total Policies</p>
-                        <p className="text-3xl font-black text-surface-900 mt-2">{totalPolicies}</p>
+                    <div className="hero-stat-card">
+                        <p className="hero-stat-label">Total Policies</p>
+                        <p className="hero-stat-value">{totalPolicies}</p>
                     </div>
-                    <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">Total Premium</p>
-                        <p className="text-3xl font-black text-primary-600 mt-2" title={formatCurrency(totalPremium)}>{formatShortCurrency(totalPremium)}</p>
+                    <div className="hero-stat-card">
+                        <p className="hero-stat-label truncate w-full">Total Premium</p>
+                        <p className="hero-stat-value text-primary-600" title={formatCurrency(totalPremium)}>{formatShortCurrency(totalPremium)}</p>
                     </div>
-                    <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider">Renewal Rate</p>
-                        <p className="text-3xl font-black text-emerald-600 mt-2">
+                    <div className="hero-stat-card">
+                        <p className="hero-stat-label">Renewal Rate</p>
+                        <p className="hero-stat-value !text-emerald-600">
                             {dash.renewalStats?.successRate || 0}%
                         </p>
                     </div>
-                    <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">Top Company</p>
-                        <p className="text-lg font-bold text-surface-900 mt-2 capitalize line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center">{topCompany?.name || '—'}</p>
-                        <p className="text-xs text-surface-400 mt-1" title={formatCurrency(topCompany?.premiumSum || 0)}>{formatShortCurrency(topCompany?.premiumSum || 0)}</p>
+                    <div className="hero-stat-card">
+                        <p className="hero-stat-label truncate w-full">Top Company</p>
+                        <p className="hero-stat-subvalue">{topCompany?.name || '—'}</p>
+                        <p className="hero-stat-caption" title={formatCurrency(topCompany?.premiumSum || 0)}>{formatShortCurrency(topCompany?.premiumSum || 0)}</p>
                     </div>
-                    <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">Top Dealer</p>
-                        <p className="text-lg font-bold text-surface-900 mt-2 capitalize line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center">{topDealer?.name || '—'}</p>
-                        <p className="text-xs text-surface-400 mt-1" title={formatCurrency(topDealer?.premiumSum || 0)}>{formatShortCurrency(topDealer?.premiumSum || 0)}</p>
+                    <div className="hero-stat-card">
+                        <p className="hero-stat-label truncate w-full">Top Dealer</p>
+                        <p className="hero-stat-subvalue">{topDealer?.name || '—'}</p>
+                        <p className="hero-stat-caption" title={formatCurrency(topDealer?.premiumSum || 0)}>{formatShortCurrency(topDealer?.premiumSum || 0)}</p>
                     </div>
-                    <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">This Month</p>
-                        <p className="text-lg font-bold text-surface-900 mt-2 truncate">
+                    <div className="hero-stat-card">
+                        <p className="hero-stat-label truncate w-full">This Month</p>
+                        <p className="hero-stat-subvalue">
                             {dash.thisMonth?.policiesAdded || 0} policies
                         </p>
-                        <p className="text-xs text-surface-400 mt-1" title={formatCurrency(dash.thisMonth?.totalPremium || 0)}>
+                        <p className="hero-stat-caption" title={formatCurrency(dash.thisMonth?.totalPremium || 0)}>
                             {formatShortCurrency(dash.thisMonth?.totalPremium || 0)}
                         </p>
                     </div>
