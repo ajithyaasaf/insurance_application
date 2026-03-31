@@ -6,6 +6,15 @@ export const formatCurrency = (amount: number): string => {
     }).format(amount);
 };
 
+export const formatShortCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        notation: 'compact',
+        maximumFractionDigits: 2,
+    }).format(amount);
+};
+
 export const formatDate = (date: string | Date): string => {
     return new Intl.DateTimeFormat('en-IN', {
         day: '2-digit',

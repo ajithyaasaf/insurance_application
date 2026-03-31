@@ -14,7 +14,7 @@ import {
     HiOutlineFilter,
 } from 'react-icons/hi';
 import api from '../api/client';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatShortCurrency } from '../utils/format';
 import Pagination from '../components/ui/Pagination';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { POLICY_TYPES, VEHICLE_CLASSES, POLICY_STATUSES, PAYMENT_STATUSES, CLAIM_STATUSES, FOLLOWUP_STATUSES } from '../utils/constants';
@@ -285,8 +285,8 @@ const Reports: React.FC = () => {
                                 <HiOutlineCurrencyRupee className="w-5 h-5 text-emerald-600" />
                             </div>
                             <div>
-                                <p className="stat-label">This Month Premium</p>
-                                <p className="stat-value text-xl">{formatCurrency(dash.thisMonth?.totalPremium || 0)}</p>
+                                <p className="stat-label truncate">This Month Premium</p>
+                                <p className="stat-value text-xl" title={formatCurrency(dash.thisMonth?.totalPremium || 0)}>{formatShortCurrency(dash.thisMonth?.totalPremium || 0)}</p>
                             </div>
                         </div>
                     </div>
@@ -665,8 +665,8 @@ const Reports: React.FC = () => {
                         <p className="text-3xl font-black text-surface-900 mt-2">{totalPolicies}</p>
                     </div>
                     <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider">Total Premium</p>
-                        <p className="text-3xl font-black text-primary-600 mt-2">{formatCurrency(totalPremium)}</p>
+                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">Total Premium</p>
+                        <p className="text-3xl font-black text-primary-600 mt-2" title={formatCurrency(totalPremium)}>{formatShortCurrency(totalPremium)}</p>
                     </div>
                     <div className="card card-body text-center">
                         <p className="text-xs text-surface-500 font-medium uppercase tracking-wider">Renewal Rate</p>
@@ -675,21 +675,23 @@ const Reports: React.FC = () => {
                         </p>
                     </div>
                     <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider">Top Company</p>
-                        <p className="text-lg font-bold text-surface-900 mt-2 capitalize">{topCompany?.name || '—'}</p>
-                        <p className="text-xs text-surface-400">{formatCurrency(topCompany?.premiumSum || 0)}</p>
+                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">Top Company</p>
+                        <p className="text-lg font-bold text-surface-900 mt-2 capitalize line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center">{topCompany?.name || '—'}</p>
+                        <p className="text-xs text-surface-400 mt-1" title={formatCurrency(topCompany?.premiumSum || 0)}>{formatShortCurrency(topCompany?.premiumSum || 0)}</p>
                     </div>
                     <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider">Top Dealer</p>
-                        <p className="text-lg font-bold text-surface-900 mt-2 capitalize">{topDealer?.name || '—'}</p>
-                        <p className="text-xs text-surface-400">{formatCurrency(topDealer?.premiumSum || 0)}</p>
+                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">Top Dealer</p>
+                        <p className="text-lg font-bold text-surface-900 mt-2 capitalize line-clamp-2 leading-tight min-h-[2.5rem] flex items-center justify-center">{topDealer?.name || '—'}</p>
+                        <p className="text-xs text-surface-400 mt-1" title={formatCurrency(topDealer?.premiumSum || 0)}>{formatShortCurrency(topDealer?.premiumSum || 0)}</p>
                     </div>
                     <div className="card card-body text-center">
-                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider">This Month</p>
-                        <p className="text-lg font-bold text-surface-900 mt-2">
+                        <p className="text-xs text-surface-500 font-medium uppercase tracking-wider truncate">This Month</p>
+                        <p className="text-lg font-bold text-surface-900 mt-2 truncate">
                             {dash.thisMonth?.policiesAdded || 0} policies
                         </p>
-                        <p className="text-xs text-surface-400">{formatCurrency(dash.thisMonth?.totalPremium || 0)}</p>
+                        <p className="text-xs text-surface-400 mt-1" title={formatCurrency(dash.thisMonth?.totalPremium || 0)}>
+                            {formatShortCurrency(dash.thisMonth?.totalPremium || 0)}
+                        </p>
                     </div>
                 </div>
 
