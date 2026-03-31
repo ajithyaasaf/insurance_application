@@ -14,6 +14,7 @@ import Payments from './pages/Payments';
 import Claims from './pages/Claims';
 import FollowUps from './pages/FollowUps';
 import Dealers from './pages/Dealers';
+import Reports from './pages/Reports';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -80,6 +81,7 @@ const App: React.FC = () => {
                             <Route path="/claims" element={<Claims />} />
                             <Route path="/follow-ups" element={<FollowUps />} />
                             <Route path="/dealers" element={<Dealers />} />
+                            <Route path="/reports" element={<Reports />} />
                         </Route>
                         <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
