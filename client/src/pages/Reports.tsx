@@ -127,7 +127,14 @@ const Reports: React.FC = () => {
 
     // --- Filter update ---
     const updateFilter = useCallback((key: keyof ReportFilters, value: string) => {
-        setFilters(prev => ({ ...prev, [key]: value || undefined }));
+        setFilters(prev => {
+            const next = { ...prev, [key]: value || undefined };
+            if (next.dateFrom && next.dateTo && new Date(next.dateFrom) > new Date(next.dateTo)) {
+                toast.error('Date From cannot be after Date To');
+                return prev;
+            }
+            return next;
+        });
         setPage(1);
     }, []);
 
@@ -179,7 +186,7 @@ const Reports: React.FC = () => {
 
         return (
             <div className="table-container">
-                <table className="table">
+                <table className="table whitespace-nowrap">
                     <thead>
                         <tr>
                             {columns.map(col => (
@@ -189,7 +196,7 @@ const Reports: React.FC = () => {
                     </thead>
                     <tbody>
                         {data.map((row: any, i: number) => (
-                            <tr key={i}>
+                            <tr key={row.id || i}>
                                 {columns.map(col => (
                                     <td key={col.key}>
                                         {typeof row[col.key] === 'number' && col.label.includes('₹')
@@ -211,7 +218,7 @@ const Reports: React.FC = () => {
         return (
             <div className="space-y-2.5">
                 {data.slice(0, 8).map((item: any, i: number) => (
-                    <div key={i} className="group">
+                    <div key={item[nameKey] || item.id || i} className="group">
                         <div className="flex items-center justify-between text-xs mb-1">
                             <span className="text-surface-700 font-medium truncate mr-2 capitalize">
                                 {item[nameKey] || 'N/A'}
@@ -260,7 +267,7 @@ const Reports: React.FC = () => {
         return (
             <div className="space-y-6">
                 {/* KPI Cards Row */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="stat-card">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
@@ -530,42 +537,40 @@ const Reports: React.FC = () => {
                 </div>
 
                 {/* Action Row */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => refetch()}
-                            className="btn-primary"
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-4">
+                    <button
+                        onClick={() => refetch()}
+                        className="btn-primary w-full sm:w-auto"
                             disabled={reportLoading}
                         >
                             <HiOutlineRefresh className={`w-4 h-4 ${reportLoading ? 'animate-spin' : ''}`} />
                             Generate Report
                         </button>
-                    </div>
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
                         {report && !report.grouped && (
                             <button
                                 onClick={() => setShowColumns(!showColumns)}
-                                className="btn-secondary"
+                                className="btn-secondary w-full"
                             >
                                 <HiOutlineAdjustments className="w-4 h-4" />
-                                Columns
+                                <span className="hidden xs:inline sm:hidden md:inline">Cols</span>
                             </button>
                         )}
                         <button
-                            onClick={() => handleExport('xlsx', report?.columns?.filter((c: Column) => !hiddenColumns.includes(c.key)) || [])}
-                            className="btn-secondary"
-                            disabled={!report}
+                            onClick={() => handleExport('xlsx', report?.columns?.filter((c: Column) => report.grouped ? true : !hiddenColumns.includes(c.key)) || [])}
+                            className="btn-secondary w-full"
+                            disabled={!report || dashLoading || reportLoading}
                         >
                             <HiOutlineDocumentDownload className="w-4 h-4" />
-                            Excel
+                            <span className="hidden xs:inline sm:hidden md:inline">Excel</span>
                         </button>
                         <button
-                            onClick={() => handleExport('pdf', report?.columns?.filter((c: Column) => !hiddenColumns.includes(c.key)) || [])}
-                            className="btn-secondary"
-                            disabled={!report}
+                            onClick={() => handleExport('pdf', report?.columns?.filter((c: Column) => report.grouped ? true : !hiddenColumns.includes(c.key)) || [])}
+                            className="btn-secondary w-full"
+                            disabled={!report || dashLoading || reportLoading}
                         >
                             <HiOutlineDocumentDownload className="w-4 h-4" />
-                            PDF
+                            <span className="hidden xs:inline sm:hidden md:inline">PDF</span>
                         </button>
                     </div>
                 </div>
@@ -631,6 +636,15 @@ const Reports: React.FC = () => {
 
     // ── Summary Tab ──────────────────────────────────────
 
+    const summaryStats = React.useMemo(() => {
+        if (!dash) return null;
+        const companyData = dash.companyPerformance?.data || [];
+        const dealerData = dash.dealerPerformance?.data || [];
+        const totalPremium = companyData.reduce((s: number, c: any) => s + (c.premiumSum || 0), 0);
+        const totalPolicies = companyData.reduce((s: number, c: any) => s + (c.count || 0), 0);
+        return { companyData, dealerData, totalPremium, totalPolicies, topCompany: companyData[0], topDealer: dealerData[0] };
+    }, [dash]);
+
     const renderSummary = () => {
         if (dashLoading) {
             return (
@@ -639,14 +653,8 @@ const Reports: React.FC = () => {
                 </div>
             );
         }
-        if (!dash) return null;
-
-        const companyData = dash.companyPerformance?.data || [];
-        const dealerData = dash.dealerPerformance?.data || [];
-        const totalPremium = companyData.reduce((s: number, c: any) => s + (c.premiumSum || 0), 0);
-        const totalPolicies = companyData.reduce((s: number, c: any) => s + (c.count || 0), 0);
-        const topCompany = companyData[0];
-        const topDealer = dealerData[0];
+        if (!summaryStats) return null;
+        const { companyData, dealerData, totalPremium, totalPolicies, topCompany, topDealer } = summaryStats;
 
         return (
             <div className="space-y-6">
@@ -719,18 +727,20 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center gap-1 mb-6 p-1 bg-surface-100 rounded-2xl w-fit">
+            <div className="flex items-center gap-1 mb-6 p-1 bg-surface-100 rounded-2xl w-full sm:w-fit overflow-x-auto hide-scrollbar">
                 {TABS.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === tab.id
+                        className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 min-w-max flex-1 sm:flex-none ${activeTab === tab.id
                             ? 'bg-white text-surface-900 shadow-sm'
                             : 'text-surface-500 hover:text-surface-700'
                             }`}
                     >
-                        <tab.icon className="w-4 h-4" />
-                        <span className="hidden sm:inline">{tab.label}</span>
+                        <tab.icon className="w-4 h-4 shrink-0" />
+                        <span className={`${activeTab === tab.id ? 'inline' : 'hidden sm:inline'} whitespace-nowrap`}>
+                            {tab.label}
+                        </span>
                     </button>
                 ))}
             </div>
