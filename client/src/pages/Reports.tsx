@@ -81,14 +81,20 @@ function getStatusOptions(source: Source): string[] {
 const Reports: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabId>('dashboard');
 
-    // --- Report Builder state ---
+    // ── Report Builder: split UI state from API state ──────
+    // localFilters = what the user is selecting in the dropdowns RIGHT NOW
+    // appliedFilters = what was last sent to the API (matches the on-screen table)
+    const [localFilters, setLocalFilters] = useState<ReportFilters>({});
+    const [appliedFilters, setAppliedFilters] = useState<ReportFilters>({});
+    const [localGroupBy, setLocalGroupBy] = useState<GroupBy>('');
+    const [appliedGroupBy, setAppliedGroupBy] = useState<GroupBy>('');
     const [source, setSource] = useState<Source>('policies');
-    const [groupBy, setGroupBy] = useState<GroupBy>('');
-    const [filters, setFilters] = useState<ReportFilters>({});
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
     const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
     const [showColumns, setShowColumns] = useState(false);
+    // Track if filters have been changed since last generate (to show a dirty indicator)
+    const [isDirty, setIsDirty] = useState(false);
     const limit = 25;
 
     // --- Fetch companies & dealers for dropdown ---
@@ -111,13 +117,13 @@ const Reports: React.FC = () => {
     });
     const dash = dashboardData?.data;
 
-    // --- Report builder data ---
+    // --- Report builder data — only fires when appliedFilters/appliedGroupBy change ---
     const { data: reportData, isLoading: reportLoading, refetch } = useQuery({
-        queryKey: ['report-generate', source, groupBy, filters, page],
+        queryKey: ['report-generate', source, appliedGroupBy, appliedFilters, page],
         queryFn: () => api.post('/reports/generate', {
             source,
-            filters: Object.fromEntries(Object.entries(filters).filter(([_, v]) => v)),
-            groupBy: groupBy || undefined,
+            filters: Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v)),
+            groupBy: appliedGroupBy || undefined,
             page,
             limit,
         }).then(r => r.data),
@@ -125,9 +131,9 @@ const Reports: React.FC = () => {
     });
     const report = reportData?.data;
 
-    // --- Filter update ---
-    const updateFilter = useCallback((key: keyof ReportFilters, value: string) => {
-        setFilters(prev => {
+    // --- Update local (UI) filters only — does NOT trigger API ---
+    const updateLocalFilter = useCallback((key: keyof ReportFilters, value: string) => {
+        setLocalFilters(prev => {
             const next = { ...prev, [key]: value || undefined };
             if (next.dateFrom && next.dateTo && new Date(next.dateFrom) > new Date(next.dateTo)) {
                 toast.error('Date From cannot be after Date To');
@@ -135,24 +141,36 @@ const Reports: React.FC = () => {
             }
             return next;
         });
-        setPage(1);
+        setIsDirty(true);
     }, []);
 
+    // --- Commit local state → applied state, triggering the API ---
+    const generateReport = useCallback(() => {
+        setAppliedFilters(localFilters);
+        setAppliedGroupBy(localGroupBy);
+        setPage(1);
+        setIsDirty(false);
+    }, [localFilters, localGroupBy]);
+
+    // --- Clear all local and applied state ---
     const clearFilters = useCallback(() => {
-        setFilters({});
-        setGroupBy('');
+        setLocalFilters({});
+        setAppliedFilters({});
+        setLocalGroupBy('');
+        setAppliedGroupBy('');
         setPage(1);
         setHiddenColumns([]);
+        setIsDirty(false);
     }, []);
 
-    // --- Export handler ---
+    // --- Export binds to appliedFilters, guaranteeing it matches the screen ---
     const handleExport = useCallback(async (format: 'xlsx' | 'pdf', cols: Column[]) => {
         try {
             toast.loading(`Generating ${format.toUpperCase()}...`, { id: 'export' });
             const res = await api.post('/reports/export', {
                 source,
-                filters: Object.fromEntries(Object.entries(filters).filter(([_, v]) => v)),
-                groupBy: groupBy || undefined,
+                filters: Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v)),
+                groupBy: appliedGroupBy || undefined,
                 format,
                 columns: cols.map(c => c.key),
                 title: `${source.charAt(0).toUpperCase() + source.slice(1)} Report`,
@@ -169,7 +187,7 @@ const Reports: React.FC = () => {
         } catch {
             toast.error('Export failed', { id: 'export' });
         }
-    }, [source, filters, groupBy]);
+    }, [source, appliedFilters, appliedGroupBy]);
 
     // ── Render helpers ───────────────────────────────────
 
@@ -267,21 +285,21 @@ const Reports: React.FC = () => {
         return (
             <div className="space-y-6">
                 {/* KPI Cards Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div className="stat-card">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center">
-                                <HiOutlineClipboardCheck className="w-5 h-5 text-primary-600" />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                    <div className="stat-card p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
+                                <HiOutlineClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" />
                             </div>
-                            <div>
+                            <div className="w-full">
                                 <p className="stat-label">This Month Policies</p>
                                 <p className="stat-value text-xl">{dash.thisMonth?.policiesAdded || 0}</p>
                             </div>
                         </div>
                     </div>
-                    <div className="stat-card">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <div className="stat-card p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
                                 <HiOutlineCurrencyRupee className="w-5 h-5 text-emerald-600" />
                             </div>
                             <div>
@@ -290,9 +308,9 @@ const Reports: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="stat-card">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                    <div className="stat-card p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
                                 <HiOutlineRefresh className="w-5 h-5 text-amber-600" />
                             </div>
                             <div>
@@ -301,9 +319,9 @@ const Reports: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="stat-card">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
+                    <div className="stat-card p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0">
                                 <HiOutlineOfficeBuilding className="w-5 h-5 text-violet-600" />
                             </div>
                             <div>
@@ -400,7 +418,17 @@ const Reports: React.FC = () => {
                         {SOURCE_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
-                                onClick={() => { setSource(opt.value); setGroupBy(''); setFilters({}); setPage(1); setHiddenColumns([]); setShowColumns(false); }}
+                                onClick={() => {
+                                    setSource(opt.value);
+                                    setLocalGroupBy('');
+                                    setAppliedGroupBy('');
+                                    setLocalFilters({});
+                                    setAppliedFilters({});
+                                    setPage(1);
+                                    setHiddenColumns([]);
+                                    setShowColumns(false);
+                                    setIsDirty(false);
+                                }}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${source === opt.value
                                     ? 'bg-primary-600 text-white shadow-md shadow-primary-600/25'
                                     : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
@@ -439,8 +467,8 @@ const Reports: React.FC = () => {
                             <label className="label">Group By</label>
                             <SearchableSelect
                                 options={GROUP_OPTIONS.filter(o => o.value !== '').map(opt => ({ value: opt.value, label: opt.label }))}
-                                value={groupBy}
-                                onChange={val => { setGroupBy(val as GroupBy); setPage(1); }}
+                                value={localGroupBy}
+                                onChange={val => { setLocalGroupBy(val as GroupBy); setIsDirty(true); }}
                                 allLabel="No Grouping"
                                 placeholder="Select grouping..."
                             />
@@ -451,8 +479,8 @@ const Reports: React.FC = () => {
                             <label className="label">Company</label>
                             <SearchableSelect
                                 options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
-                                value={filters.companyId || ''}
-                                onChange={val => updateFilter('companyId', val)}
+                                value={localFilters.companyId || ''}
+                                onChange={val => updateLocalFilter('companyId', val)}
                                 allLabel="All Companies"
                                 placeholder="Search company..."
                             />
@@ -463,8 +491,8 @@ const Reports: React.FC = () => {
                             <label className="label">Dealer</label>
                             <SearchableSelect
                                 options={dealers.map((d: any) => ({ value: d.id, label: d.name }))}
-                                value={filters.dealerId || ''}
-                                onChange={val => updateFilter('dealerId', val)}
+                                value={localFilters.dealerId || ''}
+                                onChange={val => updateLocalFilter('dealerId', val)}
                                 allLabel="All Dealers"
                                 placeholder="Search dealer..."
                             />
@@ -476,8 +504,8 @@ const Reports: React.FC = () => {
                                 <label className="label">Policy Type</label>
                                 <SearchableSelect
                                     options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
-                                    value={filters.policyType || ''}
-                                    onChange={val => updateFilter('policyType', val)}
+                                    value={localFilters.policyType || ''}
+                                    onChange={val => updateLocalFilter('policyType', val)}
                                     allLabel="All Types"
                                     placeholder="Select policy type..."
                                 />
@@ -485,13 +513,13 @@ const Reports: React.FC = () => {
                         )}
 
                         {/* Vehicle Class (Only for policies and motor) */}
-                        {source === 'policies' && filters.policyType === 'motor' && (
+                        {source === 'policies' && localFilters.policyType === 'motor' && (
                             <div>
                                 <label className="label">Vehicle Class</label>
                                 <SearchableSelect
                                     options={VEHICLE_CLASSES.map(t => ({ value: t, label: t.replace('_', ' ') }))}
-                                    value={filters.vehicleClass || ''}
-                                    onChange={val => updateFilter('vehicleClass', val)}
+                                    value={localFilters.vehicleClass || ''}
+                                    onChange={val => updateLocalFilter('vehicleClass', val)}
                                     allLabel="All Classes"
                                     placeholder="Select vehicle class..."
                                 />
@@ -504,8 +532,8 @@ const Reports: React.FC = () => {
                                 <label className="label">Status</label>
                                 <SearchableSelect
                                     options={statuses.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
-                                    value={filters.status || ''}
-                                    onChange={val => updateFilter('status', val)}
+                                    value={localFilters.status || ''}
+                                    onChange={val => updateLocalFilter('status', val)}
                                     allLabel="All Statuses"
                                     placeholder="Select status..."
                                 />
@@ -518,8 +546,8 @@ const Reports: React.FC = () => {
                             <input
                                 type="date"
                                 className="input"
-                                value={filters.dateFrom || ''}
-                                onChange={e => updateFilter('dateFrom', e.target.value)}
+                                value={localFilters.dateFrom || ''}
+                                onChange={e => updateLocalFilter('dateFrom', e.target.value)}
                             />
                         </div>
 
@@ -529,8 +557,8 @@ const Reports: React.FC = () => {
                             <input
                                 type="date"
                                 className="input"
-                                value={filters.dateTo || ''}
-                                onChange={e => updateFilter('dateTo', e.target.value)}
+                                value={localFilters.dateTo || ''}
+                                onChange={e => updateLocalFilter('dateTo', e.target.value)}
                             />
                         </div>
                     </div>
@@ -539,13 +567,13 @@ const Reports: React.FC = () => {
                 {/* Action Row */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-4">
                     <button
-                        onClick={() => refetch()}
-                        className="btn-primary w-full sm:w-auto"
-                            disabled={reportLoading}
-                        >
-                            <HiOutlineRefresh className={`w-4 h-4 ${reportLoading ? 'animate-spin' : ''}`} />
-                            Generate Report
-                        </button>
+                        onClick={generateReport}
+                        className={`btn-primary w-full sm:w-auto ${isDirty ? 'ring-2 ring-offset-2 ring-primary-400' : ''}`}
+                        disabled={reportLoading}
+                    >
+                        <HiOutlineRefresh className={`w-4 h-4 ${reportLoading ? 'animate-spin' : ''}`} />
+                        {isDirty ? 'Apply & Generate' : 'Generate Report'}
+                    </button>
                     <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
                         {report && !report.grouped && (
                             <button
