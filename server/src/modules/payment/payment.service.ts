@@ -58,13 +58,21 @@ export class PaymentService {
         page = 1,
         limit = 20,
         status?: string,
-        search?: string
+        search?: string,
+        dateFrom?: string,
+        dateTo?: string,
     ) {
         const where: any = {
             userId,
             ...(status && { status: status as any }),
             ...(search && {
                 customer: { name: { contains: search, mode: 'insensitive' } },
+            }),
+            ...((dateFrom || dateTo) && {
+                dueDate: {
+                    ...(dateFrom && { gte: new Date(dateFrom) }),
+                    ...(dateTo && { lte: new Date(dateTo) }),
+                },
             }),
         };
 

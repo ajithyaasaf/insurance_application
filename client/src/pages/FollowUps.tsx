@@ -5,7 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { formatDate, getStatusColor } from '../utils/format';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlinePhone } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlinePhone, HiOutlineSearch } from 'react-icons/hi';
 
 const statusOptions = ['pending', 'completed', 'cancelled'];
 
@@ -14,6 +14,7 @@ const FollowUps: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
     const [policies, setPolicies] = useState<any[]>([]);
     const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+    const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [dateFilter, setDateFilter] = useState('');
     const [loading, setLoading] = useState(true);
@@ -24,11 +25,19 @@ const FollowUps: React.FC = () => {
     const fetchFollowUps = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/follow-ups', { params: { page, limit: 20, status: statusFilter || undefined, date: dateFilter || undefined } });
+            const res = await api.get('/follow-ups', {
+                params: {
+                    page,
+                    limit: 20,
+                    search: search || undefined,
+                    status: statusFilter || undefined,
+                    date: dateFilter || undefined,
+                },
+            });
             setFollowUps(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch follow-ups'); } finally { setLoading(false); }
-    }, [statusFilter, dateFilter]);
+    }, [search, statusFilter, dateFilter]);
 
     useEffect(() => { fetchFollowUps(); }, [fetchFollowUps]);
 
@@ -85,13 +94,17 @@ const FollowUps: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                    <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                    <input className="input pl-10" placeholder="Search by customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                </div>
                 <input type="date" className="input sm:w-44" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
                 <select className="select sm:w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                     <option value="">All Status</option>
                     {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                 </select>
-                {(dateFilter || statusFilter) && (
-                    <button onClick={() => { setDateFilter(''); setStatusFilter(''); }} className="btn-ghost btn-sm self-start">Clear Filters</button>
+                {(search || dateFilter || statusFilter) && (
+                    <button onClick={() => { setSearch(''); setDateFilter(''); setStatusFilter(''); }} className="btn-ghost btn-sm self-start">Clear</button>
                 )}
             </div>
 

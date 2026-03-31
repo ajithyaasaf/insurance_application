@@ -6,31 +6,31 @@ import type { ReportSource, ReportGroupBy } from './report.schema';
 // ─── Types ───────────────────────────────────────────────
 
 interface ReportFilters {
-    companyId?:    string;
-    dealerId?:     string;
-    customerId?:   string;
-    policyType?:   string;
+    companyId?: string;
+    dealerId?: string;
+    customerId?: string;
+    policyType?: string;
     vehicleClass?: string;
-    status?:       string;
-    dateFrom?:     string;
-    dateTo?:       string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
 }
 
 interface GenerateParams {
-    source:   ReportSource;
+    source: ReportSource;
     filters?: ReportFilters;
     groupBy?: ReportGroupBy;
-    page:     number;
-    limit:    number;
+    page: number;
+    limit: number;
 }
 
 interface ExportParams {
-    source:   ReportSource;
+    source: ReportSource;
     filters?: ReportFilters;
     groupBy?: ReportGroupBy;
-    format:   'xlsx' | 'pdf';
+    format: 'xlsx' | 'pdf';
     columns?: string[];
-    title?:   string;
+    title?: string;
 }
 
 // ─── Column definitions per source ───────────────────────
@@ -94,16 +94,16 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
 
 function buildPolicyWhere(userId: string, filters?: ReportFilters) {
     const where: any = { userId, deletedAt: null };
-    if (filters?.companyId)    where.companyId    = filters.companyId;
-    if (filters?.dealerId)     where.dealerId     = filters.dealerId;
-    if (filters?.customerId)   where.customerId   = filters.customerId;
-    if (filters?.policyType)   where.policyType   = filters.policyType;
+    if (filters?.companyId) where.companyId = filters.companyId;
+    if (filters?.dealerId) where.dealerId = filters.dealerId;
+    if (filters?.customerId) where.customerId = filters.customerId;
+    if (filters?.policyType) where.policyType = filters.policyType;
     if (filters?.vehicleClass) where.vehicleClass = filters.vehicleClass;
-    if (filters?.status)       where.status       = filters.status;
+    if (filters?.status) where.status = filters.status;
     if (filters?.dateFrom || filters?.dateTo) {
         where.createdAt = {};
         if (filters?.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo)   where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateTo) where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     return where;
 }
@@ -115,13 +115,13 @@ function buildPaymentWhere(userId: string, filters?: ReportFilters) {
     if (filters?.dateFrom || filters?.dateTo) {
         where.createdAt = {};
         if (filters?.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo)   where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateTo) where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     // Join-level filters (company, dealer) — we filter via the policy relation
     if (filters?.companyId || filters?.dealerId || filters?.policyType) {
         where.policy = { deletedAt: null };
-        if (filters?.companyId)  where.policy.companyId  = filters.companyId;
-        if (filters?.dealerId)   where.policy.dealerId   = filters.dealerId;
+        if (filters?.companyId) where.policy.companyId = filters.companyId;
+        if (filters?.dealerId) where.policy.dealerId = filters.dealerId;
         if (filters?.policyType) where.policy.policyType = filters.policyType;
     }
     return where;
@@ -134,11 +134,11 @@ function buildClaimWhere(userId: string, filters?: ReportFilters) {
     if (filters?.dateFrom || filters?.dateTo) {
         where.claimDate = {};
         if (filters?.dateFrom) where.claimDate.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo)   where.claimDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateTo) where.claimDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     if (filters?.companyId || filters?.policyType) {
         where.policy = { deletedAt: null };
-        if (filters?.companyId)  where.policy.companyId  = filters.companyId;
+        if (filters?.companyId) where.policy.companyId = filters.companyId;
         if (filters?.policyType) where.policy.policyType = filters.policyType;
     }
     return where;
@@ -150,23 +150,23 @@ function buildCustomerWhere(userId: string, filters?: ReportFilters) {
     if (filters?.dateFrom || filters?.dateTo) {
         where.createdAt = {};
         if (filters?.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo)   where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateTo) where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     return where;
 }
 
 function buildFollowUpWhere(userId: string, filters?: ReportFilters) {
     const where: any = { userId };
-    if (filters?.status)     where.status     = filters.status;
+    if (filters?.status) where.status = filters.status;
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
         where.nextFollowUpDate = {};
         if (filters?.dateFrom) where.nextFollowUpDate.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo)   where.nextFollowUpDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateTo) where.nextFollowUpDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     if (filters?.companyId || filters?.policyType) {
         where.policy = { deletedAt: null };
-        if (filters?.companyId)  where.policy.companyId  = filters.companyId;
+        if (filters?.companyId) where.policy.companyId = filters.companyId;
         if (filters?.policyType) where.policy.policyType = filters.policyType;
     }
     return where;
@@ -199,19 +199,19 @@ export class ReportService {
         ]);
 
         const data = rows.map((r: any) => ({
-            policyNumber:  r.policyNumber || '—',
-            customerName:  r.customer?.name || '—',
+            policyNumber: r.policyNumber || '—',
+            customerName: r.customer?.name || '—',
             customerPhone: r.customer?.phone || '—',
-            companyName:   r.company?.name || '—',
-            dealerName:    r.dealer?.name || '—',
-            policyType:    r.policyType,
+            companyName: r.company?.name || '—',
+            dealerName: r.dealer?.name || '—',
+            policyType: r.policyType,
             vehicleNumber: r.vehicleNumber || '—',
-            vehicleClass:  r.vehicleClass || '—',
+            vehicleClass: r.vehicleClass || '—',
             premiumAmount: r.premiumAmount,
-            totalPremium:  r.totalPremium || r.premiumAmount,
-            startDate:     fmtDate(r.startDate),
-            expiryDate:    fmtDate(r.expiryDate),
-            status:        r.status,
+            totalPremium: r.totalPremium || r.premiumAmount,
+            startDate: fmtDate(r.startDate),
+            expiryDate: fmtDate(r.expiryDate),
+            status: r.status,
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.policies };
@@ -233,12 +233,12 @@ export class ReportService {
         const data = rows.map((r: any) => ({
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
-            companyName:  r.policy?.company?.name || '—',
-            amount:       r.amount,
-            paidAmount:   r.paidAmount ?? 0,
-            dueDate:      fmtDate(r.dueDate),
-            paidDate:     fmtDate(r.paidDate),
-            status:       r.status,
+            companyName: r.policy?.company?.name || '—',
+            amount: r.amount,
+            paidAmount: r.paidAmount ?? 0,
+            dueDate: fmtDate(r.dueDate),
+            paidDate: fmtDate(r.paidDate),
+            status: r.status,
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.payments };
@@ -258,14 +258,14 @@ export class ReportService {
         ]);
 
         const data = rows.map((r: any) => ({
-            claimNumber:  r.claimNumber || '—',
+            claimNumber: r.claimNumber || '—',
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
-            companyName:  r.policy?.company?.name || '—',
-            claimAmount:  r.claimAmount,
-            claimDate:    fmtDate(r.claimDate),
-            status:       r.status,
-            reason:       r.reason || '—',
+            companyName: r.policy?.company?.name || '—',
+            claimAmount: r.claimAmount,
+            claimDate: fmtDate(r.claimDate),
+            status: r.status,
+            reason: r.reason || '—',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.claims };
@@ -290,13 +290,13 @@ export class ReportService {
         ]);
 
         const data = rows.map((r: any) => ({
-            name:          r.name,
-            phone:         r.phone || '—',
-            email:         r.email || '—',
-            address:       r.address || '—',
+            name: r.name,
+            phone: r.phone || '—',
+            email: r.email || '—',
+            address: r.address || '—',
             totalPolicies: r.policies?.length || 0,
-            totalPremium:  r.policies?.reduce((s: number, p: any) => s + (p.premiumAmount || 0), 0) || 0,
-            createdAt:     fmtDate(r.createdAt),
+            totalPremium: r.policies?.reduce((s: number, p: any) => s + (p.premiumAmount || 0), 0) || 0,
+            createdAt: fmtDate(r.createdAt),
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.customers };
@@ -316,12 +316,12 @@ export class ReportService {
         ]);
 
         const data = rows.map((r: any) => ({
-            customerName:    r.customer?.name || '—',
-            customerPhone:   r.customer?.phone || '—',
-            policyNumber:    r.policy?.policyNumber || '—',
+            customerName: r.customer?.name || '—',
+            customerPhone: r.customer?.phone || '—',
+            policyNumber: r.policy?.policyNumber || '—',
             nextFollowUpDate: fmtDate(r.nextFollowUpDate),
-            status:          r.status,
-            notes:           r.notes || '—',
+            status: r.status,
+            notes: r.notes || '—',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.followups };
@@ -591,9 +591,9 @@ export class ReportService {
 
         // Flat data query
         const queryMap: Record<string, Function> = {
-            policies:  () => this.queryPolicies(userId, filters, page, limit),
-            payments:  () => this.queryPayments(userId, filters, page, limit),
-            claims:    () => this.queryClaims(userId, filters, page, limit),
+            policies: () => this.queryPolicies(userId, filters, page, limit),
+            payments: () => this.queryPayments(userId, filters, page, limit),
+            claims: () => this.queryClaims(userId, filters, page, limit),
             customers: () => this.queryCustomers(userId, filters, page, limit),
             followups: () => this.queryFollowUps(userId, filters, page, limit),
         };

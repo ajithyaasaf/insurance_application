@@ -25,7 +25,7 @@ export class FollowUpService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 20, status?: string, date?: string) {
+    async findAll(userId: string, page = 1, limit = 20, status?: string, date?: string, search?: string) {
         const where: any = {
             userId,
             ...(status && { status: status as any }),
@@ -34,6 +34,9 @@ export class FollowUpService {
                     gte: new Date(date),
                     lt: new Date(new Date(date).getTime() + 24 * 60 * 60 * 1000),
                 },
+            }),
+            ...(search && {
+                customer: { name: { contains: search, mode: 'insensitive' } },
             }),
         };
 

@@ -129,7 +129,7 @@ export class PolicyService {
         });
 
         if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
-        const hasNCB = policy.claims.length === 0;
+        const hasNCB = policy.claims.filter(c => c.status !== 'REJECTED').length === 0;
         return { ...policy, hasNCB };
     }
 

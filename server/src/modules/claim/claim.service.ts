@@ -28,12 +28,13 @@ export class ClaimService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 20, search?: string) {
+    async findAll(userId: string, page = 1, limit = 20, search?: string, status?: string) {
         const where: any = {
             userId,
             ...(search && {
                 customer: { name: { contains: search, mode: 'insensitive' } },
             }),
+            ...(status && { status: status as any }),
         };
 
         const [data, total] = await Promise.all([
@@ -59,6 +60,25 @@ export class ClaimService {
         return claim;
     }
 
+    async update(userId: string, id: string, data: Partial<CreateClaimInput>) {
+        await this.findById(userId, id); // ownership check — ensures the claim belongs to this user
+        return prisma.claim.update({
+            where: { id },
+            data: {
+                ...(data.claimNumber !== undefined && { claimNumber: data.claimNumber }),
+                ...(data.claimAmount !== undefined && { claimAmount: data.claimAmount }),
+                ...(data.claimDate !== undefined && { claimDate: new Date(data.claimDate) }),
+                ...(data.status !== undefined && { status: data.status }),
+                ...(data.reason !== undefined && { reason: data.reason }),
+            },
+            include: { customer: true, policy: true },
+        });
+    }
+
+    async delete(userId: string, id: string) {
+        await this.findById(userId, id); // ownership check
+        return prisma.claim.delete({ where: { id } });
+    }
 }
 
 export const claimService = new ClaimService();

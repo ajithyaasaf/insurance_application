@@ -228,6 +228,34 @@ const Dashboard: React.FC = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Recent Claims */}
+                <div className="card lg:col-span-2">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
+                        <h2 className="font-semibold text-surface-900">Recent Claims</h2>
+                        <button onClick={() => navigate('/claims')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                            View All <HiOutlineChevronRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
+                        {data.recentClaims.length === 0 ? (
+                            <p className="px-5 py-8 text-center text-sm text-surface-400">No recent claims</p>
+                        ) : (
+                            data.recentClaims.map((claim: any) => (
+                                <div key={claim.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50 cursor-pointer" onClick={() => navigate('/claims')}>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-surface-900 truncate">{claim.customer?.name}</p>
+                                        <p className="text-xs text-surface-500 truncate">{claim.policyNumber} • {formatDate(claim.claimDate)}</p>
+                                    </div>
+                                    <div className="text-right flex-shrink-0 ml-4">
+                                        <p className="text-sm font-semibold text-surface-900">{formatCurrency(claim.claimAmount)}</p>
+                                        <span className={getStatusColor(claim.status)}>{claim.status}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );

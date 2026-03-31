@@ -12,8 +12,8 @@ export class PaymentController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { page, limit, status, search } = req.query as any;
-            const result = await paymentService.findAll(req.user!.userId, +page || 1, +limit || 20, status, search);
+            const { page, limit, status, search, dateFrom, dateTo } = req.query as any;
+            const result = await paymentService.findAll(req.user!.userId, +page || 1, +limit || 20, status, search, dateFrom, dateTo);
             sendSuccess({ res, statusCode: 200, message: 'Payments fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }
@@ -48,3 +48,5 @@ export class PaymentController {
 }
 
 export const paymentController = new PaymentController();
+
+

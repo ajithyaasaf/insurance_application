@@ -34,6 +34,7 @@ export const formatRelativeDate = (date: string | Date): string => {
 };
 
 export const getStatusColor = (status: string): string => {
+    const s = status.toLowerCase();
     const map: Record<string, string> = {
         active: 'badge-success',
         paid: 'badge-success',
@@ -54,7 +55,7 @@ export const getStatusColor = (status: string): string => {
         rejected: 'badge-danger',
         missed: 'badge-danger',
     };
-    return map[status] || 'badge-default';
+    return map[s] || 'badge-default';
 };
 
 export const daysUntil = (date: string | Date): number => {

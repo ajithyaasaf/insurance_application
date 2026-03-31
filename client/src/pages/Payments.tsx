@@ -16,6 +16,8 @@ const Payments: React.FC = () => {
     const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
@@ -26,11 +28,20 @@ const Payments: React.FC = () => {
     const fetchPayments = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/payments', { params: { page, limit: 20, status: statusFilter || undefined, search: search || undefined } });
+            const res = await api.get('/payments', {
+                params: {
+                    page,
+                    limit: 20,
+                    status: statusFilter || undefined,
+                    search: search || undefined,
+                    dateFrom: dateFrom || undefined,
+                    dateTo: dateTo || undefined,
+                },
+            });
             setPayments(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch payments'); } finally { setLoading(false); }
-    }, [search, statusFilter]);
+    }, [search, statusFilter, dateFrom, dateTo]);
 
     useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
@@ -91,8 +102,8 @@ const Payments: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+                <div className="relative flex-1 min-w-[160px]">
                     <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
                     <input className="input pl-10" placeholder="Search by customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
@@ -100,6 +111,19 @@ const Payments: React.FC = () => {
                     <option value="">All Status</option>
                     {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                 </select>
+                <div className="flex items-center gap-2">
+                    <label className="text-xs text-surface-500 whitespace-nowrap">Due From</label>
+                    <input type="date" className="input sm:w-40" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                </div>
+                <div className="flex items-center gap-2">
+                    <label className="text-xs text-surface-500 whitespace-nowrap">To</label>
+                    <input type="date" className="input sm:w-40" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                </div>
+                {(search || statusFilter || dateFrom || dateTo) && (
+                    <button onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); }} className="btn-ghost btn-sm self-start sm:self-auto">
+                        Clear
+                    </button>
+                )}
             </div>
 
             {loading ? (

@@ -285,7 +285,9 @@ const PolicyDetail: React.FC = () => {
                                                 <p className="font-medium text-surface-900">{formatCurrency(claim.claimAmount)}</p>
                                                 <p className="text-[10px] text-surface-500">{formatDate(claim.claimDate)}</p>
                                             </div>
-                                            <span className="text-[10px] uppercase font-bold text-amber-600">{claim.status}</span>
+                                            <span className={`text-[10px] uppercase font-bold ${getStatusColor(claim.status)}`}>
+                                                {claim.status}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
