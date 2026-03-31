@@ -16,6 +16,8 @@ import {
 import api from '../api/client';
 import { formatCurrency } from '../utils/format';
 import Pagination from '../components/ui/Pagination';
+import SearchableSelect from '../components/ui/SearchableSelect';
+import { POLICY_TYPES, VEHICLE_CLASSES, POLICY_STATUSES, PAYMENT_STATUSES, CLAIM_STATUSES, FOLLOWUP_STATUSES } from '../utils/constants';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -54,12 +56,7 @@ const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
     { value: 'month', label: 'By Month' },
 ];
 
-const POLICY_TYPES = ['motor', 'health', 'life', 'fire', 'marine', 'travel', 'property', 'liability', 'other'];
-const VEHICLE_CLASSES = ['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others'];
-const POLICY_STATUSES = ['active', 'expired', 'cancelled', 'lost'];
-const PAYMENT_STATUSES = ['pending', 'paid', 'partial', 'overdue'];
-const CLAIM_STATUSES = ['filed', 'approved', 'rejected', 'settled'];
-const FOLLOWUP_STATUSES = ['pending', 'completed', 'cancelled'];
+
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: HiOutlineChartBar },
@@ -433,61 +430,50 @@ const Reports: React.FC = () => {
                         {/* Group By */}
                         <div>
                             <label className="label">Group By</label>
-                            <select
-                                className="select"
+                            <SearchableSelect
+                                options={GROUP_OPTIONS.filter(o => o.value !== '').map(opt => ({ value: opt.value, label: opt.label }))}
                                 value={groupBy}
-                                onChange={e => { setGroupBy(e.target.value as GroupBy); setPage(1); }}
-                            >
-                                {GROUP_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
+                                onChange={val => { setGroupBy(val as GroupBy); setPage(1); }}
+                                allLabel="No Grouping"
+                                placeholder="Select grouping..."
+                            />
                         </div>
 
                         {/* Company */}
                         <div>
                             <label className="label">Company</label>
-                            <select
-                                className="select"
+                            <SearchableSelect
+                                options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
                                 value={filters.companyId || ''}
-                                onChange={e => updateFilter('companyId', e.target.value)}
-                            >
-                                <option value="">All Companies</option>
-                                {companies.map((c: any) => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                            </select>
+                                onChange={val => updateFilter('companyId', val)}
+                                allLabel="All Companies"
+                                placeholder="Search company..."
+                            />
                         </div>
 
                         {/* Dealer */}
                         <div>
                             <label className="label">Dealer</label>
-                            <select
-                                className="select"
+                            <SearchableSelect
+                                options={dealers.map((d: any) => ({ value: d.id, label: d.name }))}
                                 value={filters.dealerId || ''}
-                                onChange={e => updateFilter('dealerId', e.target.value)}
-                            >
-                                <option value="">All Dealers</option>
-                                {dealers.map((d: any) => (
-                                    <option key={d.id} value={d.id}>{d.name}</option>
-                                ))}
-                            </select>
+                                onChange={val => updateFilter('dealerId', val)}
+                                allLabel="All Dealers"
+                                placeholder="Search dealer..."
+                            />
                         </div>
 
                         {/* Policy Type (only for policies, claims, payments, followups) */}
                         {source !== 'customers' && (
                             <div>
                                 <label className="label">Policy Type</label>
-                                <select
-                                    className="select"
+                                <SearchableSelect
+                                    options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
                                     value={filters.policyType || ''}
-                                    onChange={e => updateFilter('policyType', e.target.value)}
-                                >
-                                    <option value="">All Types</option>
-                                    {POLICY_TYPES.map(t => (
-                                        <option key={t} value={t} className="capitalize">{t}</option>
-                                    ))}
-                                </select>
+                                    onChange={val => updateFilter('policyType', val)}
+                                    allLabel="All Types"
+                                    placeholder="Select policy type..."
+                                />
                             </div>
                         )}
 
@@ -495,16 +481,13 @@ const Reports: React.FC = () => {
                         {source === 'policies' && filters.policyType === 'motor' && (
                             <div>
                                 <label className="label">Vehicle Class</label>
-                                <select
-                                    className="select"
+                                <SearchableSelect
+                                    options={VEHICLE_CLASSES.map(t => ({ value: t, label: t.replace('_', ' ') }))}
                                     value={filters.vehicleClass || ''}
-                                    onChange={e => updateFilter('vehicleClass', e.target.value)}
-                                >
-                                    <option value="">All Classes</option>
-                                    {VEHICLE_CLASSES.map(t => (
-                                        <option key={t} value={t}>{t.replace('_', ' ')}</option>
-                                    ))}
-                                </select>
+                                    onChange={val => updateFilter('vehicleClass', val)}
+                                    allLabel="All Classes"
+                                    placeholder="Select vehicle class..."
+                                />
                             </div>
                         )}
 
@@ -512,16 +495,13 @@ const Reports: React.FC = () => {
                         {statuses.length > 0 && (
                             <div>
                                 <label className="label">Status</label>
-                                <select
-                                    className="select"
+                                <SearchableSelect
+                                    options={statuses.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                                     value={filters.status || ''}
-                                    onChange={e => updateFilter('status', e.target.value)}
-                                >
-                                    <option value="">All Statuses</option>
-                                    {statuses.map(s => (
-                                        <option key={s} value={s} className="capitalize">{s}</option>
-                                    ))}
-                                </select>
+                                    onChange={val => updateFilter('status', val)}
+                                    allLabel="All Statuses"
+                                    placeholder="Select status..."
+                                />
                             </div>
                         )}
 

@@ -17,6 +17,7 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import searchRoutes from './modules/search/search.routes';
 import dealerRoutes from './modules/dealer/dealer.routes';
 import reportRoutes from './modules/report/report.routes';
+import { initCronJobs } from './utils/cron';
 
 const app = express();
 
@@ -51,6 +52,9 @@ app.get('/api/health', (_req, res) => {
 
 // ─── Error Handler ──────────────────────────────────────
 app.use(errorHandler);
+
+// ─── Initialize Background Jobs ─────────────────────────
+initCronJobs();
 
 // ─── Start Server ───────────────────────────────────────
 app.listen(env.PORT, () => {

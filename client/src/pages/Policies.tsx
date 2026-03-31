@@ -3,14 +3,14 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import SearchableSelect from '../components/ui/SearchableSelect';
 import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate } from '../utils/format';
+import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 
-const policyTypes = ['motor', 'health', 'life', 'other'];
-const premiumModes = ['monthly', 'quarterly', 'halfYearly', 'yearly', 'single'];
-const statusOptions = ['active', 'expired', 'cancelled', 'lost'];
+
 
 const Policies: React.FC = () => {
     const navigate = useNavigate();
@@ -146,27 +146,39 @@ const Policies: React.FC = () => {
                     <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
                     <input className="input pl-10" placeholder="Search by customer, policy no, vehicle..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
-                <select className="select w-full sm:w-36" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                    <option value="">All Status</option>
-                    {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                </select>
-                <select className="select w-full sm:w-36" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                    <option value="">All Types</option>
-                    {policyTypes.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-                </select>
-                <select className="select w-full sm:w-36" value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)}>
-                    <option value="">All Companies</option>
-                     {companies
-                         .filter(c => {
-                             if (!typeFilter) return true;
-                             if (typeFilter === 'life') return c.name === 'LIC';
-                             if (typeFilter === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
-                             if (typeFilter === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
-                             return true;
-                         })
-                         .map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                <SearchableSelect
+                    className="w-full sm:w-48"
+                    options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    allLabel="All Status"
+                    placeholder="Search status..."
+                />
+                <SearchableSelect
+                    className="w-full sm:w-48"
+                    options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                    value={typeFilter}
+                    onChange={setTypeFilter}
+                    allLabel="All Types"
+                    placeholder="Search type..."
+                />
+                <SearchableSelect
+                    className="w-full sm:w-48"
+                    options={companies
+                        .filter(c => {
+                            if (!typeFilter) return true;
+                            if (typeFilter === 'life') return c.name === 'LIC';
+                            if (typeFilter === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
+                            if (typeFilter === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
+                            return true;
+                        })
+                        .map(c => ({ value: c.id, label: c.name }))
                     }
-                </select>
+                    value={companyFilter}
+                    onChange={setCompanyFilter}
+                    allLabel="All Companies"
+                    placeholder="Search company..."
+                />
             </div>
 
             {loading ? (
@@ -238,29 +250,39 @@ const Policies: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><label className="label">Customer *</label>
-                            <select className="select" required value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })}>
-                                <option value="">Select Customer</option>
-                                {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
+                            <SearchableSelect
+                                required
+                                options={customers.map(c => ({ value: c.id, label: c.name }))}
+                                value={form.customerId}
+                                onChange={(val) => setForm({ ...form, customerId: val })}
+                                allLabel="Select Customer"
+                            />
                         </div>
                         <div><label className="label">Company *</label>
-                            <select className="select" required value={form.companyId} onChange={(e) => setForm({ ...form, companyId: e.target.value })}>
-                                <option value="">Select Company</option>
-                                {companies
+                            <SearchableSelect
+                                required
+                                options={companies
                                     .filter(c => {
                                         if (form.policyType === 'life') return c.name === 'LIC';
                                         if (form.policyType === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
                                         if (form.policyType === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
                                         return true; // fallback for 'other'
                                     })
-                                    .map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                                    .map(c => ({ value: c.id, label: c.name }))
                                 }
-                            </select>
+                                value={form.companyId}
+                                onChange={(val) => setForm({ ...form, companyId: val })}
+                                allLabel="Select Company"
+                            />
                         </div>
                         <div><label className="label">Policy Type *</label>
-                            <select className="select" value={form.policyType} onChange={(e) => setForm({ ...form, policyType: e.target.value })}>
-                                {policyTypes.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-                            </select>
+                            <SearchableSelect
+                                required
+                                options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                                value={form.policyType}
+                                onChange={(val) => setForm({ ...form, policyType: val })}
+                                allLabel="Select Policy Type"
+                            />
                         </div>
                         <div><label className="label">Policy Number *</label><input className="input" required value={form.policyNumber} onChange={(e) => setForm({ ...form, policyNumber: e.target.value })} /></div>
                         {needsVehicle && <>
@@ -268,10 +290,12 @@ const Policies: React.FC = () => {
                             <div><label className="label">Make</label><input className="input" value={form.make} onChange={(e) => setForm({ ...form, make: e.target.value })} /></div>
                             <div><label className="label">Model</label><input className="input" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
                             <div><label className="label">Vehicle Class</label>
-                                <select className="select" value={form.vehicleClass} onChange={(e) => setForm({ ...form, vehicleClass: e.target.value })}>
-                                    <option value="">Select Class</option>
-                                    {['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others'].map(c => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
-                                </select>
+                                <SearchableSelect
+                                    options={VEHICLE_CLASSES.map(c => ({ value: c, label: c.replace('_', ' ') }))}
+                                    value={form.vehicleClass}
+                                    onChange={(val) => setForm({ ...form, vehicleClass: val })}
+                                    allLabel="Select Class"
+                                />
                             </div>
                         </>}
                         <div><label className="label">Product Name</label><input className="input" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} /></div>
@@ -280,9 +304,12 @@ const Policies: React.FC = () => {
                         <div><label className="label">Sum Insured</label><input type="number" min="0" step="0.01" className="input" value={form.sumInsured} onChange={(e) => setForm({ ...form, sumInsured: e.target.value })} /></div>
                         <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.premiumAmount} onChange={(e) => setForm({ ...form, premiumAmount: e.target.value })} /></div>
                         <div><label className="label">Premium Mode</label>
-                            <select className="select" value={form.premiumMode} onChange={(e) => setForm({ ...form, premiumMode: e.target.value })}>
-                                {premiumModes.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
+                            <SearchableSelect
+                                options={premiumModes.map(m => ({ value: m, label: m }))}
+                                value={form.premiumMode}
+                                onChange={(val) => setForm({ ...form, premiumMode: val })}
+                                allLabel="Select Premium Mode"
+                            />
                         </div>
                         {needsVehicle && <>
                             <div><label className="label">IDV</label><input type="number" min="0" step="0.01" className="input" value={form.idv} onChange={(e) => setForm({ ...form, idv: e.target.value })} /></div>
@@ -292,22 +319,30 @@ const Policies: React.FC = () => {
                             <div><label className="label">Total Premium (Computed)</label><input type="number" min="0" step="0.01" className="input" value={form.totalPremium} onChange={(e) => setForm({ ...form, totalPremium: e.target.value })} /></div>
                         </>}
                         <div><label className="label">Payment Method</label>
-                            <select className="select" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
-                                <option value="">Select Method</option>
-                                {['Cash', 'UPI', 'Cheque', 'Online', 'NEFT'].map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
+                            <SearchableSelect
+                                options={['Cash', 'UPI', 'Cheque', 'Online', 'NEFT'].map(m => ({ value: m, label: m }))}
+                                value={form.paymentMethod}
+                                onChange={(val) => setForm({ ...form, paymentMethod: val })}
+                                allLabel="Select Method"
+                            />
                         </div>
                         <div><label className="label">Referred By Dealer</label>
-                            <select className="select" value={form.dealerId} onChange={(e) => setForm({ ...form, dealerId: e.target.value })}>
-                                <option value="">None / Direct</option>
-                                {dealers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
+                            <SearchableSelect
+                                options={dealers.map(d => ({ value: d.id, label: d.name }))}
+                                value={form.dealerId}
+                                onChange={(val) => setForm({ ...form, dealerId: val })}
+                                allLabel="None / Direct"
+                            />
                         </div>
                         <div><label className="label">No. of Years</label><input type="number" className="input" min="1" value={form.noOfYears} onChange={(e) => setForm({ ...form, noOfYears: e.target.value })} /></div>
                         <div><label className="label">Status</label>
-                            <select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                                {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                            </select>
+                            <SearchableSelect
+                                required
+                                options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                                value={form.status}
+                                onChange={(val) => setForm({ ...form, status: val })}
+                                allLabel="Select Status"
+                            />
                         </div>
                     </div>
                     {form.status === 'lost' && <div><label className="label">Lost Reason *</label><textarea className="input" required rows={2} value={form.lostReason} onChange={(e) => setForm({ ...form, lostReason: e.target.value })} /></div>}

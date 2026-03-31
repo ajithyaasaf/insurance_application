@@ -3,11 +3,13 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import SearchableSelect from '../components/ui/SearchableSelect';
 import { formatDate, getStatusColor } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlinePhone, HiOutlineSearch } from 'react-icons/hi';
+import { FOLLOWUP_STATUSES as statusOptions } from '../utils/constants';
 
-const statusOptions = ['pending', 'completed', 'cancelled'];
+
 
 const FollowUps: React.FC = () => {
     const [followUps, setFollowUps] = useState<any[]>([]);
@@ -99,10 +101,14 @@ const FollowUps: React.FC = () => {
                     <input className="input pl-10" placeholder="Search by customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
                 <input type="date" className="input sm:w-44" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
-                <select className="select sm:w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                    <option value="">All Status</option>
-                    {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                </select>
+                <SearchableSelect
+                    className="sm:w-40"
+                    options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    allLabel="All Status"
+                    placeholder="Search status..."
+                />
                 {(search || dateFilter || statusFilter) && (
                     <button onClick={() => { setSearch(''); setDateFilter(''); setStatusFilter(''); }} className="btn-ghost btn-sm self-start">Clear</button>
                 )}
@@ -158,24 +164,34 @@ const FollowUps: React.FC = () => {
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Follow-up' : 'New Follow-up'}>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div><label className="label">Customer *</label>
-                        <select className="select" required value={form.customerId} onChange={(e) => setForm({ ...form, customerId: e.target.value })}>
-                            <option value="">Select</option>
-                            {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                        <SearchableSelect
+                            required
+                            options={customers.map(c => ({ value: c.id, label: c.name }))}
+                            value={form.customerId}
+                            onChange={(val) => setForm({ ...form, customerId: val })}
+                            allLabel="Select Customer"
+                        />
                     </div>
                     <div><label className="label">Policy (Optional)</label>
-                        <select className="select" value={form.policyId} onChange={(e) => setForm({ ...form, policyId: e.target.value })}>
-                            <option value="">None</option>
-                            {policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => (
-                                <option key={p.id} value={p.id}>{p.productName || p.policyType} {p.vehicleNumber && `(${p.vehicleNumber})`} - {p.customer?.name}</option>
-                            ))}
-                        </select>
+                        <SearchableSelect
+                            options={policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => ({
+                                value: p.id,
+                                label: `${p.productName || p.policyType} ${p.vehicleNumber ? `(${p.vehicleNumber})` : ''} - ${p.customer?.name}`
+                            }))}
+                            value={form.policyId}
+                            onChange={(val) => setForm({ ...form, policyId: val })}
+                            allLabel="None"
+                        />
                     </div>
                     <div><label className="label">Follow-up Date *</label><input type="date" className="input" required value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Status</label>
-                        <select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                            {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                        </select>
+                        <SearchableSelect
+                            required
+                            options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                            value={form.status}
+                            onChange={(val) => setForm({ ...form, status: val })}
+                            allLabel="Select Status"
+                        />
                     </div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">

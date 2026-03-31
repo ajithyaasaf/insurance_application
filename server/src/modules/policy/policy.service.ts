@@ -215,6 +215,31 @@ export class PolicyService {
             return renewedPolicy;
         });
     }
+
+    // CRON JOB: Automatically find active policies where the expiry date has passed and mark them as expired
+    async autoExpirePolicies() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        // Actually, we want to expire policies where expiryDate is completely strictly less than today.
+        // If a policy expires ON today, it stays active until midnight.
+        // So any policy where expiryDate < today's Midnight should be expired.
+        const result = await prisma.policy.updateMany({
+            where: {
+                status: 'active',
+                expiryDate: {
+                    lt: today // Expiry is strictly before 12:00 AM today
+                },
+                deletedAt: null
+            },
+            data: {
+                status: 'expired',
+                updatedBy: 'system' // System auto-update
+            }
+        });
+
+        return result.count;
+    }
 }
 
 export const policyService = new PolicyService();

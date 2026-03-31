@@ -3,11 +3,13 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import SearchableSelect from '../components/ui/SearchableSelect';
 import { formatDate, getStatusColor } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUserAdd, HiOutlineTrendingUp } from 'react-icons/hi';
+import { LEAD_STATUSES as statusOptions } from '../utils/constants';
 
-const statusOptions = ['new', 'contacted', 'interested', 'converted', 'lost'];
+
 
 const Leads: React.FC = () => {
     const [leads, setLeads] = useState<any[]>([]);
@@ -102,10 +104,14 @@ const Leads: React.FC = () => {
                     <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
                     <input className="input pl-10" placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
-                <select className="select w-full sm:w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                    <option value="">All Status</option>
-                    {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                </select>
+                <SearchableSelect
+                    className="w-full sm:w-40"
+                    options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                    value={statusFilter}
+                    onChange={setStatusFilter}
+                    allLabel="All Status"
+                    placeholder="Search status..."
+                />
             </div>
 
             {/* Table */}
@@ -174,9 +180,13 @@ const Leads: React.FC = () => {
                     <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
                     <div><label className="label">Interested Product</label><input className="input" value={form.interestedProduct} onChange={(e) => setForm({ ...form, interestedProduct: e.target.value })} /></div>
                     <div><label className="label">Status</label>
-                        <select className="select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                            {statusOptions.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-                        </select>
+                        <SearchableSelect
+                            required
+                            options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                            value={form.status}
+                            onChange={(val) => setForm({ ...form, status: val })}
+                            allLabel="Select Status"
+                        />
                     </div>
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
