@@ -2,7 +2,7 @@ import prisma from '../../utils/prisma';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { Prisma } from '@prisma/client';
-import { buildStatusFilter, mapPolicyStatus } from '../../utils/date';
+import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, mapPaymentStatus } from '../../utils/date';
 import type { ReportSource, ReportGroupBy } from './report.schema';
 
 // ─── Types ───────────────────────────────────────────────
@@ -114,7 +114,17 @@ function buildPolicyWhere(userId: string, filters?: ReportFilters) {
 
 function buildPaymentWhere(userId: string, filters?: ReportFilters) {
     const where: any = { userId };
-    if (filters?.status) where.status = filters.status;
+    const todayIST = getStartOfTodayIST();
+
+    if (filters?.status) {
+        if (filters.status === 'overdue') {
+            where.status = { in: ['pending', 'partial'] };
+            where.dueDate = { lt: todayIST };
+        } else {
+            where.status = filters.status;
+        }
+    }
+
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
         where.createdAt = {};

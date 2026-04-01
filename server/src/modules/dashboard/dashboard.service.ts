@@ -74,12 +74,22 @@ export class DashboardService {
 
             // Overdue payments
             prisma.payment.findMany({
-                where: { userId, status: 'overdue' },
+                where: { 
+                    userId, 
+                    status: { in: ['pending', 'partial'] },
+                    dueDate: { lt: getStartOfTodayIST() }
+                },
                 include: { customer: true, policy: true },
                 orderBy: { dueDate: 'asc' },
                 take: 10,
             }),
-            prisma.payment.count({ where: { userId, status: 'overdue' } }),
+            prisma.payment.count({ 
+                where: { 
+                    userId, 
+                    status: { in: ['pending', 'partial'] },
+                    dueDate: { lt: getStartOfTodayIST() }
+                } 
+            }),
 
             // Counts
             prisma.customer.count({ where: { userId, deletedAt: null } }),
