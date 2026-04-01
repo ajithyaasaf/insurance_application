@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 import toast from 'react-hot-toast';
 import {
     HiOutlineChartBar,
@@ -46,16 +47,6 @@ const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[
     { value: 'followups', label: 'Follow-ups', icon: HiOutlineRefresh },
 ];
 
-const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
-    { value: '', label: 'No Grouping' },
-    { value: 'company', label: 'By Company' },
-    { value: 'dealer', label: 'By Dealer' },
-    { value: 'policyType', label: 'By Policy Type' },
-    { value: 'vehicleClass', label: 'By Vehicle Class' },
-    { value: 'status', label: 'By Status' },
-    { value: 'month', label: 'By Month' },
-];
-
 
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
@@ -64,7 +55,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'summary', label: 'Quick Summary', icon: HiOutlineTrendingUp },
 ];
 
-// ─── Helper: get status options per source ───────────────
+// ─── Helpers: UI configurations per source ────────────────
 
 function getStatusOptions(source: Source): string[] {
     switch (source) {
@@ -72,6 +63,24 @@ function getStatusOptions(source: Source): string[] {
         case 'payments': return PAYMENT_STATUSES;
         case 'claims': return CLAIM_STATUSES;
         case 'followups': return FOLLOWUP_STATUSES;
+        default: return [];
+    }
+}
+
+function getGroupOptions(source: Source): { value: GroupBy; label: string }[] {
+    switch (source) {
+        case 'policies': return [
+            { value: 'company', label: 'By Company' },
+            { value: 'dealer', label: 'By Dealer' },
+            { value: 'policyType', label: 'By Policy Type' },
+            { value: 'vehicleClass', label: 'By Vehicle Class' },
+            { value: 'status', label: 'By Status' },
+            { value: 'month', label: 'By Month' },
+        ];
+        case 'payments': return [
+            { value: 'status', label: 'By Status' },
+            { value: 'month', label: 'By Month' },
+        ];
         default: return [];
     }
 }
@@ -264,6 +273,110 @@ const Reports: React.FC = () => {
         );
     };
 
+    const renderCompanyChart = (data: any[], nameKey: string, valueKey: string) => {
+        if (!data?.length) return null;
+        
+        const chartData = data.slice(0, 8).map(d => ({
+            name: String(d[nameKey] || 'N/A'),
+            value: Number(d[valueKey]) || 0,
+        }));
+
+        return (
+            <div className="h-64 mt-4 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                        <XAxis 
+                            dataKey="name" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }} 
+                            dy={10}
+                        />
+                        <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
+                            tickFormatter={(val) => formatShortCurrency(val).replace('₹', '').trim()}
+                            width={45}
+                        />
+                        <RechartsTooltip 
+                            cursor={{ fill: '#F9FAFB' }}
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-white px-3 py-2 shadow-lg shadow-surface-900/5 rounded-xl border border-surface-100">
+                                            <p className="text-xs font-bold text-surface-900 mb-1">{payload[0].payload.name}</p>
+                                            <p className="text-sm font-semibold text-primary-600">
+                                                {formatCurrency(payload[0].value as number)} Premium
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+                        <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                            {chartData.map((_, index) => (
+                                <Cell key={index} fill={`hsl(${240 - index * 6}, 70%, 60%)`} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        );
+    };
+
+    const renderPolicyPieChart = (data: any[], nameKey: string, valueKey: string) => {
+        if (!data?.length) return null;
+        
+        const chartData = data.map(d => ({
+            name: String(d[nameKey] || 'N/A'),
+            value: Number(d[valueKey]) || 0,
+        }));
+
+        const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
+        return (
+            <div className="h-64 mt-4 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={chartData}
+                            cx="50%"
+                            cy="45%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                            stroke="none"
+                        >
+                            {chartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Pie>
+                        <RechartsTooltip 
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-white px-3 py-2 shadow-lg rounded-xl border border-surface-100">
+                                            <p className="text-xs font-bold text-surface-900 mb-1">{payload[0].payload.name}</p>
+                                            <p className="text-sm font-semibold text-surface-600">
+                                                {payload[0].value} Policies
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }}
+                        />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500, color: '#4B5563' }} />
+                    </PieChart>
+                </ResponsiveContainer>
+             </div>
+        );
+    };
+
     // ── Dashboard Tab ────────────────────────────────────
 
     const renderDashboard = () => {
@@ -340,7 +453,7 @@ const Reports: React.FC = () => {
                             <h3 className="text-sm font-bold text-surface-900">Company-wise Performance</h3>
                             <span className="badge-info">{companyData.length} companies</span>
                         </div>
-                        {renderBarChart(companyData, 'name', 'premiumSum', 'Premium (₹)')}
+                        {renderCompanyChart(companyData, 'name', 'premiumSum')}
                     </div>
 
                     {/* Policy Type Breakdown */}
@@ -349,7 +462,7 @@ const Reports: React.FC = () => {
                             <h3 className="text-sm font-bold text-surface-900">Policy Type Breakdown</h3>
                             <span className="badge-info">{policyTypeData.length} types</span>
                         </div>
-                        {renderBarChart(policyTypeData, 'name', 'count', 'Policies')}
+                        {renderPolicyPieChart(policyTypeData, 'name', 'count')}
                         {!policyTypeData?.length && (
                             <p className="text-xs text-surface-400 text-center py-6">No policy data available</p>
                         )}
@@ -405,6 +518,12 @@ const Reports: React.FC = () => {
 
     const renderBuilder = () => {
         const statuses = getStatusOptions(source);
+        const groupOptions = getGroupOptions(source);
+
+        const showCompanyFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
+        const showDealerFilter = ['policies', 'payments'].includes(source);
+        const showPolicyTypeFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
+        const showVehicleClassFilter = source === 'policies' && localFilters.policyType === 'motor';
 
         return (
             <div className="space-y-4">
@@ -463,43 +582,49 @@ const Reports: React.FC = () => {
 
                     <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 ${!showFilters ? 'hidden lg:grid' : ''}`}>
                         {/* Group By */}
-                        <div>
-                            <label className="label">Group By</label>
-                            <SearchableSelect
-                                options={GROUP_OPTIONS.filter(o => o.value !== '').map(opt => ({ value: opt.value, label: opt.label }))}
-                                value={localGroupBy}
-                                onChange={val => { setLocalGroupBy(val as GroupBy); setIsDirty(true); }}
-                                allLabel="No Grouping"
-                                placeholder="Select grouping..."
-                            />
-                        </div>
+                        {groupOptions.length > 0 && (
+                            <div>
+                                <label className="label">Group By</label>
+                                <SearchableSelect
+                                    options={groupOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                                    value={localGroupBy}
+                                    onChange={val => { setLocalGroupBy(val as GroupBy); setIsDirty(true); }}
+                                    allLabel="No Grouping"
+                                    placeholder="Select grouping..."
+                                />
+                            </div>
+                        )}
 
                         {/* Company */}
-                        <div>
-                            <label className="label">Company</label>
-                            <SearchableSelect
-                                options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
-                                value={localFilters.companyId || ''}
-                                onChange={val => updateLocalFilter('companyId', val)}
-                                allLabel="All Companies"
-                                placeholder="Search company..."
-                            />
-                        </div>
+                        {showCompanyFilter && (
+                            <div>
+                                <label className="label">Company</label>
+                                <SearchableSelect
+                                    options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                                    value={localFilters.companyId || ''}
+                                    onChange={val => updateLocalFilter('companyId', val)}
+                                    allLabel="All Companies"
+                                    placeholder="Search company..."
+                                />
+                            </div>
+                        )}
 
                         {/* Dealer */}
-                        <div>
-                            <label className="label">Dealer</label>
-                            <SearchableSelect
-                                options={dealers.map((d: any) => ({ value: d.id, label: d.name }))}
-                                value={localFilters.dealerId || ''}
-                                onChange={val => updateLocalFilter('dealerId', val)}
-                                allLabel="All Dealers"
-                                placeholder="Search dealer..."
-                            />
-                        </div>
+                        {showDealerFilter && (
+                            <div>
+                                <label className="label">Dealer</label>
+                                <SearchableSelect
+                                    options={dealers.map((d: any) => ({ value: d.id, label: d.name }))}
+                                    value={localFilters.dealerId || ''}
+                                    onChange={val => updateLocalFilter('dealerId', val)}
+                                    allLabel="All Dealers"
+                                    placeholder="Search dealer..."
+                                />
+                            </div>
+                        )}
 
                         {/* Policy Type (only for policies, claims, payments, followups) */}
-                        {source !== 'customers' && (
+                        {showPolicyTypeFilter && (
                             <div>
                                 <label className="label">Policy Type</label>
                                 <SearchableSelect
@@ -513,7 +638,7 @@ const Reports: React.FC = () => {
                         )}
 
                         {/* Vehicle Class (Only for policies and motor) */}
-                        {source === 'policies' && localFilters.policyType === 'motor' && (
+                        {showVehicleClassFilter && (
                             <div>
                                 <label className="label">Vehicle Class</label>
                                 <SearchableSelect

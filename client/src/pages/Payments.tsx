@@ -162,7 +162,7 @@ const Payments: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 <span className={getStatusColor(p.status)}>{p.status}</span>
                                                 {p.isOverdue && (
-                                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 rounded uppercase border border-red-200">Overdue</span>
+                                                    <span className="badge-danger">overdue</span>
                                                 )}
                                             </div>
                                         </td>
@@ -181,7 +181,7 @@ const Payments: React.FC = () => {
                                     <div className="flex items-center gap-2">
                                         <span className={getStatusColor(p.status)}>{p.status}</span>
                                         {p.isOverdue && (
-                                            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-red-100 text-red-700 rounded uppercase border border-red-200">Overdue</span>
+                                            <span className="badge-danger">overdue</span>
                                         )}
                                     </div>
                                 </div>
