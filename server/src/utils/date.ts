@@ -43,3 +43,11 @@ export const mapPolicyStatus = <T extends { status: string, expiryDate?: Date | 
     }
     return policy;
 };
+
+export const mapPaymentStatus = <T extends { status: string, dueDate: Date }>(payment: T): T & { isOverdue: boolean } => {
+    if (!payment) return payment as any;
+    const todayIST = getStartOfTodayIST();
+    // A payment is overdue if it's not 'paid' and the due date has passed.
+    const isOverdue = payment.status !== 'paid' && payment.dueDate < todayIST;
+    return { ...payment, isOverdue };
+};

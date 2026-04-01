@@ -3,7 +3,7 @@ export const VEHICLE_CLASSES = ['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fir
 export const PREMIUM_MODES = ['monthly', 'quarterly', 'halfYearly', 'yearly', 'single'];
 
 export const POLICY_STATUSES = ['active', 'expired', 'cancelled', 'lost'];
-export const PAYMENT_STATUSES = ['pending', 'paid', 'partial', 'overdue'];
+export const PAYMENT_STATUSES = ['pending', 'paid', 'partial'];
 export const CLAIM_STATUSES = ['filed', 'approved', 'rejected', 'settled'];
 export const FOLLOWUP_STATUSES = ['pending', 'completed', 'cancelled'];
 export const LEAD_STATUSES = ['new', 'contacted', 'interested', 'converted', 'lost'];

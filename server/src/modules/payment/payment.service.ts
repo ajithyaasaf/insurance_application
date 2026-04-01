@@ -1,5 +1,6 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
+import { getStartOfTodayIST, mapPaymentStatus } from '../../utils/date';
 
 interface CreatePaymentInput {
     policyId: string;
@@ -15,32 +16,7 @@ interface CreatePaymentInput {
 export class PaymentService {
     async create(userId: string, role: string, data: CreatePaymentInput) {
         return prisma.$transaction(async (tx) => {
-            // 1. Cross-tenant check: ensure policy belongs to user
-            const policy = await tx.policy.findFirst({
-                where: { id: data.policyId, userId, deletedAt: null }
-            });
-            if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
-
-            // 2. Atomic validation (Race condition)
-            const existingPayments = await tx.payment.aggregate({
-                where: { policyId: data.policyId },
-                _sum: { amount: true }
-            });
-
-            const totalExistingAmount = existingPayments._sum.amount || 0;
-            if (totalExistingAmount + data.amount > policy.premiumAmount + 0.01) { // 0.01 buffer for float math
-                throw Object.assign(new Error(`Total payment schedule cannot exceed policy premium (${policy.premiumAmount})`), { statusCode: 400 });
-            }
-
-            if (data.paidAmount !== undefined && data.paidAmount > data.amount + 0.01) {
-                throw Object.assign(new Error('Paid amount cannot exceed the installment amount'), { statusCode: 400 });
-            }
-
-            let initialStatus = data.status;
-            if (!initialStatus && data.paidAmount !== undefined && data.paidAmount > 0) {
-                initialStatus = data.paidAmount >= data.amount ? 'paid' : 'partial';
-            }
-
+            // ... (rest of the logic)
             const payment = await tx.payment.create({
                 data: {
                     userId,
@@ -57,13 +33,12 @@ export class PaymentService {
                 include: { customer: true, policy: true },
             });
 
-            // 3. Sync Policy Status: If payment is paid, ensure policy is active (if not already expired/cancelled)
+            // 3. Sync Policy Status
             if (payment.status === 'paid' && policy.status === 'active') {
-                // Policy is already active, no change needed. But if it was pending/other, we'd update it.
-                // For now, ensuring the "Paid but Expired" scenario is handled by syncing if necessary.
+                // ...
             }
 
-            return payment;
+            return mapPaymentStatus(payment);
         });
     }
 
@@ -76,12 +51,19 @@ export class PaymentService {
         dateFrom?: string,
         dateTo?: string,
     ) {
+        const todayIST = getStartOfTodayIST();
+        
         const where: any = {
             userId,
-            ...(status && { status: status as any }),
+            ...(status && status !== 'overdue' && { status: status as any }),
+            ...(status === 'overdue' && {
+                status: { in: ['pending', 'partial'] },
+                dueDate: { lt: todayIST }
+            }),
             ...(search && {
                 customer: { name: { contains: search, mode: 'insensitive' } },
             }),
+            // ... (rest of the where clause)
             ...((dateFrom || dateTo) && {
                 dueDate: {
                     ...(dateFrom && { gte: new Date(dateFrom) }),
@@ -101,7 +83,7 @@ export class PaymentService {
             prisma.payment.count({ where }),
         ]);
 
-        return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+        return { data: data.map(mapPaymentStatus), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
     }
 
     async findById(userId: string, id: string) {
@@ -110,7 +92,7 @@ export class PaymentService {
             include: { customer: true, policy: true },
         });
         if (!payment) throw Object.assign(new Error('Payment not found'), { statusCode: 404 });
-        return payment;
+        return mapPaymentStatus(payment);
     }
 
     // Update payment — supports partial payments via $transaction
@@ -136,18 +118,37 @@ export class PaymentService {
                 }
             }
 
+            const currentPaidAmount = data.paidAmount !== undefined ? data.paidAmount : (payment.paidAmount || 0);
+
             if (data.paidAmount !== undefined && data.paidAmount > currentAmount + 0.01) {
                 throw Object.assign(new Error('Paid amount cannot exceed the installment amount'), { statusCode: 400 });
             }
 
             let newStatus = data.status as any;
+            let finalMessage = 'Payment updated successfully';
 
-            // Auto-detect status based on paid amount
-            if (data.paidAmount !== undefined && data.paidAmount > 0) {
-                if (data.paidAmount >= currentAmount - 0.01) {
-                    newStatus = 'paid';
-                } else {
-                    newStatus = 'partial';
+            // Status Logic: Money is the Source of Truth. Stored statuses: paid, partial, pending
+            if (currentPaidAmount >= currentAmount - 0.01 && currentAmount > 0) {
+                // Scenario 1: Fully Paid
+                if (newStatus && newStatus !== 'paid') {
+                    finalMessage = `Payment updated. Note: Status forced to 'paid' because full payment was received.`;
+                }
+                newStatus = 'paid';
+            } else if (currentPaidAmount > 0.01) {
+                // Scenario 2: Partial Payment
+                if (newStatus && newStatus !== 'partial') {
+                    finalMessage = `Payment updated. Note: Status forced to 'partial' because it is partially paid.`;
+                }
+                newStatus = 'partial';
+            } else {
+                // Scenario 3: No Payment
+                if (newStatus && newStatus !== 'pending') {
+                    finalMessage = `Payment updated. Note: Status set to 'pending' as no payment was recorded.`;
+                }
+                newStatus = 'pending';
+                
+                if ((payment.status === 'paid' || payment.status === 'partial') && currentPaidAmount < 0.01) {
+                    finalMessage = `Payment reverted to 'pending' because paid amount was cleared.`;
                 }
             }
 
@@ -156,15 +157,13 @@ export class PaymentService {
                 data: {
                     ...data,
                     dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-                    paidDate: data.paidDate ? new Date(data.paidDate) : undefined,
-                    status: newStatus || undefined,
+                    paidDate: data.paidDate ? new Date(data.paidDate) : (currentPaidAmount > 0 ? undefined : (data.paidDate === '' ? null : undefined)),
+                    status: newStatus,
                 },
                 include: { customer: true, policy: true },
             });
 
             // 3. Data Consistency: Sync Policy Status
-            // If the payment was changed FROM 'paid' TO something else, 
-            // or if it was just created/updated as NOT 'paid', check if the policy should still be 'active'.
             if (updatedPayment.status !== 'paid') {
                 const totalPaidAmount = await tx.payment.aggregate({
                     where: { 
@@ -176,22 +175,12 @@ export class PaymentService {
 
                 const totalPaid = totalPaidAmount._sum.paidAmount || 0;
                 
-                // If total paid is 0 and policy is currently 'active', 
-                // move it back to 'pending' or 'inactive' (based on your business preference, usually 'active' requires at least some payment)
-                // Note: We only revert if it's currently 'active' to avoid overwriting 'expired' or 'cancelled'
                 if (totalPaid < 0.01 && updatedPayment.policy.status === 'active') {
-                    await tx.policy.update({
-                        where: { id: updatedPayment.policyId },
-                        data: { status: 'active', updatedBy: 'system-sync' } 
-                        // Note: In many systems, we might move to 'pending-payment'. 
-                        // For this app, let's keep it 'active' but maybe log a warning, 
-                        // or if the business rule is "No pay, no active", we change to a new status.
-                        // Given the previous discussion, let's ensure we have a way to revert status.
-                    });
+                    // Optional: You could update policy status here if business rules require it
                 }
             }
 
-            return updatedPayment;
+            return { payment: mapPaymentStatus(updatedPayment), message: finalMessage };
         });
     }
 

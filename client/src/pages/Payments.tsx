@@ -80,8 +80,14 @@ const Payments: React.FC = () => {
                 ...form, amount: parseFloat(form.amount), paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
                 paidDate: form.paidDate || undefined, notes: form.notes || undefined,
             };
-            if (editing) { await api.put(`/payments/${editing.id}`, payload); toast.success('Payment updated'); }
-            else { await api.post('/payments', payload); toast.success('Payment created'); }
+            if (editing) { 
+                const res = await api.put(`/payments/${editing.id}`, payload); 
+                toast.success(res.data.message || 'Payment updated'); 
+            }
+            else { 
+                const res = await api.post('/payments', payload); 
+                toast.success(res.data.message || 'Payment created'); 
+            }
             setModalOpen(false); fetchPayments(meta.page);
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
     };
@@ -111,7 +117,10 @@ const Payments: React.FC = () => {
                 </div>
                 <SearchableSelect
                     className="w-full sm:w-40"
-                    options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                    options={[
+                        ...statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })),
+                        { value: 'overdue', label: 'Overdue' }
+                    ]}
                     value={statusFilter}
                     onChange={setStatusFilter}
                     allLabel="All Status"
@@ -149,7 +158,14 @@ const Payments: React.FC = () => {
                                         <td className="font-medium">{formatCurrency(p.amount)}</td>
                                         <td className="text-xs">{formatDate(p.dueDate)}</td>
                                         <td className="text-xs">{p.paidAmount ? formatCurrency(p.paidAmount) : '—'}</td>
-                                        <td><span className={getStatusColor(p.status)}>{p.status}</span></td>
+                                        <td>
+                                            <div className="flex items-center gap-2">
+                                                <span className={getStatusColor(p.status)}>{p.status}</span>
+                                                {p.isOverdue && (
+                                                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-red-100 text-red-700 rounded uppercase border border-red-200">Overdue</span>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td><button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button></td>
                                     </tr>
                                 ))}
@@ -162,7 +178,12 @@ const Payments: React.FC = () => {
                             <div key={p.id} className="card card-body" onClick={() => openEdit(p)}>
                                 <div className="flex justify-between items-start mb-1">
                                     <p className="font-semibold text-surface-900">{p.customer?.name}</p>
-                                    <span className={getStatusColor(p.status)}>{p.status}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={getStatusColor(p.status)}>{p.status}</span>
+                                        {p.isOverdue && (
+                                            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-red-100 text-red-700 rounded uppercase border border-red-200">Overdue</span>
+                                        )}
+                                    </div>
                                 </div>
                                 <p className="text-xs text-surface-500 mb-2">Due: {formatDate(p.dueDate)}</p>
                                 <div className="flex justify-between text-sm">

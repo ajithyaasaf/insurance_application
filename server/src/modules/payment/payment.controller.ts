@@ -27,8 +27,8 @@ export class PaymentController {
 
     async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const payment = await paymentService.update(req.user!.userId, req.params.id as string, req.body);
-            sendSuccess({ res, statusCode: 200, message: 'Payment updated', data: payment });
+            const { payment, message } = await paymentService.update(req.user!.userId, req.params.id as string, req.body);
+            sendSuccess({ res, statusCode: 200, message, data: payment });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
