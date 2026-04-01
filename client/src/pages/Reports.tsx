@@ -24,7 +24,7 @@ import { POLICY_TYPES, VEHICLE_CLASSES, POLICY_STATUSES, PAYMENT_STATUSES, CLAIM
 
 type Source = 'policies' | 'payments' | 'claims' | 'customers' | 'followups';
 type GroupBy = 'company' | 'dealer' | 'policyType' | 'vehicleClass' | 'status' | 'month' | '';
-type TabId = 'dashboard' | 'builder' | 'summary';
+type TabId = 'dashboard' | 'builder';
 
 interface Column { key: string; label: string }
 interface ReportFilters {
@@ -52,7 +52,6 @@ const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: HiOutlineChartBar },
     { id: 'builder', label: 'Report Builder', icon: HiOutlineAdjustments },
-    { id: 'summary', label: 'Quick Summary', icon: HiOutlineTrendingUp },
 ];
 
 // ─── Helpers: UI configurations per source ────────────────
@@ -106,6 +105,13 @@ const Reports: React.FC = () => {
     const [isDirty, setIsDirty] = useState(false);
     const limit = 25;
 
+    // ── Dashboard Date Filters (local = what user is selecting, applied = what the API uses)
+    const [localDashFrom, setLocalDashFrom] = useState('');
+    const [localDashTo, setLocalDashTo] = useState('');
+    const [appliedDashFrom, setAppliedDashFrom] = useState('');
+    const [appliedDashTo, setAppliedDashTo] = useState('');
+    const [isDashDirty, setIsDashDirty] = useState(false);
+
     // --- Fetch companies & dealers for dropdown ---
     const { data: companiesData } = useQuery({
         queryKey: ['companies'],
@@ -118,11 +124,16 @@ const Reports: React.FC = () => {
     const companies = companiesData?.data || [];
     const dealers = dealersData?.data || [];
 
-    // --- Dashboard analytics ---
+    // --- Dashboard analytics (reacts to applied date range) ---
     const { data: dashboardData, isLoading: dashLoading } = useQuery({
-        queryKey: ['report-dashboard'],
-        queryFn: () => api.get('/reports/dashboard').then(r => r.data),
-        enabled: activeTab === 'dashboard' || activeTab === 'summary',
+        queryKey: ['report-dashboard', appliedDashFrom, appliedDashTo],
+        queryFn: () => {
+            const params = new URLSearchParams();
+            if (appliedDashFrom) params.set('dateFrom', appliedDashFrom);
+            if (appliedDashTo) params.set('dateTo', appliedDashTo);
+            return api.get(`/reports/dashboard${params.toString() ? `?${params}` : ''}`).then(r => r.data);
+        },
+        enabled: activeTab === 'dashboard',
     });
     const dash = dashboardData?.data;
 
@@ -394,9 +405,74 @@ const Reports: React.FC = () => {
         const dealerData = dash.dealerPerformance?.data || [];
         const monthlyData = dash.monthlyTrend?.data || [];
         const paymentData = dash.paymentSummary?.data || [];
+        const periodLabel: string = dash.periodLabel || 'This Month';
+        const isFiltered = !!(appliedDashFrom || appliedDashTo);
+
+        // ── Apply dashboard date filter ──────────────────────
+        const applyDashFilter = () => {
+            if (localDashFrom && localDashTo && new Date(localDashFrom) > new Date(localDashTo)) {
+                toast.error('Date From cannot be after Date To');
+                return;
+            }
+            setAppliedDashFrom(localDashFrom);
+            setAppliedDashTo(localDashTo);
+            setIsDashDirty(false);
+        };
+
+        const clearDashFilter = () => {
+            setLocalDashFrom('');
+            setLocalDashTo('');
+            setAppliedDashFrom('');
+            setAppliedDashTo('');
+            setIsDashDirty(false);
+        };
 
         return (
             <div className="space-y-6">
+                {/* Date Filter Panel */}
+                <div className="card card-body">
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                        <div className="flex-1">
+                            <label className="label">Date From</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={localDashFrom}
+                                onChange={e => { setLocalDashFrom(e.target.value); setIsDashDirty(true); }}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="label">Date To</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={localDashTo}
+                                onChange={e => { setLocalDashTo(e.target.value); setIsDashDirty(true); }}
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={applyDashFilter}
+                                className={`btn-primary ${isDashDirty ? 'ring-2 ring-offset-2 ring-primary-400' : ''}`}
+                                disabled={dashLoading}
+                            >
+                                <HiOutlineRefresh className={`w-4 h-4 ${dashLoading ? 'animate-spin' : ''}`} />
+                                {isDashDirty ? 'Apply' : 'Generate'}
+                            </button>
+                            {isFiltered && (
+                                <button onClick={clearDashFilter} className="btn-ghost text-red-500">
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    {isFiltered && (
+                        <p className="text-xs text-primary-600 font-medium mt-3">
+                            Showing data from {appliedDashFrom || '—'} to {appliedDashTo || 'today'}
+                        </p>
+                    )}
+                </div>
+
                 {/* KPI Cards Row */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                     <div className="stat-card p-3 sm:p-4">
@@ -405,7 +481,7 @@ const Reports: React.FC = () => {
                                 <HiOutlineClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600" />
                             </div>
                             <div className="w-full">
-                                <p className="stat-label">This Month Policies</p>
+                                <p className="stat-label">{periodLabel} Policies</p>
                                 <p className="stat-value text-xl">{dash.thisMonth?.policiesAdded || 0}</p>
                             </div>
                         </div>
@@ -416,7 +492,7 @@ const Reports: React.FC = () => {
                                 <HiOutlineCurrencyRupee className="w-5 h-5 text-emerald-600" />
                             </div>
                             <div>
-                                <p className="stat-label truncate">This Month Premium</p>
+                                <p className="stat-label truncate">{periodLabel} Premium</p>
                                 <p className="stat-value text-xl" title={formatCurrency(dash.thisMonth?.totalPremium || 0)}>{formatShortCurrency(dash.thisMonth?.totalPremium || 0)}</p>
                             </div>
                         </div>
@@ -497,16 +573,35 @@ const Reports: React.FC = () => {
                 {paymentData?.length > 0 && (
                     <div className="card card-body">
                         <h3 className="text-sm font-bold text-surface-900 mb-4">Payment Collection Summary</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {paymentData.map((p: any, i: number) => (
-                                <div key={i} className="text-center p-3 rounded-xl bg-surface-50">
-                                    <p className="text-lg font-bold text-surface-900 capitalize">{p.name}</p>
-                                    <p className="text-xs text-surface-500 mt-1">{p.count} payments</p>
-                                    <p className="text-sm font-semibold text-primary-600 mt-1">
-                                        {formatCurrency(p.amountSum || 0)}
-                                    </p>
-                                </div>
-                            ))}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                            {paymentData.map((p: any, i: number) => {
+                                const statusColors: any = {
+                                    paid: 'bg-emerald-500',
+                                    partial: 'bg-amber-500',
+                                    pending: 'bg-rose-500',
+                                    overdue: 'bg-red-600',
+                                };
+                                const dotColor = statusColors[p.name.toLowerCase()] || 'bg-surface-400';
+                                
+                                return (
+                                    <div key={i} className="group relative bg-white border border-surface-200 p-5 rounded-2xl transition-all duration-300 hover:border-primary-200 hover:shadow-xl hover:shadow-primary-900/5">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${dotColor}`} />
+                                                <span className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">{p.name}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-2xl font-bold text-surface-900 mb-1">
+                                                {formatShortCurrency(p.amountSum || 0)}
+                                            </p>
+                                            <p className="text-xs font-medium text-surface-500">
+                                                {p.count} {p.count === 1 ? 'payment' : 'payments'} collected
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -903,7 +998,6 @@ const Reports: React.FC = () => {
             {/* Tab content */}
             {activeTab === 'dashboard' && renderDashboard()}
             {activeTab === 'builder' && renderBuilder()}
-            {activeTab === 'summary' && renderSummary()}
         </div>
     );
 };

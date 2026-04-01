@@ -16,7 +16,37 @@ interface CreatePaymentInput {
 export class PaymentService {
     async create(userId: string, role: string, data: CreatePaymentInput) {
         return prisma.$transaction(async (tx) => {
-            // ... (rest of the logic)
+            // 1. Fetch the policy to validate premium bounds
+            const policy = await tx.policy.findFirst({
+                where: { id: data.policyId, userId },
+            });
+            if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
+
+            // 2. Validate total payment schedule does not exceed policy premium
+            const existingPayments = await tx.payment.aggregate({
+                where: { policyId: data.policyId },
+                _sum: { amount: true },
+            });
+            const totalExistingAmount = existingPayments._sum.amount || 0;
+            if (totalExistingAmount + data.amount > policy.premiumAmount + 0.01) {
+                throw Object.assign(
+                    new Error(`Total payment schedule cannot exceed policy premium (${policy.premiumAmount})`),
+                    { statusCode: 400 }
+                );
+            }
+
+            // 3. Derive status from paidAmount — money is the source of truth
+            const paidAmount = data.paidAmount || 0;
+            let initialStatus: string;
+            if (paidAmount >= data.amount - 0.01 && data.amount > 0) {
+                initialStatus = 'paid';
+            } else if (paidAmount > 0.01) {
+                initialStatus = 'partial';
+            } else {
+                initialStatus = data.status || 'pending';
+            }
+
+            // 4. Create the payment
             const payment = await tx.payment.create({
                 data: {
                     userId,
@@ -26,21 +56,17 @@ export class PaymentService {
                     dueDate: new Date(data.dueDate),
                     paidDate: data.paidDate ? new Date(data.paidDate) : null,
                     paidAmount: data.paidAmount,
-                    status: (initialStatus as any) || 'pending',
+                    status: initialStatus as any,
                     notes: data.notes,
                     createdBy: role,
                 },
                 include: { customer: true, policy: true },
             });
 
-            // 3. Sync Policy Status
-            if (payment.status === 'paid' && policy.status === 'active') {
-                // ...
-            }
-
             return mapPaymentStatus(payment);
         });
     }
+
 
     async findAll(
         userId: string,

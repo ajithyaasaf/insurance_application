@@ -619,10 +619,31 @@ export class ReportService {
 
     // ── Dashboard analytics (pre-computed) ───────────────
 
-    async getDashboardReport(userId: string) {
+    async getDashboardReport(userId: string, filters?: { dateFrom?: string; dateTo?: string }) {
         const now = new Date();
         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastYearStart = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+
+        // When the user provides date filters, use those for KPIs; otherwise default to current month
+        const periodFilters: ReportFilters | undefined = filters?.dateFrom || filters?.dateTo
+            ? filters
+            : undefined;
+
+        // For KPI cards - use the filtered period or fall back to current month
+        const kpiWhere: any = { userId, deletedAt: null };
+        if (periodFilters?.dateFrom || periodFilters?.dateTo) {
+            kpiWhere.createdAt = {};
+            if (periodFilters.dateFrom) kpiWhere.createdAt.gte = new Date(periodFilters.dateFrom);
+            if (periodFilters.dateTo) kpiWhere.createdAt.lte = new Date(periodFilters.dateTo);
+        } else {
+            kpiWhere.createdAt = { gte: thisMonthStart };
+        }
+
+        // For monthlyTrend - use filtered end date or now, look back 12 months from that point
+        const trendEnd = filters?.dateTo ? new Date(filters.dateTo) : now;
+        const trendStart = filters?.dateFrom
+            ? new Date(filters.dateFrom)
+            : new Date(trendEnd.getFullYear() - 1, trendEnd.getMonth(), 1);
 
         const [
             companyPerformance,
@@ -631,27 +652,28 @@ export class ReportService {
             monthlyTrend,
             paymentSummary,
             renewalStats,
-            thisMonthStats,
+            periodCount,
+            periodPremium,
         ] = await Promise.all([
-            // Company-wise performance
-            this.groupPolicies(userId, undefined, 'company'),
+            // Company-wise performance (filtered)
+            this.groupPolicies(userId, periodFilters, 'company'),
 
-            // Policy type breakdown
-            this.groupPolicies(userId, undefined, 'policyType'),
+            // Policy type breakdown (filtered)
+            this.groupPolicies(userId, periodFilters, 'policyType'),
 
-            // Dealer performance
-            this.groupPolicies(userId, undefined, 'dealer'),
+            // Dealer performance (filtered)
+            this.groupPolicies(userId, periodFilters, 'dealer'),
 
-            // Monthly premium trend (last 12 months)
+            // Monthly premium trend
             this.groupPolicies(userId, {
-                dateFrom: lastYearStart.toISOString().split('T')[0],
-                dateTo: now.toISOString().split('T')[0],
+                dateFrom: trendStart.toISOString().split('T')[0],
+                dateTo: trendEnd.toISOString().split('T')[0],
             }, 'month'),
 
-            // Payment collection summary
-            this.groupPayments(userId, undefined, 'status'),
+            // Payment collection summary (filtered)
+            this.groupPayments(userId, periodFilters, 'status'),
 
-            // Renewal stats
+            // Renewal stats (all-time — not date-sensitive as a concept)
             prisma.$transaction([
                 prisma.policy.count({
                     where: { userId, deletedAt: null, parentPolicyId: { not: null } },
@@ -661,20 +683,17 @@ export class ReportService {
                 }),
             ]),
 
-            // This month stats
-            prisma.$transaction([
-                prisma.policy.count({
-                    where: { userId, deletedAt: null, createdAt: { gte: thisMonthStart } },
-                }),
-                prisma.policy.aggregate({
-                    where: { userId, deletedAt: null, createdAt: { gte: thisMonthStart } },
-                    _sum: { premiumAmount: true },
-                }),
-            ]),
+            // Period policies count
+            prisma.policy.count({ where: kpiWhere }),
+
+            // Period premium total
+            prisma.policy.aggregate({
+                where: kpiWhere,
+                _sum: { premiumAmount: true },
+            }),
         ]);
 
         const [renewedCount, expiredCount] = renewalStats;
-        const [thisMonthCount, thisMonthPremium] = thisMonthStats;
 
         return {
             companyPerformance,
@@ -689,9 +708,11 @@ export class ReportService {
                     ? Math.round((renewedCount / (renewedCount + expiredCount)) * 100)
                     : 0,
             },
+            // Key label for the UI — tells the frontend if it's filtered or default
+            periodLabel: (filters?.dateFrom || filters?.dateTo) ? 'Selected Period' : 'This Month',
             thisMonth: {
-                policiesAdded: thisMonthCount,
-                totalPremium: (thisMonthPremium as any)?._sum?.premiumAmount || 0,
+                policiesAdded: periodCount,
+                totalPremium: (periodPremium as any)?._sum?.premiumAmount || 0,
             },
         };
     }

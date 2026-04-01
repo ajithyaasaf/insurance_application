@@ -18,7 +18,9 @@ export class ReportController {
     // GET /api/reports/dashboard
     async dashboard(req: Request, res: Response, next: NextFunction) {
         try {
-            const data = await reportService.getDashboardReport(req.user!.userId);
+            const dateFrom = typeof req.query.dateFrom === 'string' ? req.query.dateFrom : undefined;
+            const dateTo = typeof req.query.dateTo === 'string' ? req.query.dateTo : undefined;
+            const data = await reportService.getDashboardReport(req.user!.userId, { dateFrom, dateTo });
             sendSuccess({ res, statusCode: 200, message: 'Dashboard analytics', data });
         } catch (e: any) { next(e); }
     }
