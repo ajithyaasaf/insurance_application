@@ -36,6 +36,7 @@ export class SearchService {
             prisma.policy.findMany({
                 where: {
                     userId,
+                    deletedAt: null,
                     OR: [
                         { policyNumber: { contains: query, mode: 'insensitive' } },
                         { vehicleNumber: { contains: query, mode: 'insensitive' } },
