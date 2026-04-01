@@ -1,5 +1,6 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
+import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST } from '../../utils/date';
 
 interface CreatePolicyInput {
     customerId: string;
@@ -95,23 +96,24 @@ export class PolicyService {
                     { vehicleNumber: { contains: search, mode: 'insensitive' } },
                 ],
             }),
-            ...(status && { status: status as any }),
+            ...(status ? buildStatusFilter(status) : {}),
             ...(policyType && { policyType: policyType as any }),
             ...(companyId && { companyId }),
         };
 
-        const [data, total] = await Promise.all([
-            prisma.policy.findMany({
-                where,
-                skip: (page - 1) * limit,
-                take: limit,
-                orderBy: { createdAt: 'desc' },
-                include: { customer: true, company: true, dealer: true },
-            }),
-            prisma.policy.count({ where }),
-        ]);
+        const total = await prisma.policy.count({ where });
+        const policies = await prisma.policy.findMany({
+            where,
+            include: { customer: true, company: true, dealer: true },
+            orderBy: { createdAt: 'desc' },
+            skip: (page - 1) * limit,
+            take: limit,
+        });
 
-        return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+        return {
+            data: policies.map(mapPolicyStatus),
+            meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        };
     }
 
     async findById(userId: string, id: string) {
@@ -130,7 +132,7 @@ export class PolicyService {
 
         if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
         const hasNCB = policy.claims.filter(c => c.status !== 'REJECTED').length === 0;
-        return { ...policy, hasNCB };
+        return mapPolicyStatus({ ...policy, hasNCB });
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
@@ -146,7 +148,7 @@ export class PolicyService {
             throw Object.assign(new Error('Vehicle number is required for motor policies'), { statusCode: 400 });
         }
 
-        return prisma.policy.update({
+        const updatedPolicy = await prisma.policy.update({
             where: { id },
             data: {
                 ...data,
@@ -160,6 +162,8 @@ export class PolicyService {
             },
             include: { customer: true, company: true, dealer: true },
         });
+
+        return mapPolicyStatus(updatedPolicy);
     }
 
     async softDelete(userId: string, id: string) {
@@ -216,20 +220,14 @@ export class PolicyService {
         });
     }
 
-    // CRON JOB: Automatically find active policies where the expiry date has passed and mark them as expired
+    // CRON JOB / STARTUP SWEEP: Automatically hard-expire policies in the DB for clean indexing
     async autoExpirePolicies() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Start of today
+        const todayIST = getStartOfTodayIST();
 
-        // Actually, we want to expire policies where expiryDate is completely strictly less than today.
-        // If a policy expires ON today, it stays active until midnight.
-        // So any policy where expiryDate < today's Midnight should be expired.
         const result = await prisma.policy.updateMany({
             where: {
                 status: 'active',
-                expiryDate: {
-                    lt: today // Expiry is strictly before 12:00 AM today
-                },
+                expiryDate: { lt: todayIST },
                 deletedAt: null
             },
             data: {

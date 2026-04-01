@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../utils/prisma';
+import { mapPolicyStatus } from '../../utils/date';
 
 export class SearchService {
     async globalSearch(userId: string, query: string) {
@@ -48,7 +49,11 @@ export class SearchService {
             }),
         ]);
 
-        return { customers, leads, policies };
+        return { 
+            customers, 
+            leads, 
+            policies: policies.map(mapPolicyStatus) 
+        };
     }
 }
 

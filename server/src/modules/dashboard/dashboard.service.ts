@@ -1,4 +1,5 @@
 import prisma from '../../utils/prisma';
+import { buildStatusFilter, getStartOfTodayIST } from '../../utils/date';
 
 export class DashboardService {
     async getSummary(userId: string) {
@@ -27,9 +28,9 @@ export class DashboardService {
                 where: {
                     userId,
                     deletedAt: null,
-                    status: 'active',
+                    ...buildStatusFilter('active'),
                     expiryDate: { gte: now, lte: thirtyDaysFromNow },
-                },
+                } as any,
                 include: { customer: true, company: true },
                 orderBy: { expiryDate: 'asc' },
                 take: 10,
@@ -38,9 +39,9 @@ export class DashboardService {
                 where: {
                     userId,
                     deletedAt: null,
-                    status: 'active',
+                    ...buildStatusFilter('active'),
                     expiryDate: { gte: now, lte: thirtyDaysFromNow },
-                },
+                } as any,
             }),
 
             // Today's follow-ups
@@ -82,7 +83,7 @@ export class DashboardService {
 
             // Counts
             prisma.customer.count({ where: { userId, deletedAt: null } }),
-            prisma.policy.count({ where: { userId, deletedAt: null, status: 'active' } }),
+            prisma.policy.count({ where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any }),
             prisma.lead.count({ where: { userId, deletedAt: null } }),
 
             // Recent claims
@@ -96,7 +97,7 @@ export class DashboardService {
             // Company stats (grouped by company)
             prisma.policy.groupBy({
                 by: ['companyId'],
-                where: { userId, status: 'active', deletedAt: null },
+                where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any,
                 _count: { _all: true },
                 _sum: { premiumAmount: true },
             }),

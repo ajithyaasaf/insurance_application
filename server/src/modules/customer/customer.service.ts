@@ -1,5 +1,6 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
+import { mapPolicyStatus } from '../../utils/date';
 
 interface CreateCustomerInput {
     name: string;
@@ -73,7 +74,10 @@ export class CustomerService {
         });
 
         if (!customer) throw Object.assign(new Error('Customer not found'), { statusCode: 404 });
-        return customer;
+        return {
+            ...customer,
+            policies: customer.policies.map(mapPolicyStatus)
+        };
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreateCustomerInput>) {

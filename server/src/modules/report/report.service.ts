@@ -1,6 +1,8 @@
 import prisma from '../../utils/prisma';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
+import { Prisma } from '@prisma/client';
+import { buildStatusFilter, mapPolicyStatus } from '../../utils/date';
 import type { ReportSource, ReportGroupBy } from './report.schema';
 
 // ─── Types ───────────────────────────────────────────────
@@ -99,7 +101,9 @@ function buildPolicyWhere(userId: string, filters?: ReportFilters) {
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.policyType) where.policyType = filters.policyType;
     if (filters?.vehicleClass) where.vehicleClass = filters.vehicleClass;
-    if (filters?.status) where.status = filters.status;
+    if (filters?.status) {
+        Object.assign(where, buildStatusFilter(filters.status));
+    }
     if (filters?.dateFrom || filters?.dateTo) {
         where.createdAt = {};
         if (filters?.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
@@ -198,7 +202,7 @@ export class ReportService {
             prisma.policy.count({ where }),
         ]);
 
-        const data = rows.map((r: any) => ({
+        const data = rows.map(mapPolicyStatus).map((r: any) => ({
             policyNumber: r.policyNumber || '—',
             customerName: r.customer?.name || '—',
             customerPhone: r.customer?.phone || '—',
@@ -561,18 +565,13 @@ export class ReportService {
             const data = Array.from(monthMap.entries())
                 .map(([month, vals]) => ({ name: month, ...vals }))
                 .sort((a, b) => b.name.localeCompare(a.name));
-            return {
-                grouped: true,
-                groupLabel: 'Month',
-                columns: [
-                    { key: 'name', label: 'Month' },
-                    { key: 'count', label: 'Total Payments' },
-                    { key: 'amountSum', label: 'Total Amount (₹)' },
-                    { key: 'paidSum', label: 'Paid Amount (₹)' },
-                ],
-                data,
-                total: data.length,
-            };
+            const columns = [
+                { key: 'name', label: 'Month' },
+                { key: 'count', label: 'Total Payments' },
+                { key: 'amountSum', label: 'Total Amount (₹)' },
+                { key: 'paidSum', label: 'Paid Amount (₹)' },
+            ];
+            return { grouped: true, groupLabel: 'Month', columns, data, total: data.length };
         }
 
         return null;
