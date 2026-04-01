@@ -21,6 +21,14 @@ export class ClaimService {
         if (!policy) throw Object.assign(new Error('Policy not found or unauthorized'), { statusCode: 404 });
         if (!customer) throw Object.assign(new Error('Customer not found or unauthorized'), { statusCode: 404 });
 
+        // Cross-entity integrity: The selected policy must actually belong to the selected customer
+        if (policy.customerId !== data.customerId) {
+            throw Object.assign(
+                new Error('The selected policy does not belong to the selected customer'),
+                { statusCode: 400 }
+            );
+        }
+
         return prisma.claim.create({
             data: {
                 userId,

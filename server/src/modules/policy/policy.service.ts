@@ -226,6 +226,16 @@ export class PolicyService {
     async renew(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
         const originalPolicy = await this.findById(userId, id);
 
+        // Date validation: same rule as create/update — expiry must be strictly after start
+        const newStart = data.startDate ? new Date(data.startDate) : new Date(originalPolicy.expiryDate);
+        const newExpiry = data.expiryDate ? new Date(data.expiryDate) : null;
+        if (!newExpiry) {
+            throw Object.assign(new Error('Expiry date is required for renewal'), { statusCode: 400 });
+        }
+        if (newExpiry <= newStart) {
+            throw Object.assign(new Error('Renewal expiry date must be after the start date'), { statusCode: 400 });
+        }
+
         return prisma.$transaction(async (tx: any) => {
             // Mark original as expired
             await tx.policy.update({
@@ -243,7 +253,7 @@ export class PolicyService {
                     policyType: originalPolicy.policyType,
                     vehicleNumber: data.vehicleNumber || originalPolicy.vehicleNumber,
                     startDate: data.startDate ? new Date(data.startDate) : new Date(),
-                    expiryDate: new Date(data.expiryDate!),
+                    expiryDate: newExpiry,
                     sumInsured: data.sumInsured ?? originalPolicy.sumInsured,
                     premiumAmount: data.premiumAmount ?? originalPolicy.premiumAmount,
                     premiumMode: (data.premiumMode as any) || originalPolicy.premiumMode,
@@ -269,6 +279,19 @@ export class PolicyService {
 
             return renewedPolicy;
         });
+    }
+
+    // Pre-delete check: returns counts of linked records so the frontend can warn the user
+    async preDeleteCheck(userId: string, id: string) {
+        await this.findById(userId, id); // ownership check
+
+        const [paymentsCount, claimsCount, followUpsCount] = await Promise.all([
+            prisma.payment.count({ where: { policyId: id, userId } }),
+            prisma.claim.count({ where: { policyId: id, userId } }),
+            prisma.followUp.count({ where: { policyId: id, userId } }),
+        ]);
+
+        return { paymentsCount, claimsCount, followUpsCount };
     }
 
     // CRON JOB / STARTUP SWEEP: Automatically hard-expire policies in the DB for clean indexing

@@ -26,6 +26,8 @@ const Claims: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [form, setForm] = useState(initialForm);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; customerName: string } | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const fetchClaims = useCallback(async (page = 1) => {
         setLoading(true);
@@ -87,13 +89,23 @@ const Claims: React.FC = () => {
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this claim? This action cannot be undone.')) return;
+    const handleDelete = async (id: string, customerName: string) => {
+        setDeleteConfirm({ id, customerName });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        setDeleteLoading(true);
         try {
-            await api.delete(`/claims/${id}`);
-            toast.success('Claim deleted');
+            await api.delete(`/claims/${deleteConfirm.id}`);
+            toast.success('Claim deleted successfully');
+            setDeleteConfirm(null);
             fetchClaims(meta.page);
-        } catch { toast.error('Failed to delete claim'); }
+        } catch { 
+            toast.error('Failed to delete claim'); 
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     return (
@@ -145,7 +157,7 @@ const Claims: React.FC = () => {
                                         <td>
                                             <div className="flex gap-1 justify-end">
                                                 <button onClick={() => openEdit(c)} className="btn-ghost btn-sm p-1" title="Edit"><HiOutlinePencil className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDelete(c.id)} className="btn-ghost btn-sm p-1 text-red-500 hover:text-red-700" title="Delete"><HiOutlineTrash className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDelete(c.id, c.customer?.name)} className="btn-ghost btn-sm p-1 text-red-500 hover:text-red-700" title="Delete"><HiOutlineTrash className="w-4 h-4" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -170,7 +182,7 @@ const Claims: React.FC = () => {
                                 {c.reason && <p className="text-xs text-surface-500 mt-1">{c.reason}</p>}
                                 <div className="flex gap-2 mt-3 pt-3 border-t border-surface-100">
                                     <button onClick={() => openEdit(c)} className="btn-secondary btn-sm flex-1">Edit</button>
-                                    <button onClick={() => handleDelete(c.id)} className="btn-sm flex-1 text-red-500 border border-red-200 rounded-lg hover:bg-red-50">Delete</button>
+                                    <button onClick={() => handleDelete(c.id, c.customer?.name)} className="btn-sm flex-1 text-red-500 border border-red-200 rounded-lg hover:bg-red-50">Delete</button>
                                 </div>
                             </div>
                         ))}
@@ -222,6 +234,31 @@ const Claims: React.FC = () => {
                         <button type="submit" className="btn-primary flex-1">{editing ? 'Save Changes' : 'File Claim'}</button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete this claim?">
+                {deleteConfirm && (
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                            <HiOutlineTrash className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <p className="text-sm font-semibold text-red-700">This action is permanent and cannot be undone.</p>
+                                <p className="text-sm text-red-600 mt-1">Are you sure you want to delete the claim for <strong>{deleteConfirm.customerName}</strong>?</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 pt-4 mt-2 border-t border-surface-100">
+                            <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1 font-bold">Cancel</button>
+                            <button 
+                                type="button" 
+                                onClick={confirmDelete} 
+                                disabled={deleteLoading}
+                                className="btn-danger flex-1 font-bold"
+                            >
+                                {deleteLoading ? 'Deleting...' : 'Yes, Delete Claim'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </Modal>
 
             <button onClick={openCreate} className="fab lg:hidden"><HiOutlinePlus className="w-6 h-6" /></button>

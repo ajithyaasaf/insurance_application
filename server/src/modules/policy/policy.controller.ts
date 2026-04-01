@@ -39,6 +39,13 @@ export class PolicyController {
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
+    async preDeleteCheck(req: Request, res: Response, next: NextFunction) {
+        try {
+            const counts = await policyService.preDeleteCheck(req.user!.userId, req.params.id as string);
+            sendSuccess({ res, statusCode: 200, message: 'Pre-delete check complete', data: counts });
+        } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
+    }
+
     async renew(req: Request, res: Response, next: NextFunction) {
         try {
             const policy = await policyService.renew(req.user!.userId, req.user!.role, req.params.id as string, req.body);

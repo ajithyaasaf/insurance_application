@@ -34,6 +34,8 @@ const Policies: React.FC = () => {
         make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: ''
     });
     const [renewForm, setRenewForm] = useState({ startDate: '', expiryDate: '', premiumAmount: '', policyNumber: '' });
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; counts: { paymentsCount: number; claimsCount: number; followUpsCount: number } } | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     const fetchPolicies = useCallback(async (page = 1) => {
         setLoading(true);
@@ -102,9 +104,24 @@ const Policies: React.FC = () => {
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this policy?')) return;
-        try { await api.delete(`/policies/${id}`); toast.success('Policy deleted'); fetchPolicies(meta.page); } catch { toast.error('Failed to delete'); }
+    const handleDelete = async (id: string, customerName: string) => {
+        // Step 1: Fetch linked record counts before asking for confirmation
+        try {
+            const res = await api.get(`/policies/${id}/pre-delete-check`);
+            setDeleteConfirm({ id, name: customerName, counts: res.data.data });
+        } catch { toast.error('Could not verify policy dependencies'); }
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+        setDeleteLoading(true);
+        try {
+            await api.delete(`/policies/${deleteConfirm.id}`);
+            toast.success('Policy and all linked records deleted');
+            setDeleteConfirm(null);
+            fetchPolicies(meta.page);
+        } catch { toast.error('Failed to delete'); }
+        finally { setDeleteLoading(false); }
     };
 
     const openRenew = (p: any) => {
@@ -209,7 +226,7 @@ const Policies: React.FC = () => {
                                                 <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-ghost btn-sm text-primary-600" title="View"><HiOutlineEye className="w-3.5 h-3.5" /></button>
                                                 <button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
                                                 {p.status === 'active' && <button onClick={() => openRenew(p)} className="btn-ghost btn-sm text-emerald-600" title="Renew"><HiOutlineRefresh className="w-3.5 h-3.5" /></button>}
-                                                <button onClick={() => handleDelete(p.id)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => handleDelete(p.id, p.customer?.name)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -236,7 +253,7 @@ const Policies: React.FC = () => {
                                     <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-secondary btn-sm flex-1">View</button>
                                     <button onClick={() => openEdit(p)} className="btn-secondary btn-sm flex-1">Edit</button>
                                     {p.status === 'active' && <button onClick={() => openRenew(p)} className="btn-primary btn-sm flex-1">Renew</button>}
-                                    <button onClick={() => handleDelete(p.id)} className="btn-danger btn-sm">Del</button>
+                                    <button onClick={() => handleDelete(p.id, p.customer?.name)} className="btn-danger btn-sm">Del</button>
                                 </div>
                             </div>
                         ))}
@@ -371,6 +388,54 @@ const Policies: React.FC = () => {
                         <button type="submit" className="btn-primary flex-1">Renew</button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Smart Delete Confirmation Modal */}
+            <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete this policy?">
+                {deleteConfirm && (
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                            <HiOutlineTrash className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <p className="text-sm font-semibold text-red-700">This action is permanent and cannot be undone.</p>
+                                <p className="text-sm text-red-600 mt-1">
+                                    { (deleteConfirm.counts.paymentsCount > 0 || deleteConfirm.counts.claimsCount > 0 || deleteConfirm.counts.followUpsCount > 0) 
+                                        ? <>You are about to delete the policy for <strong>{deleteConfirm.name}</strong> along with its linked records:</>
+                                        : <>Are you sure you want to delete the policy for <strong>{deleteConfirm.name}</strong>?</>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+
+                        {(deleteConfirm.counts.paymentsCount > 0 || deleteConfirm.counts.claimsCount > 0 || deleteConfirm.counts.followUpsCount > 0) && (
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="text-center p-3 bg-surface-50 rounded-xl">
+                                    <p className="text-2xl font-bold text-surface-900">{deleteConfirm.counts.paymentsCount}</p>
+                                    <p className="text-xs text-surface-500 mt-0.5">Payment{deleteConfirm.counts.paymentsCount !== 1 ? 's' : ''}</p>
+                                </div>
+                                <div className="text-center p-3 bg-surface-50 rounded-xl">
+                                    <p className="text-2xl font-bold text-surface-900">{deleteConfirm.counts.claimsCount}</p>
+                                    <p className="text-xs text-surface-500 mt-0.5">Claim{deleteConfirm.counts.claimsCount !== 1 ? 's' : ''}</p>
+                                </div>
+                                <div className="text-center p-3 bg-surface-50 rounded-xl">
+                                    <p className="text-2xl font-bold text-surface-900">{deleteConfirm.counts.followUpsCount}</p>
+                                    <p className="text-xs text-surface-500 mt-0.5">Follow-up{deleteConfirm.counts.followUpsCount !== 1 ? 's' : ''}</p>
+                                </div>
+                            </div>
+                        )}
+                        <div className="flex gap-3 pt-4 mt-2 border-t border-surface-100">
+                            <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1 font-bold">Cancel</button>
+                            <button
+                                type="button"
+                                onClick={confirmDelete}
+                                disabled={deleteLoading}
+                                className="btn-danger flex-1 font-bold"
+                            >
+                                {deleteLoading ? 'Deleting...' : 'Yes, Delete Everything'}
+                            </button>
+                        </div>
+                    </div>
+                )}
             </Modal>
 
             <button onClick={openCreate} className="fab lg:hidden"><HiOutlinePlus className="w-6 h-6" /></button>
