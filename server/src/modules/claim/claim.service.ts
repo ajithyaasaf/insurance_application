@@ -12,6 +12,15 @@ interface CreateClaimInput {
 
 export class ClaimService {
     async create(userId: string, role: string, data: CreateClaimInput) {
+        // Ownership validation for related entities
+        const [policy, customer] = await Promise.all([
+            prisma.policy.findFirst({ where: { id: data.policyId, userId, deletedAt: null } }),
+            prisma.customer.findFirst({ where: { id: data.customerId, userId, deletedAt: null } }),
+        ]);
+
+        if (!policy) throw Object.assign(new Error('Policy not found or unauthorized'), { statusCode: 404 });
+        if (!customer) throw Object.assign(new Error('Customer not found or unauthorized'), { statusCode: 404 });
+
         return prisma.claim.create({
             data: {
                 userId,

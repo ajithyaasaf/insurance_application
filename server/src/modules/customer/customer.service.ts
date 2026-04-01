@@ -86,8 +86,37 @@ export class CustomerService {
     }
 
     async softDelete(userId: string, id: string) {
-        await this.findById(userId, id);
-        return prisma.customer.update({ where: { id }, data: { deletedAt: new Date() } });
+        await this.findById(userId, id); // ownership check
+
+        return prisma.$transaction(async (tx) => {
+            const now = new Date();
+
+            // 1. Get all policy IDs for this customer
+            const policies = await tx.policy.findMany({
+                where: { customerId: id, userId, deletedAt: null },
+                select: { id: true }
+            });
+            const policyIds = policies.map(p => p.id);
+
+            // 2. Delete all children of those policies
+            if (policyIds.length > 0) {
+                await tx.payment.deleteMany({ where: { policyId: { in: policyIds }, userId } });
+                await tx.claim.deleteMany({ where: { policyId: { in: policyIds }, userId } });
+                await tx.followUp.deleteMany({ where: { policyId: { in: policyIds }, userId } });
+                
+                // 3. Soft delete the policies themselves
+                await tx.policy.updateMany({
+                    where: { id: { in: policyIds }, userId },
+                    data: { deletedAt: now }
+                });
+            }
+
+            // 4. Soft delete the customer
+            return tx.customer.update({ 
+                where: { id }, 
+                data: { deletedAt: now } 
+            });
+        });
     }
 }
 

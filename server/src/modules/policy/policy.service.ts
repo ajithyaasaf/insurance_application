@@ -32,6 +32,13 @@ interface CreatePolicyInput {
 
 export class PolicyService {
     async create(userId: string, role: string, data: CreatePolicyInput) {
+        // 1. Date Validation: Expiry must be after Start
+        const start = new Date(data.startDate);
+        const expiry = new Date(data.expiryDate);
+        if (expiry <= start) {
+            throw Object.assign(new Error('Expiry date must be after the start date'), { statusCode: 400 });
+        }
+
         // Validate: lost policy must include reason
         if (data.status === 'lost' && !data.lostReason) {
             throw Object.assign(new Error('Lost policy must include a reason'), { statusCode: 400 });
@@ -42,6 +49,15 @@ export class PolicyService {
             throw Object.assign(new Error('Vehicle number is required for motor policies'), { statusCode: 400 });
         }
 
+        // 2. Cross-tenant ownership validation for Customer and Dealer
+        const [customer, dealer] = await Promise.all([
+            prisma.customer.findFirst({ where: { id: data.customerId, userId, deletedAt: null } }),
+            data.dealerId ? prisma.dealer.findFirst({ where: { id: data.dealerId, userId, deletedAt: null } }) : Promise.resolve(null),
+        ]);
+
+        if (!customer) throw Object.assign(new Error('Customer not found or unauthorized'), { statusCode: 404 });
+        if (data.dealerId && !dealer) throw Object.assign(new Error('Dealer not found or unauthorized'), { statusCode: 404 });
+
         return prisma.policy.create({
             data: {
                 userId,
@@ -50,8 +66,8 @@ export class PolicyService {
                 policyNumber: data.policyNumber,
                 policyType: data.policyType as any,
                 vehicleNumber: data.vehicleNumber,
-                startDate: new Date(data.startDate),
-                expiryDate: new Date(data.expiryDate),
+                startDate: start,
+                expiryDate: expiry,
                 sumInsured: data.sumInsured,
                 premiumAmount: data.premiumAmount,
                 premiumMode: (data.premiumMode as any) || 'yearly',
@@ -138,6 +154,23 @@ export class PolicyService {
     async update(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
         const policy = await this.findById(userId, id);
 
+        // 1. Date Validation: Expiry must be after Start
+        const newStart = data.startDate ? new Date(data.startDate) : policy.startDate;
+        const newExpiry = data.expiryDate ? new Date(data.expiryDate) : policy.expiryDate;
+        if (newExpiry <= newStart) {
+            throw Object.assign(new Error('Expiry date must be after the start date'), { statusCode: 400 });
+        }
+
+        // 2. Ownership validation for changed Customer/Dealer
+        if (data.customerId && data.customerId !== policy.customerId) {
+            const customer = await prisma.customer.findFirst({ where: { id: data.customerId, userId, deletedAt: null } });
+            if (!customer) throw Object.assign(new Error('Target customer not found or unauthorized'), { statusCode: 404 });
+        }
+        if (data.dealerId && data.dealerId !== policy.dealerId) {
+            const dealer = await prisma.dealer.findFirst({ where: { id: data.dealerId, userId, deletedAt: null } });
+            if (!dealer) throw Object.assign(new Error('Target dealer not found or unauthorized'), { statusCode: 404 });
+        }
+
         if (data.status === 'lost' && !data.lostReason) {
             throw Object.assign(new Error('Lost policy must include a reason'), { statusCode: 400 });
         }
@@ -167,8 +200,26 @@ export class PolicyService {
     }
 
     async softDelete(userId: string, id: string) {
-        await this.findById(userId, id);
-        return prisma.policy.update({ where: { id }, data: { deletedAt: new Date() } });
+        await this.findById(userId, id); // ownership check
+        
+        // Recursive soft delete in a transaction
+        return prisma.$transaction(async (tx) => {
+            const now = new Date();
+            
+            // Delete child payments
+            await tx.payment.deleteMany({ where: { policyId: id, userId } });
+            
+            // Delete child claims
+            await tx.claim.deleteMany({ where: { policyId: id, userId } });
+            
+            // Delete child follow-ups
+            await tx.followUp.deleteMany({ where: { policyId: id, userId } });
+
+            return tx.policy.update({ 
+                where: { id }, 
+                data: { deletedAt: now } 
+            });
+        });
     }
 
     // Renewal = create a new policy linked via parentPolicyId using $transaction
