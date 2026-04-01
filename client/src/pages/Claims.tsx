@@ -188,7 +188,7 @@ const Claims: React.FC = () => {
                             options={customers.map(c => ({ value: c.id, label: c.name }))}
                             value={form.customerId}
                             onChange={(val) => setForm({ ...form, customerId: val })}
-                            allLabel="Select Customer"
+                            placeholder="Select Customer"
                         />
                     </div>
                     <div><label className="label">Policy *</label>
@@ -201,7 +201,7 @@ const Claims: React.FC = () => {
                             }))}
                             value={form.policyId}
                             onChange={(val) => setForm({ ...form, policyId: val })}
-                            allLabel="Select Policy"
+                            placeholder="Select Policy"
                         />
                     </div>
                     <div><label className="label">Claim Number</label><input className="input" value={form.claimNumber} onChange={(e) => setForm({ ...form, claimNumber: e.target.value })} /></div>
@@ -213,7 +213,7 @@ const Claims: React.FC = () => {
                             options={claimStatusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
                             onChange={(val) => setForm({ ...form, status: val })}
-                            allLabel="Select Status"
+                            placeholder="Select Status"
                         />
                     </div>
                     <div><label className="label">Reason / Notes</label><textarea className="input" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>

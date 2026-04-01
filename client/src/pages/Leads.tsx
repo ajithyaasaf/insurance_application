@@ -185,7 +185,7 @@ const Leads: React.FC = () => {
                             options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
                             onChange={(val) => setForm({ ...form, status: val })}
-                            allLabel="Select Status"
+                            placeholder="Select Status"
                         />
                     </div>
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>

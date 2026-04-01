@@ -255,7 +255,7 @@ const Policies: React.FC = () => {
                                 options={customers.map(c => ({ value: c.id, label: c.name }))}
                                 value={form.customerId}
                                 onChange={(val) => setForm({ ...form, customerId: val })}
-                                allLabel="Select Customer"
+                                placeholder="Select Customer"
                             />
                         </div>
                         <div><label className="label">Company *</label>
@@ -272,16 +272,21 @@ const Policies: React.FC = () => {
                                 }
                                 value={form.companyId}
                                 onChange={(val) => setForm({ ...form, companyId: val })}
-                                allLabel="Select Company"
+                                placeholder="Select Company"
                             />
                         </div>
-                        <div><label className="label">Policy Type *</label>
+                        <div>
+                            <label className="label">
+                                Policy Type *
+                                {editing && <span className="ml-2 text-xs font-normal text-surface-400">(cannot be changed after creation)</span>}
+                            </label>
                             <SearchableSelect
                                 required
+                                disabled={!!editing}
                                 options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
                                 value={form.policyType}
                                 onChange={(val) => setForm({ ...form, policyType: val })}
-                                allLabel="Select Policy Type"
+                                placeholder="Select Policy Type"
                             />
                         </div>
                         <div><label className="label">Policy Number *</label><input className="input" required value={form.policyNumber} onChange={(e) => setForm({ ...form, policyNumber: e.target.value })} /></div>
@@ -308,7 +313,7 @@ const Policies: React.FC = () => {
                                 options={premiumModes.map(m => ({ value: m, label: m }))}
                                 value={form.premiumMode}
                                 onChange={(val) => setForm({ ...form, premiumMode: val })}
-                                allLabel="Select Premium Mode"
+                                placeholder="Select Premium Mode"
                             />
                         </div>
                         {needsVehicle && <>
@@ -323,7 +328,7 @@ const Policies: React.FC = () => {
                                 options={['Cash', 'UPI', 'Cheque', 'Online', 'NEFT'].map(m => ({ value: m, label: m }))}
                                 value={form.paymentMethod}
                                 onChange={(val) => setForm({ ...form, paymentMethod: val })}
-                                allLabel="Select Method"
+                                placeholder="Select Method"
                             />
                         </div>
                         <div><label className="label">Referred By Dealer</label>
@@ -341,7 +346,7 @@ const Policies: React.FC = () => {
                                 options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                                 value={form.status}
                                 onChange={(val) => setForm({ ...form, status: val })}
-                                allLabel="Select Status"
+                                placeholder="Select Status"
                             />
                         </div>
                     </div>

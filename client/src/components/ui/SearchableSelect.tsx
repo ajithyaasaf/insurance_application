@@ -11,7 +11,7 @@ interface SearchableSelectProps {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
-    allLabel?: string;
+    allLabel?: string; // If provided, shows an "All" or "Empty" option at the top
     className?: string;
     disabled?: boolean;
     required?: boolean;
@@ -22,7 +22,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     value,
     onChange,
     placeholder = 'Select...',
-    allLabel = 'All',
+    allLabel,
     className = '',
     disabled = false,
     required = false,
@@ -36,14 +36,15 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
     const selectedLabel = value
         ? options.find(o => o.value === value)?.label ?? placeholder
-        : allLabel;
+        : (allLabel || placeholder);
 
     const filtered = search.trim()
         ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
         : options;
 
-    const allOption: SelectOption = { value: '', label: allLabel };
-    const displayList = [allOption, ...filtered];
+    const displayList = allLabel 
+        ? [{ value: '', label: allLabel } as SelectOption, ...filtered]
+        : filtered;
 
     // Reset highlight when filter changes
     useEffect(() => {
@@ -147,7 +148,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 aria-haspopup="listbox"
                 aria-expanded={open}
             >
-                <span className="truncate">
+                <span className={`truncate ${!value && !allLabel ? 'text-surface-400' : ''}`}>
                     {selectedLabel}
                 </span>
 

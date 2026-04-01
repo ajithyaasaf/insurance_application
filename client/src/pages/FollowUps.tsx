@@ -169,7 +169,7 @@ const FollowUps: React.FC = () => {
                             options={customers.map(c => ({ value: c.id, label: c.name }))}
                             value={form.customerId}
                             onChange={(val) => setForm({ ...form, customerId: val })}
-                            allLabel="Select Customer"
+                            placeholder="Select Customer"
                         />
                     </div>
                     <div><label className="label">Policy (Optional)</label>
@@ -190,7 +190,7 @@ const FollowUps: React.FC = () => {
                             options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
                             onChange={(val) => setForm({ ...form, status: val })}
-                            allLabel="Select Status"
+                            placeholder="Select Status"
                         />
                     </div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
