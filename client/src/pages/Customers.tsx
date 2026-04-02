@@ -18,6 +18,7 @@ const Customers: React.FC = () => {
     const [editing, setEditing] = useState<any>(null);
     const [detail, setDetail] = useState<any>(null);
     const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' });
+    const [submitting, setSubmitting] = useState(false);
 
     const fetchCustomers = useCallback(async (page = 1) => {
         setLoading(true);
@@ -48,6 +49,7 @@ const Customers: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSubmitting(true);
         try {
             if (editing) {
                 const response = await api.put(`/customers/${editing.id}`, form);
@@ -58,7 +60,11 @@ const Customers: React.FC = () => {
             }
             setModalOpen(false);
             fetchCustomers(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { 
+            toast.error(err.response?.data?.message || 'Error'); 
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -126,15 +132,62 @@ const Customers: React.FC = () => {
             )}
 
             {/* Create/Edit Modal */}
-            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Customer' : 'New Customer'}>
+            <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Customer' : 'New Customer'} size="md">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div><label className="label">Name *</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                    <div><label className="label">Phone</label><input type="tel" pattern="[0-9]{10}" title="Please enter a valid 10-digit phone number" className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })} /></div>
-                    <div><label className="label">Email</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                    <div><label className="label">Address</label><textarea className="input" rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="label">Name *</label>
+                            <input 
+                                className="input" 
+                                required 
+                                placeholder="Enter customer name"
+                                value={form.name} 
+                                onChange={(e) => setForm({ ...form, name: e.target.value })} 
+                                disabled={submitting}
+                            />
+                        </div>
+                        <div>
+                            <label className="label">Phone *</label>
+                            <input 
+                                type="tel" 
+                                pattern="[0-9]{10}" 
+                                title="Please enter a valid 10-digit phone number" 
+                                className="input" 
+                                required
+                                placeholder="9876543210"
+                                value={form.phone} 
+                                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })} 
+                                disabled={submitting}
+                            />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label className="label">Email</label>
+                            <input 
+                                type="email" 
+                                className="input" 
+                                placeholder="example@email.com"
+                                value={form.email} 
+                                onChange={(e) => setForm({ ...form, email: e.target.value })} 
+                                disabled={submitting}
+                            />
+                        </div>
+                        <div className="sm:col-span-2">
+                            <label className="label">Address</label>
+                            <textarea 
+                                className="input" 
+                                rows={2} 
+                                placeholder="Enter full address..."
+                                value={form.address} 
+                                onChange={(e) => setForm({ ...form, address: e.target.value })} 
+                                disabled={submitting}
+                            />
+                        </div>
+                    </div>
                     <div className="flex gap-3 pt-2">
-                        <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
+                        <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1" disabled={submitting}>Cancel</button>
+                        <button type="submit" className="btn-primary flex-1" disabled={submitting}>
+                            {submitting ? 'Saving...' : editing ? 'Update Customer' : 'Create Customer'}
+                        </button>
                     </div>
                 </form>
             </Modal>
