@@ -169,6 +169,13 @@ const Login: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Attribution */}
+            <div className="fixed bottom-8 left-0 right-0 text-center pointer-events-none animate-fade-in" style={{ animationDelay: '500ms' }}>
+                <p className="text-[10px] text-white/20 uppercase tracking-[0.4em] font-light">
+                    Designed & Developed by <span className="text-white/40 font-medium">Ajith</span>
+                </p>
+            </div>
         </div>
     );
 };

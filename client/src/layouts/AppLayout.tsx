@@ -117,6 +117,14 @@ const AppLayout: React.FC = () => {
                             <HiOutlineLogout className="w-5 h-5" />
                             Logout
                         </button>
+
+                        {/* Attribution */}
+                        <div className="mt-6 px-3 text-center opacity-40 hover:opacity-100 transition-opacity duration-300">
+                            <p className="text-[9px] text-surface-500 uppercase tracking-[0.2em] font-medium">
+                                Designed & Developed by
+                            </p>
+                            <p className="text-[10px] text-surface-300 mt-0.5 font-semibold">Ajith</p>
+                        </div>
                     </div>
                 </div>
             </aside>
