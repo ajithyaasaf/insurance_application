@@ -250,7 +250,7 @@ const Leads: React.FC = () => {
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                     
-                    <PolicyFormFields form={form} setForm={setForm} companies={companies} />
+                    <PolicyFormFields form={form} setForm={setForm} companies={companies} dealers={dealers} />
 
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>

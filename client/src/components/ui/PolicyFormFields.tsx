@@ -9,7 +9,7 @@ interface PolicyFormFieldsProps {
     dealers: any[];
 }
 
-const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies, dealers }) => {
+const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [] }) => {
     const isMotor = form.policyType === 'motor';
 
     const handleChange = (field: string, value: any) => {
@@ -45,7 +45,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                             if (form.policyType === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
                             return true;
                         })
-                        .map(c => ({ value: c.id, label: c.name }))
+                        .map(c => ({ value: c?.id, label: c?.name }))
                     }
                     value={form.companyId || ''}
                     onChange={(val) => handleChange('companyId', val)}
@@ -56,7 +56,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
             <div>
                 <label className="label">Dealer</label>
                 <SearchableSelect
-                    options={dealers.map(d => ({ value: d.id, label: d.name }))}
+                    options={dealers?.map(d => ({ value: d?.id, label: d?.name })) || []}
                     value={form.dealerId || ''}
                     onChange={(val) => handleChange('dealerId', val)}
                     allLabel="No Dealer"

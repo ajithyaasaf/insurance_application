@@ -5,7 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate } from '../utils/format';
-import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
+import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, EDITABLE_POLICY_STATUSES, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
@@ -30,9 +30,11 @@ const Policies: React.FC = () => {
     const [renewingPolicy, setRenewingPolicy] = useState<any>(null);
     const [form, setForm] = useState({
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
-        sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', status: 'active', lostReason: '',
+        sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1',
         make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: ''
     });
+    // For edit modal only: tracks the manually-selectable status ('active' | 'cancelled')
+    const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
     const [renewForm, setRenewForm] = useState({ startDate: '', expiryDate: '', premiumAmount: '', policyNumber: '' });
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; counts: { paymentsCount: number; claimsCount: number; followUpsCount: number } } | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -62,7 +64,8 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', status: 'active', lostReason: '', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: '' });
+        setEditStatus('active');
         setModalOpen(true);
     };
 
@@ -72,11 +75,13 @@ const Policies: React.FC = () => {
             customerId: p.customerId, companyId: p.companyId, policyNumber: p.policyNumber || '', policyType: p.policyType,
             vehicleNumber: p.vehicleNumber || '', startDate: p.startDate.split('T')[0], expiryDate: p.expiryDate.split('T')[0],
             sumInsured: p.sumInsured?.toString() || '', premiumAmount: p.premiumAmount.toString(), premiumMode: p.premiumMode,
-            productName: p.productName || '', noOfYears: p.noOfYears.toString(), status: p.status, lostReason: p.lostReason || '',
+            productName: p.productName || '', noOfYears: p.noOfYears.toString(),
             make: p.make || '', model: p.model || '', vehicleClass: p.vehicleClass || '', idv: p.idv?.toString() || '',
             od: p.od?.toString() || '', tp: p.tp?.toString() || '', tax: p.tax?.toString() || '', totalPremium: p.totalPremium?.toString() || '',
             paymentMethod: p.paymentMethod || '', dealerId: p.dealerId || ''
         });
+        // Pre-fill editStatus from existing policy — only valid manual values
+        setEditStatus((p.status === 'cancelled' ? 'cancelled' : 'active') as 'active' | 'cancelled');
         setModalOpen(true);
     };
 
@@ -100,9 +105,9 @@ const Policies: React.FC = () => {
         e.preventDefault();
         try {
             const payload = {
-                ...form, 
+                ...form,
                 sumInsured: form.policyType === 'motor' ? undefined : (form.sumInsured ? parseFloat(form.sumInsured) : undefined),
-                premiumAmount: parseFloat(form.premiumAmount), 
+                premiumAmount: parseFloat(form.premiumAmount),
                 noOfYears: parseInt(form.noOfYears),
                 // Ensure productName is excluded for motor
                 productName: form.policyType === 'motor' ? undefined : (form.productName || undefined),
@@ -116,7 +121,8 @@ const Policies: React.FC = () => {
                 vehicleClass: form.vehicleClass || undefined,
                 paymentMethod: form.paymentMethod || undefined,
                 dealerId: form.dealerId || undefined,
-                lostReason: form.status === 'lost' ? form.lostReason : undefined,
+                // Status: only included in edit payloads; create always defaults to 'active' on the server
+                ...(editing ? { status: editStatus } : {}),
             };
             if (editing) { await api.put(`/policies/${editing.id}`, payload); toast.success('Policy updated'); }
             else { await api.post('/policies', payload); toast.success('Policy created'); }
@@ -349,14 +355,6 @@ const Policies: React.FC = () => {
                             <div><label className="label">Sum Insured</label><input type="number" min="0" step="0.01" className="input" value={form.sumInsured} onChange={(e) => setForm({ ...form, sumInsured: e.target.value })} /></div>
                         )}
                         <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.premiumAmount} onChange={(e) => setForm({ ...form, premiumAmount: e.target.value })} /></div>
-                        <div><label className="label">Premium Mode</label>
-                            <SearchableSelect
-                                options={premiumModes.map(m => ({ value: m, label: m }))}
-                                value={form.premiumMode}
-                                onChange={(val) => setForm({ ...form, premiumMode: val })}
-                                placeholder="Select Premium Mode"
-                            />
-                        </div>
                         {needsVehicle && <>
                             <div><label className="label">IDV</label><input type="number" min="0" step="0.01" className="input" value={form.idv} onChange={(e) => setForm({ ...form, idv: e.target.value })} /></div>
                             <div><label className="label">OD Premium</label><input type="number" min="0" step="0.01" className="input" value={form.od} onChange={(e) => setForm({ ...form, od: e.target.value })} /></div>
@@ -381,17 +379,33 @@ const Policies: React.FC = () => {
                             />
                         </div>
                         <div><label className="label">No. of Years</label><input type="number" className="input" min="1" value={form.noOfYears} onChange={(e) => setForm({ ...form, noOfYears: e.target.value })} /></div>
-                        <div><label className="label">Status</label>
-                            <SearchableSelect
-                                required
-                                options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
-                                value={form.status}
-                                onChange={(val) => setForm({ ...form, status: val })}
-                                placeholder="Select Status"
-                            />
-                        </div>
-                    </div>
-                    {form.status === 'lost' && <div><label className="label">Lost Reason *</label><textarea className="input" required rows={2} value={form.lostReason} onChange={(e) => setForm({ ...form, lostReason: e.target.value })} /></div>}
+                        {/* Status — only shown when EDITING an existing policy; create always defaults to 'active' */}
+                        {editing && (
+                            <div className="col-span-full">
+                                <label className="label">Policy Status</label>
+                                <div className="flex gap-2">
+                                    {EDITABLE_POLICY_STATUSES.map(s => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => setEditStatus(s as 'active' | 'cancelled')}
+                                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${editStatus === s
+                                                    ? s === 'cancelled'
+                                                        ? 'bg-red-50 border-red-400 text-red-700'
+                                                        : 'bg-emerald-50 border-emerald-400 text-emerald-700'
+                                                    : 'bg-white border-surface-200 text-surface-500 hover:bg-surface-50'
+                                                }`}
+                                        >
+                                            {s === 'active' ? '✓ Active' : '✕ Cancelled'}
+                                        </button>
+                                    ))}
+                                </div>
+                                {editStatus === 'cancelled' && (
+                                    <p className="text-xs text-red-500 mt-1">This will cancel the policy. You can reinstate it by switching back to Active.</p>
+                                )}
+                            </div>
+                        )}
+                    </div> {/* end grid */}
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
@@ -423,7 +437,7 @@ const Policies: React.FC = () => {
                             <div>
                                 <p className="text-sm font-semibold text-red-700">This action is permanent and cannot be undone.</p>
                                 <p className="text-sm text-red-600 mt-1">
-                                    { (deleteConfirm.counts.paymentsCount > 0 || deleteConfirm.counts.claimsCount > 0 || deleteConfirm.counts.followUpsCount > 0) 
+                                    {(deleteConfirm.counts.paymentsCount > 0 || deleteConfirm.counts.claimsCount > 0 || deleteConfirm.counts.followUpsCount > 0)
                                         ? <>You are about to delete the policy for <strong>{deleteConfirm.name}</strong> along with its linked records:</>
                                         : <>Are you sure you want to delete the policy for <strong>{deleteConfirm.name}</strong>?</>
                                     }

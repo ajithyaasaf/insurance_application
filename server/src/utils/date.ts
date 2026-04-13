@@ -27,17 +27,21 @@ export const buildStatusFilter = (status: string) => {
         return {
             OR: [
                 { status: 'expired' as PolicyStatus },
+                // An 'active' record whose expiry has passed is functionally expired
                 { status: 'active' as PolicyStatus, expiryDate: { lt: todayIST } }
             ]
         };
     }
+    // For 'cancelled' and any other valid status, filter directly
     return { status: status as PolicyStatus };
 };
 
 export const mapPolicyStatus = <T extends { status: string, expiryDate?: Date | null }>(policy: T): T => {
     if (!policy) return policy;
+    // Cancelled policies are intentionally cancelled — never auto-flip them to expired
+    if (policy.status === 'cancelled') return policy;
     const todayIST = getStartOfTodayIST();
-    // If a database record says active, but it has physically expired, forcefully mutate its status locally so it is secure.
+    // If still marked 'active' in the DB but the date has passed, report it as expired
     if (policy.status === 'active' && policy.expiryDate && policy.expiryDate < todayIST) {
         return { ...policy, status: 'expired' };
     }

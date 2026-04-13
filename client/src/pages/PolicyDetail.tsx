@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, daysUntil } from '../utils/format';
 import toast from 'react-hot-toast';
+import Modal from '../components/ui/Modal';
 import { 
     HiOutlineArrowLeft, 
     HiOutlineDocumentText, 
@@ -11,8 +12,10 @@ import {
     HiOutlineClock,
     HiOutlineShieldCheck,
     HiOutlineRefresh,
-    HiOutlineExclamationCircle,
-    HiOutlineUserGroup
+    HiOutlineUserGroup,
+    HiOutlineCash,
+    HiOutlinePlus,
+    HiOutlineCreditCard
 } from 'react-icons/hi';
 
 const PolicyDetail: React.FC = () => {
@@ -20,24 +23,79 @@ const PolicyDetail: React.FC = () => {
     const navigate = useNavigate();
     const [policy, setPolicy] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    
+    // Quick Add Payment State
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentNotes, setPaymentNotes] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const fetchPolicy = async () => {
+        try {
+            const res = await api.get(`/policies/${id}`);
+            setPolicy(res.data.data);
+        } catch (err) {
+            toast.error('Failed to load policy details');
+            navigate('/policies');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchPolicy = async () => {
-            try {
-                const res = await api.get(`/policies/${id}`);
-                setPolicy(res.data.data);
-            } catch (err) {
-                toast.error('Failed to load policy details');
-                navigate('/policies');
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchPolicy();
     }, [id, navigate]);
 
+    const handleAddPayment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const amt = parseFloat(paymentAmount);
+        if (!paymentAmount || amt <= 0) return toast.error('Please enter a valid amount');
+        
+        setIsSubmitting(true);
+        try {
+            // Find the existing pending/partial payment record to update
+            const pendingPayment = policy.payments?.find(
+                (p: any) => p.status === 'pending' || p.status === 'partial'
+            );
+
+            if (pendingPayment) {
+                // Update the existing record — the server will auto-derive status (partial/paid)
+                await api.put(`/payments/${pendingPayment.id}`, {
+                    paidAmount: amt,
+                    paidDate: new Date().toISOString(),
+                    notes: paymentNotes || pendingPayment.notes,
+                });
+            } else {
+                // No pending record exists, create a new one (edge case)
+                await api.post('/payments', {
+                    policyId: policy.id,
+                    customerId: policy.customerId,
+                    amount: amt,
+                    paidAmount: amt,
+                    paidDate: new Date().toISOString(),
+                    dueDate: new Date().toISOString(),
+                    status: 'paid',
+                    notes: paymentNotes || 'Collected from policy detail',
+                });
+            }
+
+            toast.success('Payment recorded successfully');
+            setShowPaymentModal(false);
+            setPaymentAmount('');
+            setPaymentNotes('');
+            fetchPolicy(); // Refresh data
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to record payment');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     if (loading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>;
     if (!policy) return null;
+
+    const summary = policy.paymentSummary || { totalPremium: policy.totalPremium || policy.premiumAmount, totalPaid: 0, balanceDue: policy.totalPremium || policy.premiumAmount };
+    const percentPaid = Math.min(100, Math.round((summary.totalPaid / summary.totalPremium) * 100));
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -158,8 +216,8 @@ const PolicyDetail: React.FC = () => {
                                 <p className="text-base font-bold text-surface-900">{formatCurrency(policy.premiumAmount)}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-surface-500 mb-1">Mode</p>
-                                <p className="text-sm font-medium text-surface-900 capitalize">{policy.premiumMode}</p>
+                                <p className="text-xs text-surface-500 mb-1">Status</p>
+                                <p className="text-sm font-medium text-surface-900 capitalize">{policy.status}</p>
                             </div>
                             <div>
                                 <p className="text-xs text-surface-500 mb-1">Start Date</p>
@@ -240,7 +298,68 @@ const PolicyDetail: React.FC = () => {
 
                 {/* Sidebar Info */}
                 <div className="space-y-6">
-                    {/* Status Card */}
+                    {/* Financial Ledger (Flexible Tracker) */}
+                    <div className="card">
+                        <div className="px-5 py-4 border-b border-surface-100 flex items-center justify-between bg-primary-50/30">
+                            <div className="flex items-center gap-2">
+                                <HiOutlineCash className="w-5 h-5 text-primary-600" />
+                                <h3 className="text-sm font-bold text-surface-900">Financial Ledger</h3>
+                            </div>
+                            <button 
+                                onClick={() => setShowPaymentModal(true)}
+                                className="p-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
+                                title="Record Payment"
+                            >
+                                <HiOutlinePlus className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-xs font-medium">
+                                    <span className="text-surface-500">Collection Progress</span>
+                                    <span className={summary.balanceDue === 0 ? 'text-emerald-600' : 'text-primary-600'}>
+                                        {percentPaid}%
+                                    </span>
+                                </div>
+                                <div className="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full transition-all duration-500 ${summary.balanceDue === 0 ? 'bg-emerald-500' : 'bg-primary-600'}`}
+                                        style={{ width: `${percentPaid}%` }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="p-3 bg-surface-50 rounded-xl border border-surface-100">
+                                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wider mb-1">Total Paid</p>
+                                    <p className="text-lg font-bold text-emerald-600">{formatCurrency(summary.totalPaid)}</p>
+                                </div>
+                                <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-1">Balance Due</p>
+                                    <p className="text-lg font-bold text-red-600">{formatCurrency(summary.balanceDue)}</p>
+                                </div>
+                            </div>
+
+                            {policy.payments?.length > 0 && (
+                                <div className="pt-2">
+                                    <p className="text-[10px] font-bold text-surface-400 uppercase tracking-wider mb-2">Recent Collections</p>
+                                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                        {policy.payments.filter((p: any) => p.status === 'paid' || (p.paidAmount || 0) > 0).map((p: any) => (
+                                            <div key={p.id} className="flex justify-between items-center text-xs p-2 hover:bg-surface-50 rounded-lg transition-colors border border-transparent hover:border-surface-100">
+                                                <div>
+                                                    <p className="font-semibold text-surface-900">{formatCurrency(p.paidAmount || p.amount)}</p>
+                                                    <p className="text-[10px] text-surface-400">{formatDate(p.paidDate || p.createdAt)}</p>
+                                                </div>
+                                                <HiOutlineCreditCard className="w-3.5 h-3.5 text-surface-300" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Timeline Card */}
                     <div className="card card-body">
                         <div className="flex items-center gap-2 mb-4">
                             <HiOutlineClock className="w-4 h-4 text-surface-400" />
@@ -296,21 +415,68 @@ const PolicyDetail: React.FC = () => {
                             )}
                         </div>
                     </div>
-
-                    {/* Lost Reason if applicable */}
-                    {policy.status === 'lost' && (
-                        <div className="card card-body bg-red-50 border-red-100">
-                            <div className="flex items-start gap-2">
-                                <HiOutlineExclamationCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                                <div>
-                                    <p className="text-xs font-bold text-red-700 uppercase mb-1">Lost Reason</p>
-                                    <p className="text-sm text-red-600">{policy.lostReason || 'No reason provided'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
+
+            {/* Quick Add Payment Modal */}
+            <Modal
+                isOpen={showPaymentModal}
+                onClose={() => !isSubmitting && setShowPaymentModal(false)}
+                title="Record Collection"
+            >
+                <form onSubmit={handleAddPayment} className="space-y-4">
+                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl mb-4">
+                        <div className="flex justify-between items-center mb-1">
+                            <p className="text-[10px] font-bold text-amber-600 uppercase">Remaining Balance</p>
+                            <p className="text-sm font-bold text-amber-700">{formatCurrency(summary.balanceDue)}</p>
+                        </div>
+                        <p className="text-[10px] text-amber-600 italic">Total Premium: {formatCurrency(summary.totalPremium)}</p>
+                    </div>
+
+                    <div>
+                        <label className="label">Amount Received (₹) *</label>
+                        <input 
+                            type="number" 
+                            className="input" 
+                            placeholder="e.g. 5000"
+                            required
+                            max={summary.balanceDue}
+                            value={paymentAmount}
+                            onChange={(e) => setPaymentAmount(e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                    </div>
+                    <div>
+                        <label className="label">Notes / Reference</label>
+                        <textarea 
+                            className="input" 
+                            rows={2} 
+                            placeholder="e.g. Cash collected at office"
+                            value={paymentNotes}
+                            onChange={(e) => setPaymentNotes(e.target.value)}
+                            disabled={isSubmitting}
+                        />
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                        <button 
+                            type="button" 
+                            onClick={() => setShowPaymentModal(false)} 
+                            className="btn-secondary flex-1"
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            className="btn-primary flex-1"
+                            disabled={isSubmitting || !paymentAmount}
+                        >
+                            {isSubmitting ? 'Recording...' : 'Collect Payment'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

@@ -26,7 +26,6 @@ enum PolicyStatus {
   active
   expired
   cancelled
-  lost
 }
 
 enum PaymentStatus {
@@ -224,8 +223,8 @@ model Policy {
   dealerId       String?
 
   status         PolicyStatus @default(active)
+  cancelledAt    DateTime?
   parentPolicyId String?
-  lostReason     String?
   createdBy      String
   updatedBy      String
   createdAt      DateTime     @default(now())

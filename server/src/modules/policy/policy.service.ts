@@ -15,9 +15,7 @@ interface CreatePolicyInput {
     premiumMode?: string;
     productName?: string;
     noOfYears?: number;
-    status?: string;
     parentPolicyId?: string;
-    lostReason?: string;
     make?: string;
     model?: string;
     vehicleClass?: string;
@@ -30,6 +28,9 @@ interface CreatePolicyInput {
     dealerId?: string;
 }
 
+/** Only these two statuses can be set manually on an existing policy. */
+type ManualPolicyStatus = 'active' | 'cancelled';
+
 export class PolicyService {
     async create(userId: string, role: string, data: CreatePolicyInput) {
         // 1. Date Validation: Expiry must be after Start
@@ -39,10 +40,7 @@ export class PolicyService {
             throw Object.assign(new Error('Expiry date must be after the start date'), { statusCode: 400 });
         }
 
-        // Validate: lost policy must include reason
-        if (data.status === 'lost' && !data.lostReason) {
-            throw Object.assign(new Error('Lost policy must include a reason'), { statusCode: 400 });
-        }
+        // Status is always forced to 'active' on creation — the system handles expiry automatically
 
         // Validate: Vehicle number required for motor policies
         if (data.policyType === 'motor' && !data.vehicleNumber) {
@@ -74,9 +72,8 @@ export class PolicyService {
                     premiumMode: (data.premiumMode as any) || 'yearly',
                     productName: data.policyType === 'motor' ? null : data.productName,
                     noOfYears: data.noOfYears || 1,
-                    status: (data.status as any) || 'active',
+                    status: 'active', // Always active on creation; system auto-expires by date
                     parentPolicyId: data.parentPolicyId,
-                    lostReason: data.lostReason,
                     make: data.make,
                     model: data.model,
                     vehicleClass: data.vehicleClass as any,
@@ -100,7 +97,7 @@ export class PolicyService {
                     policyId: policy.id,
                     customerId: data.customerId,
                     amount: policy.premiumAmount,
-                    dueDate: policy.startDate, // Payment is due on policy start date
+                    dueDate: policy.startDate,
                     status: 'pending',
                     createdBy: role,
                 }
@@ -164,8 +161,17 @@ export class PolicyService {
         });
 
         if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
+        
+        // Calculate financial summary
+        const totalPaid = policy.payments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+        const paymentSummary = {
+            totalPremium: policy.premiumAmount,
+            totalPaid,
+            balanceDue: Math.max(0, policy.premiumAmount - totalPaid)
+        };
+
         const hasNCB = policy.claims.filter(c => c.status !== 'REJECTED').length === 0;
-        return mapPolicyStatus({ ...policy, hasNCB });
+        return mapPolicyStatus({ ...policy, hasNCB, paymentSummary });
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
@@ -188,8 +194,18 @@ export class PolicyService {
             if (!dealer) throw Object.assign(new Error('Target dealer not found or unauthorized'), { statusCode: 404 });
         }
 
-        if (data.status === 'lost' && !data.lostReason) {
-            throw Object.assign(new Error('Lost policy must include a reason'), { statusCode: 400 });
+        // 3. Validate manual status changes — only 'active' (reinstatement) or 'cancelled' are permitted
+        const incomingStatus = (data as any).status as ManualPolicyStatus | undefined;
+        if (incomingStatus && incomingStatus !== 'active' && incomingStatus !== 'cancelled') {
+            throw Object.assign(new Error('Status can only be manually set to active or cancelled'), { statusCode: 400 });
+        }
+
+        // Resolve cancellation timestamp
+        let cancelledAt: Date | null | undefined;
+        if (incomingStatus === 'cancelled' && policy.status !== 'cancelled') {
+            cancelledAt = new Date(); // First time being cancelled
+        } else if (incomingStatus === 'active' && policy.status === 'cancelled') {
+            cancelledAt = null; // Reinstatement — clear the cancellation timestamp
         }
 
         const newPolicyType = data.policyType || policy.policyType;
@@ -208,10 +224,13 @@ export class PolicyService {
                     expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
                     policyType: data.policyType as any,
                     premiumMode: data.premiumMode as any,
-                    status: data.status as any,
+                    status: incomingStatus as any,
+                    cancelledAt,
                     vehicleClass: data.vehicleClass as any,
                     updatedBy: role,
-                },
+                    lostReason: undefined, // Ensure stale field never persists
+                } as any,
+
                 include: { customer: true, company: true, dealer: true },
             });
 
@@ -235,23 +254,23 @@ export class PolicyService {
 
     async softDelete(userId: string, id: string) {
         await this.findById(userId, id); // ownership check
-        
+
         // Recursive soft delete in a transaction
         return prisma.$transaction(async (tx) => {
             const now = new Date();
-            
+
             // Delete child payments
             await tx.payment.deleteMany({ where: { policyId: id, userId } });
-            
+
             // Delete child claims
             await tx.claim.deleteMany({ where: { policyId: id, userId } });
-            
+
             // Delete child follow-ups
             await tx.followUp.deleteMany({ where: { policyId: id, userId } });
 
-            return tx.policy.update({ 
-                where: { id }, 
-                data: { deletedAt: now } 
+            return tx.policy.update({
+                where: { id },
+                data: { deletedAt: now }
             });
         });
     }

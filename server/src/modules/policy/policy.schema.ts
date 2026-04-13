@@ -14,9 +14,8 @@ export const createPolicySchema = z.object({
         premiumMode: z.enum(['monthly', 'quarterly', 'halfYearly', 'yearly', 'single']).optional(),
         productName: z.string().optional().or(z.literal('')),
         noOfYears: z.number().min(1).optional(),
-        status: z.enum(['active', 'expired', 'cancelled', 'lost']).optional(),
+        // Note: status is NOT accepted during creation — it always defaults to 'active'
         parentPolicyId: z.string().optional(),
-        lostReason: z.string().optional().or(z.literal('')),
         make: z.string().optional().or(z.literal('')),
         model: z.string().optional().or(z.literal('')),
         vehicleClass: z.enum(['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others']).optional(),
@@ -44,9 +43,9 @@ export const updatePolicySchema = z.object({
         premiumMode: z.enum(['monthly', 'quarterly', 'halfYearly', 'yearly', 'single']).optional(),
         productName: z.string().optional().or(z.literal('')),
         noOfYears: z.number().min(1).optional(),
-        status: z.enum(['active', 'expired', 'cancelled', 'lost']).optional(),
+        // Only 'active' (reinstatement) or 'cancelled' can be set manually
+        status: z.enum(['active', 'cancelled']).optional(),
         parentPolicyId: z.string().optional(),
-        lostReason: z.string().optional().or(z.literal('')),
         make: z.string().optional().or(z.literal('')),
         model: z.string().optional().or(z.literal('')),
         vehicleClass: z.enum(['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others']).optional(),
