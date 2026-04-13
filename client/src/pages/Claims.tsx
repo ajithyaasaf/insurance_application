@@ -148,7 +148,12 @@ const Claims: React.FC = () => {
                                 {claims.map((c) => (
                                     <tr key={c.id}>
                                         <td className="font-medium text-surface-900">{c.customer?.name}</td>
-                                        <td className="text-xs">{c.policy?.productName || c.policy?.policyType} {c.policy?.vehicleNumber && `(${c.policy.vehicleNumber})`}</td>
+                                        <td className="text-xs">
+                                            {c.policy?.policyType === 'motor' 
+                                                ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
+                                                : c.policy?.productName || c.policy?.policyType} 
+                                            {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
+                                        </td>
                                         <td className="text-xs">{c.claimNumber || '—'}</td>
                                         <td className="font-medium">{formatCurrency(c.claimAmount)}</td>
                                         <td className="text-xs">{formatDate(c.claimDate)}</td>
@@ -171,7 +176,12 @@ const Claims: React.FC = () => {
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
                                         <p className="font-semibold text-surface-900">{c.customer?.name}</p>
-                                        <p className="text-xs text-surface-500">{c.policy?.productName || c.policy?.policyType} {c.policy?.vehicleNumber && `(${c.policy.vehicleNumber})`}</p>
+                                        <p className="text-xs text-surface-500">
+                                            {c.policy?.policyType === 'motor' 
+                                                ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
+                                                : c.policy?.productName || c.policy?.policyType} 
+                                            {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
+                                        </p>
                                     </div>
                                     <span className={getStatusColor(c.status)}>{c.status}</span>
                                 </div>

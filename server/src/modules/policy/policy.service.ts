@@ -58,38 +58,55 @@ export class PolicyService {
         if (!customer) throw Object.assign(new Error('Customer not found or unauthorized'), { statusCode: 404 });
         if (data.dealerId && !dealer) throw Object.assign(new Error('Dealer not found or unauthorized'), { statusCode: 404 });
 
-        return prisma.policy.create({
-            data: {
-                userId,
-                customerId: data.customerId,
-                companyId: data.companyId,
-                policyNumber: data.policyNumber,
-                policyType: data.policyType as any,
-                vehicleNumber: data.vehicleNumber,
-                startDate: start,
-                expiryDate: expiry,
-                sumInsured: data.sumInsured,
-                premiumAmount: data.premiumAmount,
-                premiumMode: (data.premiumMode as any) || 'yearly',
-                productName: data.productName,
-                noOfYears: data.noOfYears || 1,
-                status: (data.status as any) || 'active',
-                parentPolicyId: data.parentPolicyId,
-                lostReason: data.lostReason,
-                make: data.make,
-                model: data.model,
-                vehicleClass: data.vehicleClass as any,
-                idv: data.idv,
-                od: data.od,
-                tp: data.tp,
-                tax: data.tax,
-                totalPremium: data.totalPremium,
-                paymentMethod: data.paymentMethod,
-                dealerId: data.dealerId,
-                createdBy: role,
-                updatedBy: role,
-            },
-            include: { customer: true, company: true, dealer: true },
+        return prisma.$transaction(async (tx) => {
+            const policy = await tx.policy.create({
+                data: {
+                    userId,
+                    customerId: data.customerId,
+                    companyId: data.companyId,
+                    policyNumber: data.policyNumber,
+                    policyType: data.policyType as any,
+                    vehicleNumber: data.vehicleNumber,
+                    startDate: start,
+                    expiryDate: expiry,
+                    sumInsured: data.policyType === 'motor' ? null : data.sumInsured,
+                    premiumAmount: data.premiumAmount,
+                    premiumMode: (data.premiumMode as any) || 'yearly',
+                    productName: data.policyType === 'motor' ? null : data.productName,
+                    noOfYears: data.noOfYears || 1,
+                    status: (data.status as any) || 'active',
+                    parentPolicyId: data.parentPolicyId,
+                    lostReason: data.lostReason,
+                    make: data.make,
+                    model: data.model,
+                    vehicleClass: data.vehicleClass as any,
+                    idv: data.idv,
+                    od: data.od,
+                    tp: data.tp,
+                    tax: data.tax,
+                    totalPremium: data.totalPremium,
+                    paymentMethod: data.paymentMethod,
+                    dealerId: data.dealerId,
+                    createdBy: role,
+                    updatedBy: role,
+                },
+                include: { customer: true, company: true, dealer: true },
+            });
+
+            // Auto-create initial pending payment record
+            await tx.payment.create({
+                data: {
+                    userId,
+                    policyId: policy.id,
+                    customerId: data.customerId,
+                    amount: policy.premiumAmount,
+                    dueDate: policy.startDate, // Payment is due on policy start date
+                    status: 'pending',
+                    createdBy: role,
+                }
+            });
+
+            return policy;
         });
     }
 
@@ -181,22 +198,39 @@ export class PolicyService {
             throw Object.assign(new Error('Vehicle number is required for motor policies'), { statusCode: 400 });
         }
 
-        const updatedPolicy = await prisma.policy.update({
-            where: { id },
-            data: {
-                ...data,
-                startDate: data.startDate ? new Date(data.startDate) : undefined,
-                expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
-                policyType: data.policyType as any,
-                premiumMode: data.premiumMode as any,
-                status: data.status as any,
-                vehicleClass: data.vehicleClass as any,
-                updatedBy: role,
-            },
-            include: { customer: true, company: true, dealer: true },
-        });
+        // Use transaction to sync premium changes to pending payments if needed
+        return prisma.$transaction(async (tx) => {
+            const updatedPolicy = await tx.policy.update({
+                where: { id },
+                data: {
+                    ...data,
+                    startDate: data.startDate ? new Date(data.startDate) : undefined,
+                    expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+                    policyType: data.policyType as any,
+                    premiumMode: data.premiumMode as any,
+                    status: data.status as any,
+                    vehicleClass: data.vehicleClass as any,
+                    updatedBy: role,
+                },
+                include: { customer: true, company: true, dealer: true },
+            });
 
-        return mapPolicyStatus(updatedPolicy);
+            // IF premiumAmount changed, sync the 'pending' payment
+            if (data.premiumAmount !== undefined && data.premiumAmount !== policy.premiumAmount) {
+                await tx.payment.updateMany({
+                    where: {
+                        policyId: id,
+                        userId,
+                        status: 'pending' // Only sync if it hasn't been paid yet
+                    },
+                    data: {
+                        amount: data.premiumAmount
+                    }
+                });
+            }
+
+            return mapPolicyStatus(updatedPolicy);
+        });
     }
 
     async softDelete(userId: string, id: string) {

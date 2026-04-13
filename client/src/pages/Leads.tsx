@@ -4,15 +4,16 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
+import PolicyFormFields from '../components/ui/PolicyFormFields';
 import { formatDate, getStatusColor } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUserAdd, HiOutlineTrendingUp } from 'react-icons/hi';
 import { LEAD_STATUSES as statusOptions } from '../utils/constants';
 
-
-
 const Leads: React.FC = () => {
     const [leads, setLeads] = useState<any[]>([]);
+    const [companies, setCompanies] = useState<any[]>([]);
+    const [dealers, setDealers] = useState<any[]>([]);
     const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -21,31 +22,69 @@ const Leads: React.FC = () => {
     const [convertModalOpen, setConvertModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [convertingLead, setConvertingLead] = useState<any>(null);
-    const [form, setForm] = useState({ name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '' });
+    
+    // Initial State including Quote Fields
+    const initialFormState = { 
+        name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '',
+        policyType: '', companyId: '', vehicleNumber: '', make: '', model: '', vehicleClass: '',
+        idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: '', startDate: '', expiryDate: '',
+        dealerId: ''
+    };
+    const [form, setForm] = useState(initialFormState);
     const [convertForm, setConvertForm] = useState({ address: '', email: '' });
 
     const fetchLeads = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/leads', { params: { page, limit: 20, search: search || undefined, status: statusFilter || undefined } });
+            // Best Practice: If no specific status is selected, only show non-converted leads (the active pipeline)
+            const res = await api.get('/leads', { 
+                params: { 
+                    page, 
+                    limit: 20, 
+                    search: search || undefined, 
+                    status: statusFilter === 'active' ? undefined : (statusFilter || undefined),
+                    excludeConverted: !statusFilter || statusFilter === 'active' ? true : undefined
+                } 
+            });
             setLeads(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch leads'); } finally { setLoading(false); }
     }, [search, statusFilter]);
 
-    useEffect(() => { fetchLeads(); }, [fetchLeads]);
+    useEffect(() => { 
+        fetchLeads(); 
+        const loadInitialData = async () => {
+            try {
+                const [compRes, dealerRes] = await Promise.all([
+                    api.get('/companies'),
+                    api.get('/dealers')
+                ]);
+                setCompanies(compRes.data.data);
+                setDealers(dealerRes.data.data);
+            } catch { }
+        };
+        loadInitialData();
+    }, [fetchLeads]);
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '' });
+        setForm(initialFormState);
         setModalOpen(true);
     };
 
     const openEdit = (lead: any) => {
         setEditing(lead);
         setForm({
+            ...initialFormState,
             name: lead.name, phone: lead.phone || '', interestedProduct: lead.interestedProduct || '',
             status: lead.status, nextFollowUpDate: lead.nextFollowUpDate?.split('T')[0] || '', notes: lead.notes || '',
+            policyType: lead.policyType || '', companyId: lead.companyId || '', vehicleNumber: lead.vehicleNumber || '',
+            make: lead.make || '', model: lead.model || '', vehicleClass: lead.vehicleClass || '',
+            idv: lead.idv?.toString() || '', od: lead.od?.toString() || '', tp: lead.tp?.toString() || '',
+            tax: lead.tax?.toString() || '', totalPremium: lead.totalPremium?.toString() || '', 
+            premiumAmount: lead.premiumAmount?.toString() || '',
+            startDate: lead.startDate?.split('T')[0] || '', expiryDate: lead.expiryDate?.split('T')[0] || '',
+            dealerId: lead.dealerId || ''
         });
         setModalOpen(true);
     };
@@ -53,7 +92,27 @@ const Leads: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload = { ...form, nextFollowUpDate: form.nextFollowUpDate || undefined };
+            // Parse numbers for payload
+            const payload = { 
+                ...form, 
+                nextFollowUpDate: form.nextFollowUpDate || undefined,
+                policyType: form.policyType || undefined,
+                companyId: form.companyId || undefined,
+                vehicleNumber: form.vehicleNumber || undefined,
+                make: form.make || undefined,
+                model: form.model || undefined,
+                vehicleClass: form.vehicleClass || undefined,
+                startDate: form.startDate || undefined,
+                expiryDate: form.expiryDate || undefined,
+                dealerId: form.dealerId || undefined,
+                idv: form.idv ? parseFloat(form.idv) : undefined,
+                od: form.od ? parseFloat(form.od) : undefined,
+                tp: form.tp ? parseFloat(form.tp) : undefined,
+                tax: form.tax ? parseFloat(form.tax) : undefined,
+                totalPremium: form.totalPremium ? parseFloat(form.totalPremium) : undefined,
+                premiumAmount: form.premiumAmount ? parseFloat(form.premiumAmount) : undefined,
+            };
+
             if (editing) {
                 await api.put(`/leads/${editing.id}`, payload);
                 toast.success('Lead updated');
@@ -190,6 +249,9 @@ const Leads: React.FC = () => {
                     </div>
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                    
+                    <PolicyFormFields form={form} setForm={setForm} companies={companies} />
+
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>

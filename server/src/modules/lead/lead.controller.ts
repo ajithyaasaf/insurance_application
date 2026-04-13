@@ -24,13 +24,15 @@ export class LeadController {
             const limit = parseInt(req.query.limit as string) || 20;
             const search = req.query.search as string | undefined;
             const status = req.query.status as string | undefined;
+            const excludeConverted = req.query.excludeConverted === 'true';
 
             const result = await leadService.findAll(
                 req.user!.userId,
                 page,
                 limit,
                 search,
-                status
+                status,
+                excludeConverted
             );
 
             sendSuccess({

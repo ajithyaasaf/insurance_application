@@ -80,12 +80,32 @@ const Policies: React.FC = () => {
         setModalOpen(true);
     };
 
+    const handleTypeChange = (val: string) => {
+        setForm(prev => ({
+            ...prev,
+            policyType: val,
+            // Reset motor specific fields if switching away from motor
+            ...(val !== 'motor' ? {
+                vehicleNumber: '', make: '', model: '', vehicleClass: '',
+                idv: '', od: '', tp: '', tax: '', totalPremium: '', dealerId: ''
+            } : {
+                // Clear fields not needed for motor
+                productName: '',
+                sumInsured: ''
+            })
+        }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const payload = {
-                ...form, sumInsured: form.sumInsured ? parseFloat(form.sumInsured) : undefined,
-                premiumAmount: parseFloat(form.premiumAmount), noOfYears: parseInt(form.noOfYears),
+                ...form, 
+                sumInsured: form.policyType === 'motor' ? undefined : (form.sumInsured ? parseFloat(form.sumInsured) : undefined),
+                premiumAmount: parseFloat(form.premiumAmount), 
+                noOfYears: parseInt(form.noOfYears),
+                // Ensure productName is excluded for motor
+                productName: form.policyType === 'motor' ? undefined : (form.productName || undefined),
                 idv: form.idv ? parseFloat(form.idv) : undefined,
                 od: form.od ? parseFloat(form.od) : undefined,
                 tp: form.tp ? parseFloat(form.tp) : undefined,
@@ -302,7 +322,7 @@ const Policies: React.FC = () => {
                                 disabled={!!editing}
                                 options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
                                 value={form.policyType}
-                                onChange={(val) => setForm({ ...form, policyType: val })}
+                                onChange={handleTypeChange}
                                 placeholder="Select Policy Type"
                             />
                         </div>
@@ -320,10 +340,14 @@ const Policies: React.FC = () => {
                                 />
                             </div>
                         </>}
-                        <div><label className="label">Product Name</label><input className="input" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} /></div>
+                        {form.policyType !== 'motor' && (
+                            <div><label className="label">Product Name</label><input className="input" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} /></div>
+                        )}
                         <div><label className="label">Start Date *</label><input type="date" className="input" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
                         <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
-                        <div><label className="label">Sum Insured</label><input type="number" min="0" step="0.01" className="input" value={form.sumInsured} onChange={(e) => setForm({ ...form, sumInsured: e.target.value })} /></div>
+                        {form.policyType !== 'motor' && (
+                            <div><label className="label">Sum Insured</label><input type="number" min="0" step="0.01" className="input" value={form.sumInsured} onChange={(e) => setForm({ ...form, sumInsured: e.target.value })} /></div>
+                        )}
                         <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.premiumAmount} onChange={(e) => setForm({ ...form, premiumAmount: e.target.value })} /></div>
                         <div><label className="label">Premium Mode</label>
                             <SearchableSelect

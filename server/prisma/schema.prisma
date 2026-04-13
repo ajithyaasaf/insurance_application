@@ -54,11 +54,6 @@ enum PolicyType {
   motor
   health
   life
-  fire
-  marine
-  travel
-  property
-  liability
   other
 }
 
@@ -133,6 +128,23 @@ model Lead {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
   deletedAt        DateTime?
+
+  // Quote / Policy Draft Fields
+  policyType       PolicyType?
+  companyId        String?
+  vehicleNumber    String?
+  make             String?
+  model            String?
+  vehicleClass     PolicyVehicleClass?
+  idv              Float?
+  od               Float?
+  tp               Float?
+  tax              Float?
+  totalPremium     Float?
+  premiumAmount    Float?
+  startDate        DateTime?
+  expiryDate       DateTime?
+  dealerId         String?
 
   user User @relation(fields: [userId], references: [id])
 

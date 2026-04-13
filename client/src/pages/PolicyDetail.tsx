@@ -89,7 +89,9 @@ const PolicyDetail: React.FC = () => {
                                 <div className="p-2 bg-amber-50 rounded-lg text-amber-600"><HiOutlineDocumentText className="w-5 h-5" /></div>
                                 <div>
                                     <p className="text-xs font-bold text-surface-400 uppercase tracking-wider">Policy Details</p>
-                                    <p className="text-sm font-medium text-surface-900">{policy.productName || policy.policyType}</p>
+                                    <p className="text-sm font-medium text-surface-900">
+                                        {policy.policyType === 'motor' ? `${policy.make || ''} ${policy.model || ''}`.trim() || 'Motor' : policy.productName || policy.policyType}
+                                    </p>
                                     <p className="text-xs text-surface-500">No: {policy.policyNumber || 'N/A'}</p>
                                 </div>
                             </div>

@@ -1,0 +1,15 @@
+-- AlterTable
+ALTER TABLE "Lead" ADD COLUMN     "companyId" TEXT,
+ADD COLUMN     "expiryDate" TIMESTAMP(3),
+ADD COLUMN     "idv" DOUBLE PRECISION,
+ADD COLUMN     "make" TEXT,
+ADD COLUMN     "model" TEXT,
+ADD COLUMN     "od" DOUBLE PRECISION,
+ADD COLUMN     "policyType" "PolicyType",
+ADD COLUMN     "premiumAmount" DOUBLE PRECISION,
+ADD COLUMN     "startDate" TIMESTAMP(3),
+ADD COLUMN     "tax" DOUBLE PRECISION,
+ADD COLUMN     "totalPremium" DOUBLE PRECISION,
+ADD COLUMN     "tp" DOUBLE PRECISION,
+ADD COLUMN     "vehicleClass" "PolicyVehicleClass",
+ADD COLUMN     "vehicleNumber" TEXT;

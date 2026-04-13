@@ -1,5 +1,5 @@
 import prisma from '../../utils/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma, PolicyType, PolicyVehicleClass } from '@prisma/client';
 
 interface CreateLeadInput {
     name: string;
@@ -8,6 +8,22 @@ interface CreateLeadInput {
     status?: 'new' | 'contacted' | 'interested' | 'converted' | 'lost';
     nextFollowUpDate?: string;
     notes?: string;
+    // Quote Fields
+    policyType?: PolicyType;
+    companyId?: string;
+    vehicleNumber?: string;
+    make?: string;
+    model?: string;
+    vehicleClass?: PolicyVehicleClass;
+    idv?: number;
+    od?: number;
+    tp?: number;
+    tax?: number;
+    totalPremium?: number;
+    premiumAmount?: number;
+    startDate?: string;
+    expiryDate?: string;
+    dealerId?: string;
 }
 
 interface UpdateLeadInput {
@@ -17,6 +33,22 @@ interface UpdateLeadInput {
     status?: 'new' | 'contacted' | 'interested' | 'converted' | 'lost';
     nextFollowUpDate?: string | null;
     notes?: string | null;
+    // Quote Fields
+    policyType?: PolicyType;
+    companyId?: string;
+    vehicleNumber?: string;
+    make?: string;
+    model?: string;
+    vehicleClass?: PolicyVehicleClass;
+    idv?: number;
+    od?: number;
+    tp?: number;
+    tax?: number;
+    totalPremium?: number;
+    premiumAmount?: number;
+    startDate?: string;
+    expiryDate?: string;
+    dealerId?: string;
 }
 
 export class LeadService {
@@ -32,6 +64,24 @@ export class LeadService {
                     ? new Date(data.nextFollowUpDate)
                     : null,
                 notes: data.notes,
+                
+                // Quote Fields
+                policyType: data.policyType,
+                companyId: data.companyId || null,
+                vehicleNumber: data.vehicleNumber || null,
+                make: data.make || null,
+                model: data.model || null,
+                vehicleClass: data.vehicleClass || null,
+                idv: data.idv,
+                od: data.od,
+                tp: data.tp,
+                tax: data.tax,
+                totalPremium: data.totalPremium,
+                premiumAmount: data.premiumAmount,
+                startDate: data.startDate ? new Date(data.startDate) : null,
+                expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+                dealerId: data.dealerId || null,
+
                 createdBy: role,
                 updatedBy: role,
             },
@@ -43,7 +93,8 @@ export class LeadService {
         page: number = 1,
         limit: number = 20,
         search?: string,
-        status?: string
+        status?: string,
+        excludeConverted?: boolean
     ) {
         const where: any = {
             userId,
@@ -54,7 +105,7 @@ export class LeadService {
                     { phone: { contains: search } },
                 ],
             }),
-            ...(status && { status: status as any }),
+            ...(status ? { status: status as any } : (excludeConverted ? { status: { not: 'converted' } } : {})),
         };
 
         const [data, total] = await Promise.all([
@@ -102,6 +153,16 @@ export class LeadService {
                     : data.nextFollowUpDate === null
                         ? null
                         : undefined,
+                
+                // Process dates if provided
+                startDate: data.startDate ? new Date(data.startDate) : undefined,
+                expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+                companyId: data.companyId || undefined,
+                vehicleNumber: data.vehicleNumber || undefined,
+                make: data.make || undefined,
+                model: data.model || undefined,
+                dealerId: data.dealerId || undefined,
+
                 updatedBy: role,
             },
         });
@@ -124,9 +185,9 @@ export class LeadService {
     ) {
         const lead = await this.findById(userId, id);
 
-        // Use transaction: update lead status + create customer
-        const [customer] = await prisma.$transaction([
-            prisma.customer.create({
+        const result = await prisma.$transaction(async (tx) => {
+            // 1. Create Customer
+            const customer = await tx.customer.create({
                 data: {
                     userId,
                     name: lead.name,
@@ -136,17 +197,66 @@ export class LeadService {
                     createdBy: role,
                     updatedBy: role,
                 },
-            }),
-            prisma.lead.update({
+            });
+
+            // 2. Mark Lead as converted and clear nextFollowUpDate as it's now a Policy/Customer
+            await tx.lead.update({
                 where: { id },
                 data: {
                     status: 'converted',
+                    nextFollowUpDate: null,
                     updatedBy: role,
                 },
-            }),
-        ]);
+            });
 
-        return customer;
+            // 3. Auto-create Policy and initial Payment if quote data exists
+            if (lead.policyType && lead.premiumAmount !== null && lead.startDate && lead.expiryDate && lead.companyId) {
+                const policy = await tx.policy.create({
+                    data: {
+                        userId,
+                        customerId: customer.id,
+                        companyId: lead.companyId,
+                        policyType: lead.policyType,
+                        premiumAmount: lead.premiumAmount!,
+                        startDate: lead.startDate,
+                        expiryDate: lead.expiryDate,
+                        
+                        // Motor fields
+                        vehicleNumber: lead.vehicleNumber,
+                        make: lead.make,
+                        model: lead.model,
+                        vehicleClass: lead.vehicleClass,
+                        idv: lead.idv,
+                        od: lead.od,
+                        tp: lead.tp,
+                        tax: lead.tax,
+                        totalPremium: lead.totalPremium,
+                        dealerId: lead.dealerId,
+                        
+                        status: 'active',
+                        createdBy: role,
+                        updatedBy: role,
+                    }
+                });
+
+                // Create initial payment record
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: policy.id,
+                        customerId: customer.id,
+                        amount: policy.premiumAmount,
+                        dueDate: policy.startDate, // Due on policy start
+                        status: 'pending',
+                        createdBy: role,
+                    }
+                });
+            }
+
+            return customer;
+        });
+
+        return result;
     }
 }
 

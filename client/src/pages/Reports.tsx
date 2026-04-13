@@ -286,7 +286,7 @@ const Reports: React.FC = () => {
 
     const renderCompanyChart = (data: any[], nameKey: string, valueKey: string) => {
         if (!data?.length) return null;
-        
+
         const chartData = data.slice(0, 8).map(d => ({
             name: String(d[nameKey] || 'N/A'),
             value: Number(d[valueKey]) || 0,
@@ -297,21 +297,21 @@ const Reports: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis 
-                            dataKey="name" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }} 
+                        <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
                             dy={10}
                         />
-                        <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
+                        <YAxis
+                            axisLine={false}
+                            tickLine={false}
                             tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
                             tickFormatter={(val) => formatShortCurrency(val).replace('₹', '').trim()}
                             width={45}
                         />
-                        <RechartsTooltip 
+                        <RechartsTooltip
                             cursor={{ fill: '#F9FAFB' }}
                             content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
@@ -340,7 +340,7 @@ const Reports: React.FC = () => {
 
     const renderPolicyPieChart = (data: any[], nameKey: string, valueKey: string) => {
         if (!data?.length) return null;
-        
+
         const chartData = data.map(d => ({
             name: String(d[nameKey] || 'N/A'),
             value: Number(d[valueKey]) || 0,
@@ -366,7 +366,7 @@ const Reports: React.FC = () => {
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                         </Pie>
-                        <RechartsTooltip 
+                        <RechartsTooltip
                             content={({ active, payload }) => {
                                 if (active && payload && payload.length) {
                                     return (
@@ -377,14 +377,14 @@ const Reports: React.FC = () => {
                                             </p>
                                         </div>
                                     );
-                                }
+                                } ``
                                 return null;
                             }}
                         />
                         <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500, color: '#4B5563' }} />
                     </PieChart>
                 </ResponsiveContainer>
-             </div>
+            </div>
         );
     };
 
@@ -582,7 +582,7 @@ const Reports: React.FC = () => {
                                     overdue: 'bg-red-600',
                                 };
                                 const dotColor = statusColors[p.name.toLowerCase()] || 'bg-surface-400';
-                                
+
                                 return (
                                     <div key={i} className="group relative bg-white border border-surface-200 p-5 rounded-2xl transition-all duration-300 hover:border-primary-200 hover:shadow-xl hover:shadow-primary-900/5">
                                         <div className="flex items-start justify-between mb-4">
