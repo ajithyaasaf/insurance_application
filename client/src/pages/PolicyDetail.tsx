@@ -53,37 +53,41 @@ const PolicyDetail: React.FC = () => {
         
         setIsSubmitting(true);
         try {
-            // Find the existing pending/partial payment record to update
-            const pendingPayment = policy.payments?.find(
-                (p: any) => p.status === 'pending' || p.status === 'partial'
-            );
+            // 1. Find the existing pending record (the balance placeholder)
+            const pendingPayment = policy.payments?.find((p: any) => p.status === 'pending');
 
+            // 2. Create the NEW collection record (The History Entry)
+            await api.post('/payments', {
+                policyId: policy.id,
+                customerId: policy.customerId,
+                amount: amt,
+                paidAmount: amt,
+                paidDate: new Date().toISOString(),
+                dueDate: new Date().toISOString(),
+                status: 'paid',
+                notes: paymentNotes || 'Collection from policy detail',
+            });
+
+            // 3. If there was a pending placeholder, reduce its amount by the collected amount
             if (pendingPayment) {
-                // Update the existing record — the server will auto-derive status (partial/paid)
-                await api.put(`/payments/${pendingPayment.id}`, {
-                    paidAmount: amt,
-                    paidDate: new Date().toISOString(),
-                    notes: paymentNotes || pendingPayment.notes,
-                });
-            } else {
-                // No pending record exists, create a new one (edge case)
-                await api.post('/payments', {
-                    policyId: policy.id,
-                    customerId: policy.customerId,
-                    amount: amt,
-                    paidAmount: amt,
-                    paidDate: new Date().toISOString(),
-                    dueDate: new Date().toISOString(),
-                    status: 'paid',
-                    notes: paymentNotes || 'Collected from policy detail',
-                });
+                const newPendingAmount = Math.max(0, pendingPayment.amount - amt);
+                if (newPendingAmount < 0.01) {
+                    // Fully paid — remove the pending placeholder
+                    await api.delete(`/payments/${pendingPayment.id}`);
+                } else {
+                    // Still a balance — update the placeholder
+                    await api.put(`/payments/${pendingPayment.id}`, {
+                        amount: newPendingAmount,
+                        status: 'pending'
+                    });
+                }
             }
 
-            toast.success('Payment recorded successfully');
+            toast.success('Collection recorded');
             setShowPaymentModal(false);
             setPaymentAmount('');
             setPaymentNotes('');
-            fetchPolicy(); // Refresh data
+            fetchPolicy(); // Refresh data to see new history
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to record payment');
         } finally {

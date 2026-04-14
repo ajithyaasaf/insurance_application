@@ -25,6 +25,7 @@ interface CreatePolicyInput {
     tax?: number;
     totalPremium?: number;
     paymentMethod?: string;
+    paidAmount?: number;
     dealerId?: string;
 }
 
@@ -90,18 +91,70 @@ export class PolicyService {
                 include: { customer: true, company: true, dealer: true },
             });
 
-            // Auto-create initial pending payment record
-            await tx.payment.create({
-                data: {
-                    userId,
-                    policyId: policy.id,
-                    customerId: data.customerId,
-                    amount: policy.premiumAmount,
-                    dueDate: policy.startDate,
-                    status: 'pending',
-                    createdBy: role,
-                }
-            });
+            const paidAmount = data.paidAmount || 0;
+            const fullPremium = policy.premiumAmount;
+
+            if (paidAmount > fullPremium + 0.01) {
+                throw Object.assign(new Error(`Paid amount (${paidAmount}) cannot exceed total premium (${fullPremium})`), { statusCode: 400 });
+            }
+
+            if (paidAmount >= fullPremium - 0.01 && fullPremium > 0) {
+                // Scenario 1: Fully Paid at creation
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: policy.id,
+                        customerId: data.customerId,
+                        amount: fullPremium,
+                        paidAmount: fullPremium,
+                        paidDate: new Date(),
+                        dueDate: policy.startDate,
+                        status: 'paid',
+                        createdBy: role,
+                    }
+                });
+            } else if (paidAmount > 0.01) {
+                // Scenario 2: Partial Payment at creation (Split into two records)
+                // A. The Paid portion
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: policy.id,
+                        customerId: data.customerId,
+                        amount: paidAmount,
+                        paidAmount: paidAmount,
+                        paidDate: new Date(),
+                        dueDate: policy.startDate,
+                        status: 'paid',
+                        createdBy: role,
+                    }
+                });
+                // B. The Pending balance
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: policy.id,
+                        customerId: data.customerId,
+                        amount: fullPremium - paidAmount,
+                        dueDate: policy.startDate,
+                        status: 'pending',
+                        createdBy: role,
+                    }
+                });
+            } else {
+                // Scenario 3: Nothing paid (Single pending record)
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: policy.id,
+                        customerId: data.customerId,
+                        amount: fullPremium,
+                        dueDate: policy.startDate,
+                        status: 'pending',
+                        createdBy: role,
+                    }
+                });
+            }
 
             return policy;
         });
@@ -329,6 +382,70 @@ export class PolicyService {
                 },
                 include: { customer: true, company: true, dealer: true },
             });
+
+            // 3. Derive payment status and split records if needed
+            const paidAmount = data.paidAmount || 0;
+            const fullPremium = renewedPolicy.premiumAmount;
+
+            if (paidAmount > fullPremium + 0.01) {
+                throw Object.assign(new Error(`Paid amount (${paidAmount}) cannot exceed total premium (${fullPremium})`), { statusCode: 400 });
+            }
+
+            if (paidAmount >= fullPremium - 0.01 && fullPremium > 0) {
+                // Scenario 1: Fully Paid at renewal
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: renewedPolicy.id,
+                        customerId: originalPolicy.customerId,
+                        amount: fullPremium,
+                        paidAmount: fullPremium,
+                        paidDate: new Date(),
+                        dueDate: renewedPolicy.startDate,
+                        status: 'paid',
+                        createdBy: role,
+                    }
+                });
+            } else if (paidAmount > 0.01) {
+                // Scenario 2: Partial Payment at renewal
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: renewedPolicy.id,
+                        customerId: originalPolicy.customerId,
+                        amount: paidAmount,
+                        paidAmount: paidAmount,
+                        paidDate: new Date(),
+                        dueDate: renewedPolicy.startDate,
+                        status: 'paid',
+                        createdBy: role,
+                    }
+                });
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: renewedPolicy.id,
+                        customerId: originalPolicy.customerId,
+                        amount: fullPremium - paidAmount,
+                        dueDate: renewedPolicy.startDate,
+                        status: 'pending',
+                        createdBy: role,
+                    }
+                });
+            } else {
+                // Scenario 3: Nothing paid (Pending placeholder)
+                await tx.payment.create({
+                    data: {
+                        userId,
+                        policyId: renewedPolicy.id,
+                        customerId: originalPolicy.customerId,
+                        amount: fullPremium,
+                        dueDate: renewedPolicy.startDate,
+                        status: 'pending',
+                        createdBy: role,
+                    }
+                });
+            }
 
             return renewedPolicy;
         });

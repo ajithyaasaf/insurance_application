@@ -25,6 +25,7 @@ export const createPolicySchema = z.object({
         tax: z.number().min(0).optional(),
         totalPremium: z.number().min(0).optional(),
         paymentMethod: z.enum(['Cash', 'UPI', 'Cheque', 'Online', 'NEFT']).optional(),
+        paidAmount: z.number().min(0).optional(),
         dealerId: z.string().optional().or(z.literal('')),
     }),
 });

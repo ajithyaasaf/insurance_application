@@ -31,11 +31,11 @@ const Policies: React.FC = () => {
     const [form, setForm] = useState({
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
         sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1',
-        make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: ''
+        make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: ''
     });
     // For edit modal only: tracks the manually-selectable status ('active' | 'cancelled')
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
-    const [renewForm, setRenewForm] = useState({ startDate: '', expiryDate: '', premiumAmount: '', policyNumber: '' });
+    const [renewForm, setRenewForm] = useState({ startDate: '', expiryDate: '', premiumAmount: '', policyNumber: '', paidAmount: '' });
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; counts: { paymentsCount: number; claimsCount: number; followUpsCount: number } } | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -64,7 +64,7 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', dealerId: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '' });
         setEditStatus('active');
         setModalOpen(true);
     };
@@ -78,7 +78,7 @@ const Policies: React.FC = () => {
             productName: p.productName || '', noOfYears: p.noOfYears.toString(),
             make: p.make || '', model: p.model || '', vehicleClass: p.vehicleClass || '', idv: p.idv?.toString() || '',
             od: p.od?.toString() || '', tp: p.tp?.toString() || '', tax: p.tax?.toString() || '', totalPremium: p.totalPremium?.toString() || '',
-            paymentMethod: p.paymentMethod || '', dealerId: p.dealerId || ''
+            paymentMethod: p.paymentMethod || '', paidAmount: '', dealerId: p.dealerId || ''
         });
         // Pre-fill editStatus from existing policy — only valid manual values
         setEditStatus((p.status === 'cancelled' ? 'cancelled' : 'active') as 'active' | 'cancelled');
@@ -120,6 +120,7 @@ const Policies: React.FC = () => {
                 model: form.model || undefined,
                 vehicleClass: form.vehicleClass || undefined,
                 paymentMethod: form.paymentMethod || undefined,
+                paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
                 dealerId: form.dealerId || undefined,
                 // Status: only included in edit payloads; create always defaults to 'active' on the server
                 ...(editing ? { status: editStatus } : {}),
@@ -160,6 +161,7 @@ const Policies: React.FC = () => {
             expiryDate: newExpiry.toISOString().split('T')[0],
             premiumAmount: p.premiumAmount.toString(),
             policyNumber: '',
+            paidAmount: '',
         });
         setRenewModalOpen(true);
     };
@@ -168,7 +170,9 @@ const Policies: React.FC = () => {
         e.preventDefault();
         try {
             await api.post(`/policies/${renewingPolicy.id}/renew`, {
-                ...renewForm, premiumAmount: parseFloat(renewForm.premiumAmount),
+                ...renewForm, 
+                premiumAmount: parseFloat(renewForm.premiumAmount),
+                paidAmount: renewForm.paidAmount ? parseFloat(renewForm.paidAmount) : undefined,
             });
             toast.success('Policy renewed!');
             setRenewModalOpen(false); fetchPolicies(meta.page);
@@ -370,6 +374,22 @@ const Policies: React.FC = () => {
                                 placeholder="Select Method"
                             />
                         </div>
+                        {/* Only show 'Paid Amount' when creating a new policy (it's for initial collection) */}
+                        {!editing && (
+                            <div>
+                                <label className="label">Initial Paid Amount (₹)</label>
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    max={form.premiumAmount} 
+                                    step="0.01" 
+                                    className="input" 
+                                    placeholder="Leave empty if pending"
+                                    value={form.paidAmount} 
+                                    onChange={(e) => setForm({ ...form, paidAmount: e.target.value })} 
+                                />
+                            </div>
+                        )}
                         <div><label className="label">Referred By Dealer</label>
                             <SearchableSelect
                                 options={dealers.map(d => ({ value: d.id, label: d.name }))}
@@ -421,6 +441,19 @@ const Policies: React.FC = () => {
                     <div><label className="label">Start Date *</label><input type="date" className="input" required value={renewForm.startDate} onChange={(e) => setRenewForm({ ...renewForm, startDate: e.target.value })} /></div>
                     <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={renewForm.expiryDate} onChange={(e) => setRenewForm({ ...renewForm, expiryDate: e.target.value })} /></div>
                     <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={renewForm.premiumAmount} onChange={(e) => setRenewForm({ ...renewForm, premiumAmount: e.target.value })} /></div>
+                    <div>
+                        <label className="label">Initial Paid Amount (₹)</label>
+                        <input 
+                            type="number" 
+                            min="0" 
+                            max={renewForm.premiumAmount} 
+                            step="0.01" 
+                            className="input" 
+                            placeholder="Leave empty if pending"
+                            value={renewForm.paidAmount} 
+                            onChange={(e) => setRenewForm({ ...renewForm, paidAmount: e.target.value })} 
+                        />
+                    </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setRenewModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <button type="submit" className="btn-primary flex-1">Renew</button>
