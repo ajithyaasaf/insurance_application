@@ -78,23 +78,33 @@ export class PaymentService {
         dateTo?: string,
     ) {
         const todayIST = getStartOfTodayIST();
-        
+
+        // Build the dueDate filter carefully to avoid key collision
+        // when both 'overdue' status filter and date range filter are active.
+        let dueDateFilter: any = {};
+        if (status === 'overdue') {
+            dueDateFilter = { lt: todayIST };
+        }
+        if (dateFrom || dateTo) {
+            dueDateFilter = {
+                ...dueDateFilter,
+                ...(dateFrom && { gte: new Date(dateFrom) }),
+                ...(dateTo && { lte: new Date(dateTo) }),
+            };
+        }
+
         const where: any = {
             userId,
-            ...(status && status !== 'overdue' && { status: status as any }),
-            ...(status === 'overdue' && {
-                status: { in: ['pending', 'partial'] },
-                dueDate: { lt: todayIST }
-            }),
+            // Status filter logic:
+            // 'overdue' as virtual filter → match pending/partial with past dueDate
+            // 'pending' → also include DB records stored as 'overdue' (legacy from detectOverdue mutations)
+            // other statuses → match directly
+            ...(status === 'overdue' && { status: { in: ['pending', 'partial', 'overdue'] } }),
+            ...(status === 'pending' && { status: { in: ['pending', 'overdue'] } }),
+            ...(status && status !== 'overdue' && status !== 'pending' && { status: status as any }),
+            ...(Object.keys(dueDateFilter).length > 0 && { dueDate: dueDateFilter }),
             ...(search && {
-                customer: { name: { contains: search, mode: 'insensitive' } },
-            }),
-            // ... (rest of the where clause)
-            ...((dateFrom || dateTo) && {
-                dueDate: {
-                    ...(dateFrom && { gte: new Date(dateFrom) }),
-                    ...(dateTo && { lte: new Date(dateTo) }),
-                },
+                customer: { name: { contains: search, mode: 'insensitive' }, deletedAt: null },
             }),
         };
 
@@ -215,18 +225,20 @@ export class PaymentService {
         return prisma.payment.delete({ where: { id } });
     }
 
-    // Detect and update overdue payments
+    // Detect overdue payments — 'overdue' is a virtual/computed status.
+    // We do NOT store 'overdue' in the DB because it breaks status filters.
+    // The isOverdue flag is computed at runtime by mapPaymentStatus().
+    // This method simply counts how many would be considered overdue.
     async detectOverdue(userId: string) {
-        const now = new Date();
-        const result = await prisma.payment.updateMany({
+        const todayIST = getStartOfTodayIST();
+        const count = await prisma.payment.count({
             where: {
                 userId,
-                status: 'pending',
-                dueDate: { lt: now },
+                status: { in: ['pending', 'partial'] },
+                dueDate: { lt: todayIST },
             },
-            data: { status: 'overdue' },
         });
-        return { updated: result.count };
+        return { updated: count };
     }
 }
 

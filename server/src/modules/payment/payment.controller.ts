@@ -42,7 +42,7 @@ export class PaymentController {
     async detectOverdue(req: Request, res: Response, next: NextFunction) {
         try {
             const result = await paymentService.detectOverdue(req.user!.userId);
-            sendSuccess({ res, statusCode: 200, message: `${result.updated} payments marked overdue`, data: result });
+            sendSuccess({ res, statusCode: 200, message: `${result.updated} overdue payment(s) detected`, data: result });
         } catch (e: any) { next(e); }
     }
 }
