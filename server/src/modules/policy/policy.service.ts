@@ -77,6 +77,7 @@ export class PolicyService {
                     parentPolicyId: data.parentPolicyId,
                     make: data.make,
                     model: data.model,
+                    registrationDate: data.registrationDate ? new Date(data.registrationDate) : null,
                     vehicleClass: data.vehicleClass as any,
                     idv: data.idv,
                     od: data.od,
@@ -279,6 +280,7 @@ export class PolicyService {
                     premiumMode: data.premiumMode as any,
                     status: incomingStatus as any,
                     cancelledAt,
+                    registrationDate: data.registrationDate ? new Date(data.registrationDate) : undefined,
                     vehicleClass: data.vehicleClass as any,
                     updatedBy: role,
                     lostReason: undefined, // Ensure stale field never persists
@@ -369,6 +371,7 @@ export class PolicyService {
                     parentPolicyId: id,
                     make: data.make || originalPolicy.make,
                     model: data.model || originalPolicy.model,
+                    registrationDate: data.registrationDate ? new Date(data.registrationDate) : originalPolicy.registrationDate,
                     vehicleClass: (data.vehicleClass as any) || originalPolicy.vehicleClass,
                     idv: data.idv ?? originalPolicy.idv,
                     od: data.od ?? originalPolicy.od,

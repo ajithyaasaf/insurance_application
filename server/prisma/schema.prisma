@@ -134,6 +134,7 @@ model Lead {
   vehicleNumber    String?
   make             String?
   model            String?
+  registrationDate DateTime?
   vehicleClass     PolicyVehicleClass?
   idv              Float?
   od               Float?
@@ -211,9 +212,10 @@ model Policy {
   noOfYears      Int          @default(1)
   
   // Motor Specific Fields
-  make           String?
-  model          String?
-  vehicleClass   PolicyVehicleClass?
+  make             String?
+  model            String?
+  registrationDate DateTime?
+  vehicleClass     PolicyVehicleClass?
   idv            Float?
   od             Float?
   tp             Float?

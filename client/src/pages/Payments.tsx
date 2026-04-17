@@ -15,9 +15,11 @@ const Payments: React.FC = () => {
     const [payments, setPayments] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
     const [policies, setPolicies] = useState<any[]>([]);
+    const [dealers, setDealers] = useState<any[]>([]);
     const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [dealerFilter, setDealerFilter] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [loading, setLoading] = useState(true);
@@ -38,21 +40,27 @@ const Payments: React.FC = () => {
                     search: search || undefined,
                     dateFrom: dateFrom || undefined,
                     dateTo: dateTo || undefined,
+                    dealerId: dealerFilter || undefined,
                 },
             });
             setPayments(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch payments'); } finally { setLoading(false); }
-    }, [search, statusFilter, dateFrom, dateTo]);
+    }, [search, statusFilter, dateFrom, dateTo, dealerFilter]);
 
     useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
     useEffect(() => {
         const loadDropdowns = async () => {
             try {
-                const [custRes, polRes] = await Promise.all([api.get('/customers?limit=100'), api.get('/policies?limit=100')]);
+                const [custRes, polRes, dlrRes] = await Promise.all([
+                    api.get('/customers?limit=100'),
+                    api.get('/policies?limit=100'),
+                    api.get('/dealers?limit=100')
+                ]);
                 setCustomers(custRes.data.data);
                 setPolicies(polRes.data.data);
+                setDealers(dlrRes.data.data || []);
             } catch { }
         };
         loadDropdowns();
@@ -126,6 +134,14 @@ const Payments: React.FC = () => {
                     allLabel="All Status"
                     placeholder="Search status..."
                 />
+                <SearchableSelect
+                    className="w-full sm:w-48"
+                    options={dealers.map(d => ({ value: d.id, label: d.name }))}
+                    value={dealerFilter}
+                    onChange={setDealerFilter}
+                    allLabel="All Dealers"
+                    placeholder="Search dealer..."
+                />
                 <div className="flex items-center gap-2">
                     <label className="text-xs text-surface-500 whitespace-nowrap">Due From</label>
                     <input type="date" className="input sm:w-40" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
@@ -134,8 +150,8 @@ const Payments: React.FC = () => {
                     <label className="text-xs text-surface-500 whitespace-nowrap">To</label>
                     <input type="date" className="input sm:w-40" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
                 </div>
-                {(search || statusFilter || dateFrom || dateTo) && (
-                    <button onClick={() => { setSearch(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); }} className="btn-ghost btn-sm self-start sm:self-auto">
+                {(search || statusFilter || dealerFilter || dateFrom || dateTo) && (
+                    <button onClick={() => { setSearch(''); setStatusFilter(''); setDealerFilter(''); setDateFrom(''); setDateTo(''); }} className="btn-ghost btn-sm self-start sm:self-auto">
                         Clear
                     </button>
                 )}
@@ -149,49 +165,81 @@ const Payments: React.FC = () => {
                 <>
                     <div className="table-container hidden sm:block">
                         <table className="table">
-                            <thead><tr><th>Customer</th><th>Policy</th><th>Amount</th><th>Due Date</th><th>Paid</th><th>Status</th><th>Actions</th></tr></thead>
+                            <thead><tr><th>Customer</th><th>Policy</th><th>Amount</th><th>Due Date</th><th>Paid</th><th>Outstanding</th><th>Status</th><th>Actions</th></tr></thead>
                             <tbody>
-                                {payments.map((p) => (
-                                    <tr key={p.id}>
-                                        <td className="font-medium text-surface-900">{p.customer?.name}</td>
-                                        <td className="text-xs">{p.policy?.productName || p.policy?.policyType || '—'} {p.policy?.vehicleNumber && `(${p.policy.vehicleNumber})`}</td>
-                                        <td className="font-medium">{formatCurrency(p.amount)}</td>
-                                        <td className="text-xs">{formatDate(p.dueDate)}</td>
-                                        <td className="text-xs">{p.paidAmount ? formatCurrency(p.paidAmount) : '—'}</td>
-                                        <td>
-                                            <div className="flex items-center gap-2">
-                                                <span className={getStatusColor(p.status)}>{p.status}</span>
-                                                {p.isOverdue && (
-                                                    <span className="badge-danger">overdue</span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td><button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button></td>
-                                    </tr>
-                                ))}
+                                {payments.map((p) => {
+                                    const outstanding = p.amount - (p.paidAmount || 0);
+                                    return (
+                                        <tr key={p.id}>
+                                            <td className="font-medium text-surface-900">{p.customer?.name}</td>
+                                            <td className="text-xs">{p.policy?.productName || p.policy?.policyType || '—'} {p.policy?.vehicleNumber && `(${p.policy.vehicleNumber})`}</td>
+                                            <td className="font-medium">{formatCurrency(p.amount)}</td>
+                                            <td className="text-xs">{formatDate(p.dueDate)}</td>
+                                            <td className="text-xs">{p.paidAmount ? formatCurrency(p.paidAmount) : '—'}</td>
+                                            <td className={`font-bold ${outstanding > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                                {formatCurrency(outstanding)}
+                                            </td>
+                                            <td>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={getStatusColor(p.status)}>{p.status}</span>
+                                                    {p.isOverdue && (
+                                                        <span className="badge-danger">overdue</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td><button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button></td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
+                            <tfoot className="bg-surface-50 font-bold">
+                                <tr>
+                                    <td colSpan={5} className="text-right py-3">Total Outstanding (This Page):</td>
+                                    <td className="text-red-600 py-3">
+                                        {formatCurrency(payments.reduce((sum, p) => sum + (p.amount - (p.paidAmount || 0)), 0))}
+                                    </td>
+                                    <td colSpan={2}></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
 
                     <div className="sm:hidden space-y-3">
-                        {payments.map((p) => (
-                            <div key={p.id} className="card card-body" onClick={() => openEdit(p)}>
-                                <div className="flex justify-between items-start mb-1">
-                                    <p className="font-semibold text-surface-900">{p.customer?.name}</p>
-                                    <div className="flex items-center gap-2">
-                                        <span className={getStatusColor(p.status)}>{p.status}</span>
-                                        {p.isOverdue && (
-                                            <span className="badge-danger">overdue</span>
-                                        )}
+                        {payments.map((p) => {
+                            const outstanding = p.amount - (p.paidAmount || 0);
+                            return (
+                                <div key={p.id} className="card card-body" onClick={() => openEdit(p)}>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <p className="font-semibold text-surface-900">{p.customer?.name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className={getStatusColor(p.status)}>{p.status}</span>
+                                            {p.isOverdue && (
+                                                <span className="badge-danger">overdue</span>
+                                            )}
+                                        </div>
                                     </div>
+                                    <p className="text-xs text-surface-500 mb-2">Due: {formatDate(p.dueDate)}</p>
+                                    <div className="flex justify-between text-sm">
+                                        <span>Amount: <strong>{formatCurrency(p.amount)}</strong></span>
+                                        {p.paidAmount && <span className="text-emerald-600">Paid: {formatCurrency(p.paidAmount)}</span>}
+                                    </div>
+                                    {outstanding > 0 && (
+                                        <div className="mt-2 pt-2 border-t border-dashed border-surface-200 flex justify-between items-center text-sm">
+                                            <span className="text-surface-500">Outstanding:</span>
+                                            <span className="font-bold text-red-600">{formatCurrency(outstanding)}</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <p className="text-xs text-surface-500 mb-2">Due: {formatDate(p.dueDate)}</p>
-                                <div className="flex justify-between text-sm">
-                                    <span>Amount: <strong>{formatCurrency(p.amount)}</strong></span>
-                                    {p.paidAmount && <span className="text-emerald-600">Paid: {formatCurrency(p.paidAmount)}</span>}
-                                </div>
+                            );
+                        })}
+                        <div className="card card-body bg-red-50 border-red-100">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-red-800">Total Outstanding (Page)</span>
+                                <span className="text-lg font-bold text-red-600">
+                                    {formatCurrency(payments.reduce((sum, p) => sum + (p.amount - (p.paidAmount || 0)), 0))}
+                                </span>
                             </div>
-                        ))}
+                        </div>
                     </div>
                     <Pagination page={meta.page} totalPages={meta.totalPages} onPageChange={(p) => fetchPayments(p)} />
                 </>

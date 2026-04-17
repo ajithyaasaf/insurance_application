@@ -71,6 +71,7 @@ export class LeadService {
                 vehicleNumber: data.vehicleNumber || null,
                 make: data.make || null,
                 model: data.model || null,
+                registrationDate: data.registrationDate ? new Date(data.registrationDate) : null,
                 vehicleClass: data.vehicleClass || null,
                 idv: data.idv,
                 od: data.od,
@@ -161,6 +162,11 @@ export class LeadService {
                 vehicleNumber: data.vehicleNumber || undefined,
                 make: data.make || undefined,
                 model: data.model || undefined,
+                registrationDate: data.registrationDate
+                    ? new Date(data.registrationDate)
+                    : data.registrationDate === null
+                        ? null
+                        : undefined,
                 dealerId: data.dealerId || undefined,
 
                 updatedBy: role,
@@ -225,8 +231,8 @@ export class LeadService {
                         vehicleNumber: lead.vehicleNumber,
                         make: lead.make,
                         model: lead.model,
-                        vehicleClass: lead.vehicleClass,
-                        idv: lead.idv,
+                        registrationDate: lead.registrationDate,
+                        vehicleClass: lead.vehicleClass,                        idv: lead.idv,
                         od: lead.od,
                         tp: lead.tp,
                         tax: lead.tax,

@@ -74,6 +74,9 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     <div><label className="label">Model</label>
                         <input className="input" value={form.model || ''} onChange={(e) => handleChange('model', e.target.value)} />
                     </div>
+                    <div><label className="label">Date of Registration</label>
+                        <input type="date" className="input" value={form.registrationDate?.split('T')[0] || ''} onChange={(e) => handleChange('registrationDate', e.target.value)} />
+                    </div>
                     <div><label className="label">Vehicle Class</label>
                         <SearchableSelect
                             options={VEHICLE_CLASSES.map(c => ({ value: c, label: c.replace('_', ' ') }))}

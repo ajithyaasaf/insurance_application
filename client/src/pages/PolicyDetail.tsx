@@ -178,6 +178,10 @@ const PolicyDetail: React.FC = () => {
                                     <p className="text-xs text-surface-500 mb-1">Model</p>
                                     <p className="text-sm font-medium text-surface-900">{policy.model}</p>
                                 </div>}
+                                {policy.registrationDate && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Reg. Date</p>
+                                    <p className="text-sm font-medium text-surface-900">{formatDate(policy.registrationDate)}</p>
+                                </div>}
                                 {policy.vehicleClass && <div>
                                     <p className="text-xs text-surface-500 mb-1">Class</p>
                                     <p className="text-sm font-medium text-surface-900 uppercase">{policy.vehicleClass?.replace('_', ' ')}</p>

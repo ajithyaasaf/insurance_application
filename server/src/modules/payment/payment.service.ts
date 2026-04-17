@@ -76,6 +76,7 @@ export class PaymentService {
         search?: string,
         dateFrom?: string,
         dateTo?: string,
+        dealerId?: string,
     ) {
         const todayIST = getStartOfTodayIST();
 
@@ -103,6 +104,7 @@ export class PaymentService {
             ...(status === 'pending' && { status: { in: ['pending', 'overdue'] } }),
             ...(status && status !== 'overdue' && status !== 'pending' && { status: status as any }),
             ...(Object.keys(dueDateFilter).length > 0 && { dueDate: dueDateFilter }),
+            ...(dealerId && { policy: { dealerId } }),
             ...(search && {
                 customer: { name: { contains: search, mode: 'insensitive' }, deletedAt: null },
             }),
