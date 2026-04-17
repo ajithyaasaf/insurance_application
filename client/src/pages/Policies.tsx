@@ -4,6 +4,7 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
+import PolicyFormFields from '../components/ui/PolicyFormFields';
 import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate } from '../utils/format';
 import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, EDITABLE_POLICY_STATUSES, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
@@ -31,7 +32,8 @@ const Policies: React.FC = () => {
     const [form, setForm] = useState({
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
         sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1',
-        make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: ''
+        make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '',
+        registrationDate: ''
     });
     // For edit modal only: tracks the manually-selectable status ('active' | 'cancelled')
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
@@ -64,7 +66,7 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '' });
         setEditStatus('active');
         setModalOpen(true);
     };
@@ -78,7 +80,8 @@ const Policies: React.FC = () => {
             productName: p.productName || '', noOfYears: p.noOfYears.toString(),
             make: p.make || '', model: p.model || '', vehicleClass: p.vehicleClass || '', idv: p.idv?.toString() || '',
             od: p.od?.toString() || '', tp: p.tp?.toString() || '', tax: p.tax?.toString() || '', totalPremium: p.totalPremium?.toString() || '',
-            paymentMethod: p.paymentMethod || '', paidAmount: '', dealerId: p.dealerId || ''
+            paymentMethod: p.paymentMethod || '', paidAmount: '', dealerId: p.dealerId || '',
+            registrationDate: p.registrationDate || ''
         });
         // Pre-fill editStatus from existing policy — only valid manual values
         setEditStatus((p.status === 'cancelled' ? 'cancelled' : 'active') as 'active' | 'cancelled');
@@ -92,7 +95,8 @@ const Policies: React.FC = () => {
             // Reset motor specific fields if switching away from motor
             ...(val !== 'motor' ? {
                 vehicleNumber: '', make: '', model: '', vehicleClass: '',
-                idv: '', od: '', tp: '', tax: '', totalPremium: '', dealerId: ''
+                idv: '', od: '', tp: '', tax: '', totalPremium: '', dealerId: '',
+                registrationDate: ''
             } : {
                 // Clear fields not needed for motor
                 productName: '',
@@ -115,10 +119,13 @@ const Policies: React.FC = () => {
                 od: form.od ? parseFloat(form.od) : undefined,
                 tp: form.tp ? parseFloat(form.tp) : undefined,
                 tax: form.tax ? parseFloat(form.tax) : undefined,
-                totalPremium: form.totalPremium ? parseFloat(form.totalPremium) : undefined,
+                // Auto-sync: if totalPremium was not manually computed from OD/TP/Tax,
+                // mirror it from premiumAmount so backend data is always consistent.
+                totalPremium: form.totalPremium ? parseFloat(form.totalPremium) : (form.premiumAmount ? parseFloat(form.premiumAmount) : undefined),
                 make: form.make || undefined,
                 model: form.model || undefined,
                 vehicleClass: form.vehicleClass || undefined,
+                registrationDate: form.registrationDate || undefined,
                 paymentMethod: form.paymentMethod || undefined,
                 paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
                 dealerId: form.dealerId || undefined,
@@ -295,138 +302,43 @@ const Policies: React.FC = () => {
             {/* Create/Edit Modal */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Policy' : 'New Policy'} size="lg">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div><label className="label">Customer *</label>
-                            <SearchableSelect
-                                required
-                                options={customers.map(c => ({ value: c.id, label: c.name }))}
-                                value={form.customerId}
-                                onChange={(val) => setForm({ ...form, customerId: val })}
-                                placeholder="Select Customer"
-                            />
-                        </div>
-                        <div><label className="label">Company *</label>
-                            <SearchableSelect
-                                required
-                                options={companies
-                                    .filter(c => {
-                                        if (form.policyType === 'life') return c.name === 'LIC';
-                                        if (form.policyType === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
-                                        if (form.policyType === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
-                                        return true; // fallback for 'other'
-                                    })
-                                    .map(c => ({ value: c.id, label: c.name }))
-                                }
-                                value={form.companyId}
-                                onChange={(val) => setForm({ ...form, companyId: val })}
-                                placeholder="Select Company"
-                            />
-                        </div>
-                        <div>
-                            <label className="label">
-                                Policy Type *
-                                {editing && <span className="ml-2 text-xs font-normal text-surface-400">(cannot be changed after creation)</span>}
-                            </label>
-                            <SearchableSelect
-                                required
-                                disabled={!!editing}
-                                options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
-                                value={form.policyType}
-                                onChange={handleTypeChange}
-                                placeholder="Select Policy Type"
-                            />
-                        </div>
-                        <div><label className="label">Policy Number *</label><input className="input" required value={form.policyNumber} onChange={(e) => setForm({ ...form, policyNumber: e.target.value })} /></div>
-                        {needsVehicle && <>
-                            <div><label className="label">Vehicle Number *</label><input className="input" required={needsVehicle} value={form.vehicleNumber} onChange={(e) => setForm({ ...form, vehicleNumber: e.target.value })} /></div>
-                            <div><label className="label">Make</label><input className="input" value={form.make} onChange={(e) => setForm({ ...form, make: e.target.value })} /></div>
-                            <div><label className="label">Model</label><input className="input" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} /></div>
-                            <div><label className="label">Vehicle Class</label>
-                                <SearchableSelect
-                                    options={VEHICLE_CLASSES.map(c => ({ value: c, label: c.replace('_', ' ') }))}
-                                    value={form.vehicleClass}
-                                    onChange={(val) => setForm({ ...form, vehicleClass: val })}
-                                    allLabel="Select Class"
-                                />
+                    <PolicyFormFields 
+                        form={form} 
+                        setForm={setForm} 
+                        companies={companies} 
+                        dealers={dealers} 
+                        customers={customers} 
+                        isEditing={!!editing} 
+                    />
+
+                    {/* Status selection is still handled here as it's specific to the logic in this page */}
+                    {editing && (
+                        <div className="col-span-full border-t border-surface-200 pt-4 mt-4">
+                            <label className="label">Policy Status</label>
+                            <div className="flex gap-2">
+                                {EDITABLE_POLICY_STATUSES.map(s => (
+                                    <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => setEditStatus(s as 'active' | 'cancelled')}
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${editStatus === s
+                                                ? s === 'cancelled'
+                                                    ? 'bg-red-50 border-red-400 text-red-700'
+                                                    : 'bg-emerald-50 border-emerald-400 text-emerald-700'
+                                                : 'bg-white border-surface-200 text-surface-500 hover:bg-surface-50'
+                                            }`}
+                                    >
+                                        {s === 'active' ? '✓ Active' : '✕ Cancelled'}
+                                    </button>
+                                ))}
                             </div>
-                        </>}
-                        {form.policyType !== 'motor' && (
-                            <div><label className="label">Product Name</label><input className="input" value={form.productName} onChange={(e) => setForm({ ...form, productName: e.target.value })} /></div>
-                        )}
-                        <div><label className="label">Start Date *</label><input type="date" className="input" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} /></div>
-                        <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} /></div>
-                        {form.policyType !== 'motor' && (
-                            <div><label className="label">Sum Insured</label><input type="number" min="0" step="0.01" className="input" value={form.sumInsured} onChange={(e) => setForm({ ...form, sumInsured: e.target.value })} /></div>
-                        )}
-                        <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.premiumAmount} onChange={(e) => setForm({ ...form, premiumAmount: e.target.value })} /></div>
-                        {needsVehicle && <>
-                            <div><label className="label">IDV</label><input type="number" min="0" step="0.01" className="input" value={form.idv} onChange={(e) => setForm({ ...form, idv: e.target.value })} /></div>
-                            <div><label className="label">OD Premium</label><input type="number" min="0" step="0.01" className="input" value={form.od} onChange={(e) => setForm({ ...form, od: e.target.value })} /></div>
-                            <div><label className="label">TP Premium</label><input type="number" min="0" step="0.01" className="input" value={form.tp} onChange={(e) => setForm({ ...form, tp: e.target.value })} /></div>
-                            <div><label className="label">Tax (GST)</label><input type="number" min="0" step="0.01" className="input" value={form.tax} onChange={(e) => setForm({ ...form, tax: e.target.value })} /></div>
-                            <div><label className="label">Total Premium (Computed)</label><input type="number" min="0" step="0.01" className="input" value={form.totalPremium} onChange={(e) => setForm({ ...form, totalPremium: e.target.value })} /></div>
-                        </>}
-                        <div><label className="label">Payment Method</label>
-                            <SearchableSelect
-                                options={['Cash', 'UPI', 'Cheque', 'Online', 'NEFT'].map(m => ({ value: m, label: m }))}
-                                value={form.paymentMethod}
-                                onChange={(val) => setForm({ ...form, paymentMethod: val })}
-                                placeholder="Select Method"
-                            />
+                            {editStatus === 'cancelled' && (
+                                <p className="text-xs text-red-500 mt-1">This will cancel the policy. You can reinstate it by switching back to Active.</p>
+                            )}
                         </div>
-                        {/* Only show 'Paid Amount' when creating a new policy (it's for initial collection) */}
-                        {!editing && (
-                            <div>
-                                <label className="label">Initial Paid Amount (₹)</label>
-                                <input 
-                                    type="number" 
-                                    min="0" 
-                                    max={form.premiumAmount} 
-                                    step="0.01" 
-                                    className="input" 
-                                    placeholder="Leave empty if pending"
-                                    value={form.paidAmount} 
-                                    onChange={(e) => setForm({ ...form, paidAmount: e.target.value })} 
-                                />
-                            </div>
-                        )}
-                        <div><label className="label">Referred By Dealer</label>
-                            <SearchableSelect
-                                options={dealers.map(d => ({ value: d.id, label: d.name }))}
-                                value={form.dealerId}
-                                onChange={(val) => setForm({ ...form, dealerId: val })}
-                                allLabel="None / Direct"
-                            />
-                        </div>
-                        <div><label className="label">No. of Years</label><input type="number" className="input" min="1" value={form.noOfYears} onChange={(e) => setForm({ ...form, noOfYears: e.target.value })} /></div>
-                        {/* Status — only shown when EDITING an existing policy; create always defaults to 'active' */}
-                        {editing && (
-                            <div className="col-span-full">
-                                <label className="label">Policy Status</label>
-                                <div className="flex gap-2">
-                                    {EDITABLE_POLICY_STATUSES.map(s => (
-                                        <button
-                                            key={s}
-                                            type="button"
-                                            onClick={() => setEditStatus(s as 'active' | 'cancelled')}
-                                            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${editStatus === s
-                                                    ? s === 'cancelled'
-                                                        ? 'bg-red-50 border-red-400 text-red-700'
-                                                        : 'bg-emerald-50 border-emerald-400 text-emerald-700'
-                                                    : 'bg-white border-surface-200 text-surface-500 hover:bg-surface-50'
-                                                }`}
-                                        >
-                                            {s === 'active' ? '✓ Active' : '✕ Cancelled'}
-                                        </button>
-                                    ))}
-                                </div>
-                                {editStatus === 'cancelled' && (
-                                    <p className="text-xs text-red-500 mt-1">This will cancel the policy. You can reinstate it by switching back to Active.</p>
-                                )}
-                            </div>
-                        )}
-                    </div> {/* end grid */}
-                    <div className="flex gap-3 pt-2">
+                    )}
+
+                    <div className="flex gap-3 pt-4">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
                     </div>

@@ -28,7 +28,7 @@ const Leads: React.FC = () => {
         name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '',
         policyType: '', companyId: '', vehicleNumber: '', make: '', model: '', vehicleClass: '',
         idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: '', startDate: '', expiryDate: '',
-        dealerId: ''
+        dealerId: '', registrationDate: ''
     };
     const [form, setForm] = useState(initialFormState);
     const [convertForm, setConvertForm] = useState({ address: '', email: '' });
@@ -84,7 +84,7 @@ const Leads: React.FC = () => {
             tax: lead.tax?.toString() || '', totalPremium: lead.totalPremium?.toString() || '', 
             premiumAmount: lead.premiumAmount?.toString() || '',
             startDate: lead.startDate?.split('T')[0] || '', expiryDate: lead.expiryDate?.split('T')[0] || '',
-            dealerId: lead.dealerId || ''
+            dealerId: lead.dealerId || '', registrationDate: lead.registrationDate?.split('T')[0] || ''
         });
         setModalOpen(true);
     };
@@ -109,8 +109,9 @@ const Leads: React.FC = () => {
                 od: form.od ? parseFloat(form.od) : undefined,
                 tp: form.tp ? parseFloat(form.tp) : undefined,
                 tax: form.tax ? parseFloat(form.tax) : undefined,
-                totalPremium: form.totalPremium ? parseFloat(form.totalPremium) : undefined,
+                totalPremium: form.totalPremium ? parseFloat(form.totalPremium) : (form.premiumAmount ? parseFloat(form.premiumAmount) : undefined),
                 premiumAmount: form.premiumAmount ? parseFloat(form.premiumAmount) : undefined,
+                registrationDate: form.registrationDate || undefined,
             };
 
             if (editing) {
@@ -250,7 +251,7 @@ const Leads: React.FC = () => {
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                     
-                    <PolicyFormFields form={form} setForm={setForm} companies={companies} dealers={dealers} />
+                    <PolicyFormFields form={form} setForm={setForm} companies={companies} dealers={dealers} showQuoteHeader />
 
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
