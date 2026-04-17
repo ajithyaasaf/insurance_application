@@ -262,7 +262,7 @@ const Policies: React.FC = () => {
                                             <div className="flex items-center gap-1">
                                                 <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-ghost btn-sm text-primary-600" title="View"><HiOutlineEye className="w-3.5 h-3.5" /></button>
                                                 <button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
-                                                {p.status === 'active' && <button onClick={() => openRenew(p)} className="btn-ghost btn-sm text-emerald-600" title="Renew"><HiOutlineRefresh className="w-3.5 h-3.5" /></button>}
+                                                {(p.status === 'active' || p.status === 'expired') && <button onClick={() => openRenew(p)} className="btn-ghost btn-sm text-emerald-600" title="Renew"><HiOutlineRefresh className="w-3.5 h-3.5" /></button>}
                                                 <button onClick={() => handleDelete(p.id, p.customer?.name)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
@@ -289,7 +289,7 @@ const Policies: React.FC = () => {
                                 <div className="flex gap-2">
                                     <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-secondary btn-sm flex-1">View</button>
                                     <button onClick={() => openEdit(p)} className="btn-secondary btn-sm flex-1">Edit</button>
-                                    {p.status === 'active' && <button onClick={() => openRenew(p)} className="btn-primary btn-sm flex-1">Renew</button>}
+                                    {(p.status === 'active' || p.status === 'expired') && <button onClick={() => openRenew(p)} className="btn-primary btn-sm flex-1">Renew</button>}
                                     <button onClick={() => handleDelete(p.id, p.customer?.name)} className="btn-danger btn-sm">Del</button>
                                 </div>
                             </div>
