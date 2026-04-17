@@ -27,6 +27,7 @@ interface CreatePolicyInput {
     paymentMethod?: string;
     paidAmount?: number;
     dealerId?: string;
+    registrationDate?: string;
 }
 
 /** Only these two statuses can be set manually on an existing policy. */
@@ -188,7 +189,17 @@ export class PolicyService {
         const total = await prisma.policy.count({ where });
         const policies = await prisma.policy.findMany({
             where,
-            include: { customer: true, company: true, dealer: true },
+            include: { 
+                customer: true, 
+                company: true, 
+                dealer: true,
+                _count: {
+                    select: {
+                        renewals: { where: { deletedAt: null } },
+                        payments: { where: { status: 'pending' } }
+                    }
+                }
+            },
             orderBy: { createdAt: 'desc' },
             skip: (page - 1) * limit,
             take: limit,

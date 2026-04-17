@@ -161,10 +161,12 @@ const Policies: React.FC = () => {
     const openRenew = (p: any) => {
         setRenewingPolicy(p);
         const expiry = new Date(p.expiryDate);
-        const newExpiry = new Date(expiry);
+        const now = new Date();
+        const start = expiry > now ? expiry : now;
+        const newExpiry = new Date(start);
         newExpiry.setFullYear(newExpiry.getFullYear() + 1);
         setRenewForm({
-            startDate: expiry.toISOString().split('T')[0],
+            startDate: start.toISOString().split('T')[0],
             expiryDate: newExpiry.toISOString().split('T')[0],
             premiumAmount: p.premiumAmount.toString(),
             policyNumber: '',
@@ -262,7 +264,7 @@ const Policies: React.FC = () => {
                                             <div className="flex items-center gap-1">
                                                 <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-ghost btn-sm text-primary-600" title="View"><HiOutlineEye className="w-3.5 h-3.5" /></button>
                                                 <button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
-                                                {(p.status === 'active' || p.status === 'expired') && <button onClick={() => openRenew(p)} className="btn-ghost btn-sm text-emerald-600" title="Renew"><HiOutlineRefresh className="w-3.5 h-3.5" /></button>}
+                                                {(p.status === 'active' || p.status === 'expired') && p._count?.renewals === 0 && <button onClick={() => openRenew(p)} className="btn-ghost btn-sm text-emerald-600" title="Renew"><HiOutlineRefresh className="w-3.5 h-3.5" /></button>}
                                                 <button onClick={() => handleDelete(p.id, p.customer?.name)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
@@ -289,7 +291,7 @@ const Policies: React.FC = () => {
                                 <div className="flex gap-2">
                                     <button onClick={() => navigate(`/policies/${p.id}`)} className="btn-secondary btn-sm flex-1">View</button>
                                     <button onClick={() => openEdit(p)} className="btn-secondary btn-sm flex-1">Edit</button>
-                                    {(p.status === 'active' || p.status === 'expired') && <button onClick={() => openRenew(p)} className="btn-primary btn-sm flex-1">Renew</button>}
+                                    {(p.status === 'active' || p.status === 'expired') && p._count?.renewals === 0 && <button onClick={() => openRenew(p)} className="btn-primary btn-sm flex-1">Renew</button>}
                                     <button onClick={() => handleDelete(p.id, p.customer?.name)} className="btn-danger btn-sm">Del</button>
                                 </div>
                             </div>
@@ -349,6 +351,11 @@ const Policies: React.FC = () => {
             <Modal isOpen={renewModalOpen} onClose={() => setRenewModalOpen(false)} title="Renew Policy">
                 <form onSubmit={handleRenew} className="space-y-4">
                     <p className="text-sm text-surface-500">Renewing policy for <strong>{renewingPolicy?.customer?.name}</strong></p>
+                    {renewingPolicy?._count?.payments > 0 && (
+                        <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm font-medium border border-amber-200">
+                            ⚠️ Warning: This policy has an outstanding balance of pending payments. Don't forget to collect it.
+                        </div>
+                    )}
                     <div><label className="label">New Policy Number *</label><input className="input" required value={renewForm.policyNumber} onChange={(e) => setRenewForm({ ...renewForm, policyNumber: e.target.value })} /></div>
                     <div><label className="label">Start Date *</label><input type="date" className="input" required value={renewForm.startDate} onChange={(e) => setRenewForm({ ...renewForm, startDate: e.target.value })} /></div>
                     <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={renewForm.expiryDate} onChange={(e) => setRenewForm({ ...renewForm, expiryDate: e.target.value })} /></div>
