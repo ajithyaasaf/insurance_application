@@ -15,6 +15,12 @@ const Commissions: React.FC = () => {
     const [detailModal, setDetailModal] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'calculator' | 'history'>('calculator');
 
+    // History filters
+    const [historyDealerFilter, setHistoryDealerFilter] = useState('');
+    const [historyStatusFilter, setHistoryStatusFilter] = useState('');
+    const [historyDateFrom, setHistoryDateFrom] = useState('');
+    const [historyDateTo, setHistoryDateTo] = useState('');
+
     // Calculator state
     const [dealerId, setDealerId] = useState('');
     const [periodStart, setPeriodStart] = useState('');
@@ -114,6 +120,49 @@ const Commissions: React.FC = () => {
             const res = await api.get(`/commissions/${id}`);
             setDetailModal(res.data.data);
         } catch { toast.error('Failed to load details'); }
+    };
+
+    const filteredHistory = history.filter(c => {
+        if (historyDealerFilter && c.dealerId !== historyDealerFilter) return false;
+        if (historyStatusFilter && c.status !== historyStatusFilter) return false;
+        if (historyDateFrom && new Date(c.periodStart) < new Date(historyDateFrom)) return false;
+        if (historyDateTo) {
+            const to = new Date(historyDateTo);
+            to.setUTCHours(23, 59, 59, 999);
+            if (new Date(c.periodStart) > to) return false;
+        }
+        return true;
+    });
+
+    const exportToExcel = async () => {
+        if (filteredHistory.length === 0) {
+            toast.error('No records to export');
+            return;
+        }
+
+        try {
+            toast.loading('Generating Excel...', { id: 'export-excel' });
+            
+            const reqBody: any = {};
+            if (historyDealerFilter) reqBody.dealerId = historyDealerFilter;
+            if (historyStatusFilter) reqBody.status = historyStatusFilter;
+            if (historyDateFrom) reqBody.dateFrom = historyDateFrom;
+            if (historyDateTo) reqBody.dateTo = historyDateTo;
+
+            const res = await api.post('/commissions/export', reqBody, { responseType: 'blob' });
+
+            const blob = new Blob([res.data]);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Commission_History_${new Date().toISOString().split('T')[0]}.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            toast.success('Excel downloaded!', { id: 'export-excel' });
+        } catch {
+            toast.error('Failed to export', { id: 'export-excel' });
+        }
     };
 
     const exportPDF = (data: any) => {
@@ -233,8 +282,21 @@ const Commissions: React.FC = () => {
                                 </div>
                             </div>
 
+                            {preview.alreadyProcessedCount > 0 && (
+                                <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm mb-4 border border-amber-200">
+                                    <strong>Note:</strong> {preview.alreadyProcessedCount} {preview.alreadyProcessedCount === 1 ? 'policy' : 'policies'} in this date range {preview.alreadyProcessedCount === 1 ? 'has' : 'have'} already been processed.
+                                </div>
+                            )}
+
                             {preview.policies.length === 0 ? (
-                                <EmptyState message="No policies found for this dealer in the selected period" icon={<HiOutlineCalculator className="w-12 h-12" />} />
+                                <EmptyState 
+                                    message={
+                                        preview.alreadyProcessedCount > 0 
+                                            ? `All ${preview.alreadyProcessedCount} policies for this period were already processed.` 
+                                            : "No policies found for this dealer in the selected period"
+                                    } 
+                                    icon={<HiOutlineCalculator className="w-12 h-12" />} 
+                                />
                             ) : (
                                 <>
                                     <div className="table-container">
@@ -317,9 +379,38 @@ const Commissions: React.FC = () => {
             )}
 
             {activeTab === 'history' && (
-                <div className="card card-body">
-                    <h2 className="text-lg font-semibold text-surface-900 mb-4">Commission History</h2>
-                    {history.length === 0 ? (
+                <div className="card card-body space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <h2 className="text-lg font-semibold text-surface-900">Commission History</h2>
+                        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                            <input type="date" className="input w-full sm:w-[140px]" value={historyDateFrom} onChange={e => setHistoryDateFrom(e.target.value)} title="From Date" />
+                            <input type="date" className="input w-full sm:w-[140px]" value={historyDateTo} onChange={e => setHistoryDateTo(e.target.value)} title="To Date" />
+                            <SearchableSelect
+                                className="w-full sm:w-[180px]"
+                                options={dealers.map(d => ({ value: d.id, label: d.name }))}
+                                value={historyDealerFilter}
+                                onChange={setHistoryDealerFilter}
+                                allLabel="All Dealers"
+                                placeholder="Filter Dealer"
+                            />
+                            <SearchableSelect
+                                className="w-full sm:w-[140px]"
+                                options={[
+                                    { value: 'draft', label: 'Draft' },
+                                    { value: 'paid', label: 'Paid' }
+                                ]}
+                                value={historyStatusFilter}
+                                onChange={setHistoryStatusFilter}
+                                allLabel="All Status"
+                                placeholder="Filter Status"
+                            />
+                            <button onClick={exportToExcel} className="btn-secondary whitespace-nowrap">
+                                <HiOutlineDocumentDownload className="w-4 h-4 mr-1" /> Export Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    {filteredHistory.length === 0 ? (
                         <EmptyState message="No commission records yet" icon={<HiOutlineCalculator className="w-12 h-12" />} />
                     ) : (
                         <div className="table-container">
@@ -337,7 +428,7 @@ const Commissions: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {history.map((c: any) => (
+                                    {filteredHistory.map((c: any) => (
                                         <tr key={c.id}>
                                             <td className="font-medium">{c.dealer?.name}</td>
                                             <td className="text-xs">

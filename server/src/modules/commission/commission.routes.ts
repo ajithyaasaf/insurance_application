@@ -12,6 +12,7 @@ router.post('/preview', validate(commissionPreviewSchema), (req, res, next) => c
 
 // CRUD
 router.get('/', (req, res, next) => commissionController.findAll(req, res, next));
+router.post('/export', (req, res, next) => commissionController.exportExcel(req, res, next));
 router.post('/', validate(commissionCreateSchema), (req, res, next) => commissionController.create(req, res, next));
 router.get('/:id', (req, res, next) => commissionController.findById(req, res, next));
 router.put('/:id', validate(commissionUpdateSchema), (req, res, next) => commissionController.update(req, res, next));

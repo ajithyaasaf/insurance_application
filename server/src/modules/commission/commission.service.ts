@@ -18,6 +18,22 @@ export class CommissionService {
         });
         if (!dealer) throw Object.assign(new Error('Dealer not found or unauthorized'), { statusCode: 404 });
 
+        // Count how many policies in this date range are ALREADY processed
+        const alreadyProcessedCount = await prisma.policy.count({
+            where: {
+                userId,
+                dealerId,
+                deletedAt: null,
+                startDate: {
+                    gte: parsedStartDate,
+                    lte: parsedEndDate,
+                },
+                commissionPolicies: {
+                    some: {} // Has at least one commission record mapped
+                }
+            }
+        });
+
         // Fetch motor policies for this dealer within the date range
         const policies = await prisma.policy.findMany({
             where: {
@@ -70,6 +86,7 @@ export class CommissionService {
             periodEnd,
             odPercentage,
             tpPercentage,
+            alreadyProcessedCount,
             policies: policyBreakdown,
             summary: { totalOdCommission, totalTpCommission, totalCommission, totalPremium, policyCount: policyBreakdown.length },
         };
@@ -131,11 +148,22 @@ export class CommissionService {
     }
 
     /**
-     * List all commissions for the user, with dealer info.
+     * List all commissions for the user, with filters.
      */
-    async findAll(userId: string, dealerId?: string) {
+    async findAll(userId: string, dealerId?: string, status?: string, dateFrom?: string, dateTo?: string) {
         const where: any = { userId };
         if (dealerId) where.dealerId = dealerId;
+        if (status) where.status = status;
+        
+        if (dateFrom || dateTo) {
+            where.periodStart = {};
+            if (dateFrom) where.periodStart.gte = new Date(dateFrom);
+            if (dateTo) {
+                const to = new Date(dateTo);
+                to.setUTCHours(23, 59, 59, 999);
+                where.periodStart.lte = to;
+            }
+        }
 
         return prisma.commission.findMany({
             where,
