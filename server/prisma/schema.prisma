@@ -79,13 +79,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  leads     Lead[]
-  customers Customer[]
-  policies  Policy[]
-  claims    Claim[]
-  payments  Payment[]
-  followUps FollowUp[]
-  dealers   Dealer[]
+  leads       Lead[]
+  customers   Customer[]
+  policies    Policy[]
+  claims      Claim[]
+  payments    Payment[]
+  followUps   FollowUp[]
+  dealers     Dealer[]
+  commissions Commission[]
 
   @@index([email])
 }
@@ -104,8 +105,9 @@ model Dealer {
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
-  user      User     @relation(fields: [userId], references: [id])
-  policies  Policy[]
+  user        User         @relation(fields: [userId], references: [id])
+  policies    Policy[]
+  commissions Commission[]
 
   @@index([userId])
   @@index([name])
@@ -242,6 +244,7 @@ model Policy {
   claims       Claim[]
   payments     Payment[]
   followUps    FollowUp[]
+  commissionPolicies CommissionPolicy[]
 
   @@index([userId])
   @@index([customerId])
@@ -326,4 +329,55 @@ model FollowUp {
   @@index([nextFollowUpDate])
   @@index([status])
   @@index([createdAt])
+}
+
+// ─── Commission ─────────────────────────────────────────
+
+model Commission {
+  id                String   @id @default(uuid())
+  userId            String
+  dealerId          String
+  periodStart       DateTime
+  periodEnd         DateTime
+  odPercentage      Float
+  tpPercentage      Float
+  totalOdCommission Float    @default(0)
+  totalTpCommission Float    @default(0)
+  totalCommission   Float    @default(0)
+  totalPremium      Float    @default(0)
+  notes             String?
+  status            String   @default("draft")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user               User               @relation(fields: [userId], references: [id])
+  dealer             Dealer             @relation(fields: [dealerId], references: [id])
+  commissionPolicies CommissionPolicy[]
+
+  @@index([userId])
+  @@index([dealerId])
+  @@index([createdAt])
+}
+
+model CommissionPolicy {
+  id             String   @id @default(uuid())
+  commissionId   String
+  policyId       String
+  vehicleNumber  String?
+  make           String?
+  model          String?
+  vehicleClass   String?
+  od             Float    @default(0)
+  tp             Float    @default(0)
+  premiumAmount  Float    @default(0)
+  startDate      DateTime
+  expiryDate     DateTime
+  odCommission   Float    @default(0)
+  tpCommission   Float    @default(0)
+
+  commission     Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  policy         Policy     @relation(fields: [policyId], references: [id])
+
+  @@index([commissionId])
+  @@index([policyId])
 }

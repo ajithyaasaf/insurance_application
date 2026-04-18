@@ -17,6 +17,7 @@ import dashboardRoutes from './modules/dashboard/dashboard.routes';
 import searchRoutes from './modules/search/search.routes';
 import dealerRoutes from './modules/dealer/dealer.routes';
 import reportRoutes from './modules/report/report.routes';
+import commissionRoutes from './modules/commission/commission.routes';
 import { initCronJobs } from './utils/cron';
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/dealers', dealerRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/commissions', commissionRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

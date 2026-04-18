@@ -14,6 +14,7 @@ import {
     HiOutlineX,
     HiOutlineTrendingUp,
     HiOutlineChartBar,
+    HiOutlineCalculator,
 } from 'react-icons/hi';
 
 import GlobalSearch from '../components/ui/GlobalSearch';
@@ -27,6 +28,7 @@ const navItems = [
     { to: '/claims', icon: HiOutlineShieldCheck, label: 'Claims' },
     { to: '/follow-ups', icon: HiOutlinePhone, label: 'Follow-ups' },
     { to: '/dealers', icon: HiOutlineUserGroup, label: 'Dealers' },
+    { to: '/commissions', icon: HiOutlineCalculator, label: 'Commissions' },
     { to: '/reports', icon: HiOutlineChartBar, label: 'Reports' },
 ];
 

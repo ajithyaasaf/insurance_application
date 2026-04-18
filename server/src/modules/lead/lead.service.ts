@@ -14,6 +14,7 @@ interface CreateLeadInput {
     vehicleNumber?: string;
     make?: string;
     model?: string;
+    registrationDate?: string;
     vehicleClass?: PolicyVehicleClass;
     idv?: number;
     od?: number;
@@ -39,6 +40,7 @@ interface UpdateLeadInput {
     vehicleNumber?: string;
     make?: string;
     model?: string;
+    registrationDate?: string | null;
     vehicleClass?: PolicyVehicleClass;
     idv?: number;
     od?: number;
