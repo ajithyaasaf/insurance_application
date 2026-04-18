@@ -4,6 +4,13 @@ import { sendSuccess, sendError } from '../../utils/apiResponse';
 import { reportService } from '../report/report.service';
 
 export class CommissionController {
+    async getPending(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await commissionService.getPending((req as any).user.userId);
+            sendSuccess({ res, statusCode: 200, message: 'Pending commissions fetched', data: result });
+        } catch (err) { next(err); }
+    }
+
     async preview(req: Request, res: Response, next: NextFunction) {
         try {
             const result = await commissionService.preview((req as any).user.userId, req.body);

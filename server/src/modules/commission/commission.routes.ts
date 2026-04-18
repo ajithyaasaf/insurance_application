@@ -10,6 +10,9 @@ router.use(authenticate);
 // Preview commission (no save)
 router.post('/preview', validate(commissionPreviewSchema), (req, res, next) => commissionController.preview(req, res, next));
 
+// Pending (Unprocessed) overview
+router.get('/pending', (req, res, next) => commissionController.getPending(req, res, next));
+
 // CRUD
 router.get('/', (req, res, next) => commissionController.findAll(req, res, next));
 router.post('/export', (req, res, next) => commissionController.exportExcel(req, res, next));

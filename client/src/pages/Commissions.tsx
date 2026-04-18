@@ -12,8 +12,12 @@ import autoTable from 'jspdf-autotable';
 const Commissions: React.FC = () => {
     const [dealers, setDealers] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
+    const [pendingDealers, setPendingDealers] = useState<any[]>([]);
     const [detailModal, setDetailModal] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'calculator' | 'history'>('calculator');
+    const [activeTab, setActiveTab] = useState<'pending' | 'calculator' | 'history'>('pending');
+
+    // Pending filters
+    const [pendingSearch, setPendingSearch] = useState('');
 
     // History filters
     const [historyDealerFilter, setHistoryDealerFilter] = useState('');
@@ -44,9 +48,13 @@ const Commissions: React.FC = () => {
 
     const fetchHistory = useCallback(async () => {
         try {
-            const res = await api.get('/commissions');
-            setHistory(res.data.data);
-        } catch { toast.error('Failed to load commission history'); }
+            const [histRes, pendRes] = await Promise.all([
+                api.get('/commissions'),
+                api.get('/commissions/pending')
+            ]);
+            setHistory(histRes.data.data);
+            setPendingDealers(pendRes.data.data);
+        } catch { toast.error('Failed to load commission data'); }
     }, []);
 
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
@@ -71,6 +79,13 @@ const Commissions: React.FC = () => {
             }
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error fetching preview'); }
         finally { setLoading(false); }
+    };
+
+    const handleProcessPending = (pd: any) => {
+        setDealerId(pd.dealerId);
+        setPeriodStart(pd.oldestPolicyDate.split('T')[0]);
+        setPeriodEnd(new Date().toISOString().split('T')[0]);
+        setActiveTab('calculator');
     };
 
     const handleSave = async () => {
@@ -133,6 +148,10 @@ const Commissions: React.FC = () => {
         }
         return true;
     });
+
+    const filteredPending = pendingDealers.filter(pd => 
+        pd.dealerName.toLowerCase().includes(pendingSearch.toLowerCase())
+    );
 
     const exportToExcel = async () => {
         if (filteredHistory.length === 0) {
@@ -213,27 +232,92 @@ const Commissions: React.FC = () => {
         <div className="space-y-4 animate-fade-in">
             <div className="page-header">
                 <h1 className="page-title">Commissions</h1>
-                <div className="flex gap-2">
+                <div className="flex bg-surface-100 p-1 rounded-xl">
+                    <button
+                        onClick={() => setActiveTab('pending')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'pending' ? 'bg-white text-primary-700 shadow-sm' : 'text-surface-600 hover:text-surface-900'}`}
+                    >
+                        Pending Queue {pendingDealers.length > 0 && <span className="ml-1.5 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">{pendingDealers.length}</span>}
+                    </button>
                     <button
                         onClick={() => setActiveTab('calculator')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'calculator' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-600 hover:bg-surface-200'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'calculator' ? 'bg-white text-primary-700 shadow-sm' : 'text-surface-600 hover:text-surface-900'}`}
                     >
-                        <HiOutlineCalculator className="w-4 h-4 inline mr-1" /> Calculator
+                        Calculator
                     </button>
                     <button
                         onClick={() => setActiveTab('history')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-surface-600 hover:bg-surface-200'}`}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'history' ? 'bg-white text-primary-700 shadow-sm' : 'text-surface-600 hover:text-surface-900'}`}
                     >
                         History ({history.length})
                     </button>
                 </div>
             </div>
 
+            {activeTab === 'pending' && (
+                <div className="card card-body space-y-4 animate-fade-in">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-lg font-semibold text-surface-900">Unprocessed Commissions</h2>
+                        <input 
+                            type="text" 
+                            placeholder="Search dealer..." 
+                            className="input w-64"
+                            value={pendingSearch}
+                            onChange={(e) => setPendingSearch(e.target.value)}
+                        />
+                    </div>
+
+                    {filteredPending.length === 0 ? (
+                        <EmptyState message="All caught up! No pending commissions found." icon={<HiOutlineCheckCircle className="w-12 h-12 text-emerald-500" />} />
+                    ) : (
+                        <div className="table-container">
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Dealer Info</th>
+                                        <th>Unpaid Policies</th>
+                                        <th>Oldest Policy Date</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredPending.map(pd => (
+                                        <tr key={pd.dealerId} className="hover:bg-surface-50 transition-colors">
+                                            <td>
+                                                <p className="font-bold text-surface-900">{pd.dealerName}</p>
+                                                <p className="text-xs text-surface-500">{pd.dealerPhone || 'No phone'}</p>
+                                            </td>
+                                            <td>
+                                                <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                    {pd.unprocessedCount} Policies
+                                                </span>
+                                            </td>
+                                            <td className="text-surface-600 font-medium">{formatDate(pd.oldestPolicyDate)}</td>
+                                            <td>
+                                                <button 
+                                                    onClick={() => handleProcessPending(pd)}
+                                                    className="btn-primary btn-sm"
+                                                >
+                                                    <HiOutlineCalculator className="w-4 h-4 mr-1" /> Process
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {activeTab === 'calculator' && (
-                <div className="space-y-4">
+                <div className="space-y-4 animate-fade-in">
                     {/* Filter Panel */}
                     <div className="card card-body">
-                        <h2 className="text-lg font-semibold text-surface-900 mb-4">Commission Calculator</h2>
+                        <h2 className="text-lg font-semibold text-surface-900 mb-4 flex items-center justify-between">
+                            <span>Commission Calculator</span>
+                        </h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                             <div>
                                 <label className="label">Dealer *</label>

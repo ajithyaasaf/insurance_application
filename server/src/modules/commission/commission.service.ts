@@ -3,6 +3,49 @@ import { CommissionPreviewInput, CommissionCreateInput, CommissionUpdateInput } 
 
 export class CommissionService {
     /**
+     * Get an overview of pending (unprocessed) commissions grouped by dealer.
+     * Helpful for UX so admins know who needs to be paid without guessing.
+     */
+    async getPending(userId: string) {
+        // Find all active policies that are NOT yet tied to any commission
+        const unprocessedPolicies = await prisma.policy.findMany({
+            where: {
+                userId,
+                deletedAt: null,
+                dealerId: { not: null },
+                commissionPolicies: { none: {} }
+            },
+            select: { dealerId: true, startDate: true },
+            orderBy: { startDate: 'asc' } // Earliest first
+        });
+
+        const dealerMap = new Map<string, { count: number; oldestDate: Date }>();
+        for (const p of unprocessedPolicies) {
+            const did = p.dealerId as string;   
+            if (!dealerMap.has(did)) {
+                dealerMap.set(did, { count: 0, oldestDate: p.startDate });
+            }
+            const stat = dealerMap.get(did)!;
+            stat.count++;
+        }
+
+        // Fetch dealer names
+        const dealerIds = Array.from(dealerMap.keys());
+        const dealers = await prisma.dealer.findMany({
+            where: { id: { in: dealerIds }, deletedAt: null },
+            select: { id: true, name: true, phone: true }
+        });
+
+        return dealers.map(d => ({
+            dealerId: d.id,
+            dealerName: d.name,
+            dealerPhone: d.phone,
+            unprocessedCount: dealerMap.get(d.id)?.count || 0,
+            oldestPolicyDate: dealerMap.get(d.id)?.oldestDate || new Date()
+        })).sort((a, b) => b.unprocessedCount - a.unprocessedCount); // Highest pending first
+    }
+
+    /**
      * Preview: Fetch dealer's policies in date range and calculate commission WITHOUT saving.
      */
     async preview(userId: string, data: CommissionPreviewInput) {
