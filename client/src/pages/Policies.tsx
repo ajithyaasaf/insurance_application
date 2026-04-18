@@ -24,6 +24,7 @@ const Policies: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
     const [companyFilter, setCompanyFilter] = useState('');
+    const [dealerFilter, setDealerFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [renewModalOpen, setRenewModalOpen] = useState(false);
@@ -44,11 +45,21 @@ const Policies: React.FC = () => {
     const fetchPolicies = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/policies', { params: { page, limit: 20, search: search || undefined, status: statusFilter || undefined, policyType: typeFilter || undefined, companyId: companyFilter || undefined } });
+            const res = await api.get('/policies', { 
+                params: { 
+                    page, 
+                    limit: 20, 
+                    search: search || undefined, 
+                    status: statusFilter || undefined, 
+                    policyType: typeFilter || undefined, 
+                    companyId: companyFilter || undefined,
+                    dealerId: dealerFilter || undefined
+                } 
+            });
             setPolicies(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch policies'); } finally { setLoading(false); }
-    }, [search, statusFilter, typeFilter, companyFilter]);
+    }, [search, statusFilter, typeFilter, companyFilter, dealerFilter]);
 
     useEffect(() => { fetchPolicies(); }, [fetchPolicies]);
 
@@ -234,6 +245,14 @@ const Policies: React.FC = () => {
                     onChange={setCompanyFilter}
                     allLabel="All Companies"
                     placeholder="Search company..."
+                />
+                <SearchableSelect
+                    className="w-full sm:w-48"
+                    options={dealers.map(d => ({ value: d.id, label: d.name }))}
+                    value={dealerFilter}
+                    onChange={setDealerFilter}
+                    allLabel="All Dealers"
+                    placeholder="Search dealer..."
                 />
             </div>
 

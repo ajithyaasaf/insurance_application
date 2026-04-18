@@ -169,7 +169,8 @@ export class PolicyService {
         search?: string,
         status?: string,
         policyType?: string,
-        companyId?: string
+        companyId?: string,
+        dealerId?: string
     ) {
         const where: any = {
             userId,
@@ -184,6 +185,7 @@ export class PolicyService {
             ...(status ? buildStatusFilter(status) : {}),
             ...(policyType && { policyType: policyType as any }),
             ...(companyId && { companyId }),
+            ...(dealerId && { dealerId }),
         };
 
         const total = await prisma.policy.count({ where });

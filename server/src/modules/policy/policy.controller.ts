@@ -12,8 +12,8 @@ export class PolicyController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { page, limit, search, status, policyType, companyId } = req.query as any;
-            const result = await policyService.findAll(req.user!.userId, +page || 1, +limit || 20, search, status, policyType, companyId);
+            const { page, limit, search, status, policyType, companyId, dealerId } = req.query as any;
+            const result = await policyService.findAll(req.user!.userId, +page || 1, +limit || 20, search, status, policyType, companyId, dealerId);
             sendSuccess({ res, statusCode: 200, message: 'Policies fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }
