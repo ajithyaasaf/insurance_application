@@ -13,6 +13,7 @@ export const commissionPreviewSchema = z.object({
 export const commissionCreateSchema = z.object({
     body: commissionPreviewSchema.shape.body.extend({
         notes: z.string().optional(),
+        policyIds: z.array(z.string().uuid()).optional(),
     })
 });
 
@@ -26,7 +27,15 @@ export const commissionUpdateSchema = z.object({
     })
 });
 
+export const commissionBulkUpdateSchema = z.object({
+    body: z.object({
+        ids: z.array(z.string().uuid()),
+        status: z.enum(['draft', 'paid']),
+    })
+});
+
 export type CommissionPreviewInput = z.infer<typeof commissionPreviewSchema>['body'];
 export type CommissionCreateInput = z.infer<typeof commissionCreateSchema>['body'];
 export type CommissionUpdateInput = z.infer<typeof commissionUpdateSchema>['body'];
+export type CommissionBulkUpdateInput = z.infer<typeof commissionBulkUpdateSchema>['body'];
 

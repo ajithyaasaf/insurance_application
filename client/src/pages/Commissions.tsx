@@ -24,6 +24,7 @@ const Commissions: React.FC = () => {
     const [historyStatusFilter, setHistoryStatusFilter] = useState('');
     const [historyDateFrom, setHistoryDateFrom] = useState('');
     const [historyDateTo, setHistoryDateTo] = useState('');
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Calculator state
     const [dealerId, setDealerId] = useState('');
@@ -35,6 +36,11 @@ const Commissions: React.FC = () => {
     const [preview, setPreview] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [stats, setStats] = useState<any>(null);
+    const [loadingStats, setLoadingStats] = useState(false);
+    const [showVolumeModal, setShowVolumeModal] = useState(false);
+    const [volumePolicies, setVolumePolicies] = useState<any[]>([]);
+    const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
 
     useEffect(() => {
         const loadDealers = async () => {
@@ -59,6 +65,41 @@ const Commissions: React.FC = () => {
 
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
+    useEffect(() => {
+        if (dealerId && periodStart && periodEnd && activeTab === 'calculator') {
+            const fetchStats = async () => {
+                setLoadingStats(true);
+                try {
+                    const res = await api.get(`/commissions/stats`, {
+                        params: { dealerId, periodStart, periodEnd }
+                    });
+                    setStats(res.data.data);
+                } catch { setStats(null); }
+                finally { setLoadingStats(false); }
+            };
+            fetchStats();
+        } else {
+            setStats(null);
+            setVolumePolicies([]);
+        }
+    }, [dealerId, periodStart, periodEnd, activeTab]);
+
+    const handlePeekVolume = async () => {
+        setLoading(true);
+        try {
+            const res = await api.post('/commissions/preview', {
+                dealerId,
+                periodStart,
+                periodEnd,
+                odPercentage: 0,
+                tpPercentage: 0,
+            });
+            setVolumePolicies(res.data.data.policies);
+            setShowVolumeModal(true);
+        } catch { toast.error('Failed to load preview'); }
+        finally { setLoading(false); }
+    };
+
     const handlePreview = async () => {
         if (!dealerId || !periodStart || !periodEnd || !odPercentage || !tpPercentage) {
             toast.error('Please fill all required fields');
@@ -74,6 +115,7 @@ const Commissions: React.FC = () => {
                 tpPercentage: parseFloat(tpPercentage),
             });
             setPreview(res.data.data);
+            setSelectedPolicyIds(res.data.data.policies.map((p: any) => p.policyId));
             if (res.data.data.policies.length === 0) {
                 toast('No policies found for this dealer in the selected period', { icon: 'ℹ️' });
             }
@@ -84,7 +126,11 @@ const Commissions: React.FC = () => {
     const handleProcessPending = (pd: any) => {
         setDealerId(pd.dealerId);
         setPeriodStart(pd.oldestPolicyDate.split('T')[0]);
-        setPeriodEnd(new Date().toISOString().split('T')[0]);
+        // Use newestPolicyDate or Today, whichever is LATER
+        const latestDate = new Date(pd.newestPolicyDate);
+        const today = new Date();
+        const end = latestDate > today ? latestDate : today;
+        setPeriodEnd(end.toISOString().split('T')[0]);
         setActiveTab('calculator');
     };
 
@@ -99,6 +145,7 @@ const Commissions: React.FC = () => {
                 odPercentage: parseFloat(odPercentage),
                 tpPercentage: parseFloat(tpPercentage),
                 notes: notes || undefined,
+                policyIds: selectedPolicyIds,
             });
             toast.success('Commission record saved!');
             setPreview(null);
@@ -118,6 +165,17 @@ const Commissions: React.FC = () => {
                 setDetailModal({ ...detailModal, status: 'paid' });
             }
         } catch { toast.error('Failed to update'); }
+    };
+
+    const handleBulkMarkPaid = async () => {
+        if (selectedIds.length === 0) return;
+        if (!confirm(`Mark ${selectedIds.length} records as paid?`)) return;
+        try {
+            await api.put('/commissions/bulk-status', { ids: selectedIds, status: 'paid' });
+            toast.success(`Marked ${selectedIds.length} as paid`);
+            setSelectedIds([]);
+            fetchHistory();
+        } catch { toast.error('Bulk update failed'); }
     };
 
     const handleDelete = async (id: string) => {
@@ -313,6 +371,78 @@ const Commissions: React.FC = () => {
 
             {activeTab === 'calculator' && (
                 <div className="space-y-4 animate-fade-in">
+                    {/* High-Volume Insight Card */}
+                    {dealerId && periodStart && periodEnd && (
+                        <div className="card border-l-4 border-primary-500 overflow-hidden bg-white shadow-sm animate-slide-up">
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">Business Context</p>
+                                        {loadingStats && <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-ping"></div>}
+                                    </div>
+                                    <div className="flex items-baseline gap-2">
+                                        <h3 className="text-3xl font-black text-surface-900 leading-none">{stats ? stats.policyCount : '0'}</h3>
+                                        <span className="text-xs font-semibold text-surface-600">Pending Policies</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-1">
+                                        {stats?.policyCount > 20 && (
+                                            <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
+                                                <HiOutlineCalculator className="w-2.5 h-2.5" /> High Volume
+                                            </span>
+                                        )}
+                                        {stats?.policyCount > 0 && (
+                                            <button 
+                                                onClick={handlePeekVolume}
+                                                className="text-[10px] font-bold text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-0.5"
+                                            >
+                                                <HiOutlineEye className="w-3 h-3" /> Preview List
+                                            </button>
+                                        )}
+                                    </div>
+                                    {stats?.topMakes?.length > 0 && stats.policyCount > 20 && (
+                                        <p className="text-[9px] text-surface-500 italic mt-1">
+                                            Top Models: {stats.topMakes.map((m: any) => m.make).join(', ')}
+                                        </p>
+                                    )}
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-6 border-l border-surface-100 pl-6">
+                                    <div>
+                                        <p className="text-[10px] font-extrabold text-blue-500 uppercase mb-0.5">Total OD Volume</p>
+                                        <p className="text-xl font-bold text-surface-900">{stats ? formatCurrency(stats.totalOdPremium) : '₹0'}</p>
+                                        <p className="text-[9px] text-surface-400 mt-1">Found in current range</p>
+                                    </div>
+                                    <div className="border-l border-surface-50 pl-4">
+                                        <p className="text-[10px] font-extrabold text-purple-500 uppercase mb-0.5">Total TP Volume</p>
+                                        <p className="text-xl font-bold text-surface-900">{stats ? formatCurrency(stats.totalTpPremium) : '₹0'}</p>
+                                        <p className="text-[9px] text-surface-400 mt-1">Unprocessed total</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-1">
+                                        <HiOutlineSave className="w-8 h-8 text-emerald-200/50 -rotate-12" />
+                                    </div>
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Live Commission Est.</p>
+                                    <div className="flex justify-between items-baseline relative z-10">
+                                        <p className="text-3xl font-black text-emerald-700 tabular-nums">
+                                            {stats && (odPercentage || tpPercentage) 
+                                                ? formatCurrency((stats.totalOdPremium * (parseFloat(odPercentage) || 0) / 100) + (stats.totalTpPremium * (parseFloat(tpPercentage) || 0) / 100))
+                                                : formatCurrency(0)
+                                            }
+                                        </p>
+                                    </div>
+                                    <div className="mt-2 h-1 bg-emerald-200/50 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-emerald-500 transition-all duration-500" 
+                                            style={{ width: `${Math.min((parseFloat(odPercentage) || 0) + (parseFloat(tpPercentage) || 0), 100)}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Filter Panel */}
                     <div className="card card-body">
                         <h2 className="text-lg font-semibold text-surface-900 mb-4 flex items-center justify-between">
@@ -387,35 +517,57 @@ const Commissions: React.FC = () => {
                                         <table className="table">
                                             <thead>
                                                 <tr>
+                                                    <th className="w-10">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="checkbox" 
+                                                            checked={preview.policies.length > 0 && selectedPolicyIds.length === preview.policies.length}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) setSelectedPolicyIds(preview.policies.map((p: any) => p.policyId));
+                                                                else setSelectedPolicyIds([]);
+                                                            }}
+                                                        />
+                                                    </th>
                                                     <th>Vehicle No</th>
                                                     <th>Make</th>
                                                     <th>Model</th>
                                                     <th>Class</th>
-                                                    <th>OD</th>
-                                                    <th>TP</th>
-                                                    <th>Premium</th>
+                                                    <th className="text-right">OD</th>
+                                                    <th className="text-right">TP</th>
+                                                    <th className="text-right">Premium</th>
                                                     <th>Policy Start</th>
                                                     <th>Policy End</th>
-                                                    <th>OD Comm.</th>
-                                                    <th>TP Comm.</th>
-                                                    <th>Total</th>
+                                                    <th className="text-right">OD Comm.</th>
+                                                    <th className="text-right">TP Comm.</th>
+                                                    <th className="text-right font-bold text-primary-700">Total</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {preview.policies.map((p: any, i: number) => (
-                                                    <tr key={i}>
+                                                    <tr key={i} className={!selectedPolicyIds.includes(p.policyId) ? 'opacity-50 grayscale bg-surface-50' : ''}>
+                                                        <td>
+                                                            <input 
+                                                                type="checkbox" 
+                                                                className="checkbox" 
+                                                                checked={selectedPolicyIds.includes(p.policyId)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) setSelectedPolicyIds([...selectedPolicyIds, p.policyId]);
+                                                                    else setSelectedPolicyIds(selectedPolicyIds.filter(id => id !== p.policyId));
+                                                                }}
+                                                            />
+                                                        </td>
                                                         <td className="font-medium">{p.vehicleNumber || '-'}</td>
                                                         <td>{p.make || '-'}</td>
                                                         <td>{p.model || '-'}</td>
                                                         <td>{p.vehicleClass || '-'}</td>
-                                                        <td>{formatCurrency(p.od)}</td>
-                                                        <td>{formatCurrency(p.tp)}</td>
-                                                        <td className="font-medium">{formatCurrency(p.premiumAmount)}</td>
+                                                        <td className="text-right">{formatCurrency(p.od)}</td>
+                                                        <td className="text-right">{formatCurrency(p.tp)}</td>
+                                                        <td className="text-right font-medium">{formatCurrency(p.premiumAmount)}</td>
                                                         <td>{formatDate(p.startDate)}</td>
                                                         <td>{formatDate(p.expiryDate)}</td>
-                                                        <td className="text-emerald-600 font-medium">{formatCurrency(p.odCommission)}</td>
-                                                        <td className="text-emerald-600 font-medium">{formatCurrency(p.tpCommission)}</td>
-                                                        <td className="text-emerald-700 font-bold">{formatCurrency(p.totalCommission)}</td>
+                                                        <td className="text-right text-emerald-600 font-medium">{formatCurrency(p.odCommission)}</td>
+                                                        <td className="text-right text-emerald-600 font-medium">{formatCurrency(p.tpCommission)}</td>
+                                                        <td className="text-right text-emerald-700 font-bold">{formatCurrency(p.totalCommission)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -425,20 +577,28 @@ const Commissions: React.FC = () => {
                                     {/* Summary */}
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-surface-200">
                                         <div className="text-center p-3 bg-surface-50 rounded-xl">
-                                            <p className="text-xs text-surface-500">Total Premium</p>
-                                            <p className="text-lg font-bold text-surface-900">{formatCurrency(preview.summary.totalPremium)}</p>
+                                            <p className="text-xs text-surface-500">Selected Premium</p>
+                                            <p className="text-lg font-bold text-surface-900">
+                                                {formatCurrency(preview.policies.filter((p: any) => selectedPolicyIds.includes(p.policyId)).reduce((s: number, p: any) => s + p.premiumAmount, 0))}
+                                            </p>
                                         </div>
                                         <div className="text-center p-3 bg-blue-50 rounded-xl">
                                             <p className="text-xs text-blue-600">OD Commission</p>
-                                            <p className="text-lg font-bold text-blue-700">{formatCurrency(preview.summary.totalOdCommission)}</p>
+                                            <p className="text-lg font-bold text-blue-700">
+                                                {formatCurrency(preview.policies.filter((p: any) => selectedPolicyIds.includes(p.policyId)).reduce((s: number, p: any) => s + p.odCommission, 0))}
+                                            </p>
                                         </div>
                                         <div className="text-center p-3 bg-purple-50 rounded-xl">
                                             <p className="text-xs text-purple-600">TP Commission</p>
-                                            <p className="text-lg font-bold text-purple-700">{formatCurrency(preview.summary.totalTpCommission)}</p>
+                                            <p className="text-lg font-bold text-purple-700">
+                                                {formatCurrency(preview.policies.filter((p: any) => selectedPolicyIds.includes(p.policyId)).reduce((s: number, p: any) => s + p.tpCommission, 0))}
+                                            </p>
                                         </div>
-                                        <div className="text-center p-3 bg-emerald-50 rounded-xl">
-                                            <p className="text-xs text-emerald-600">Grand Total</p>
-                                            <p className="text-xl font-bold text-emerald-700">{formatCurrency(preview.summary.totalCommission)}</p>
+                                        <div className="text-center p-3 bg-emerald-50 rounded-xl shadow-inner border border-emerald-100">
+                                            <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider">Grand Total</p>
+                                            <p className="text-xl font-black text-emerald-700">
+                                                {formatCurrency(preview.policies.filter((p: any) => selectedPolicyIds.includes(p.policyId)).reduce((s: number, p: any) => s + p.totalCommission, 0))}
+                                            </p>
                                         </div>
                                     </div>
 
@@ -451,8 +611,12 @@ const Commissions: React.FC = () => {
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
                                         />
-                                        <button onClick={handleSave} disabled={saving} className="btn-primary self-end">
-                                            {saving ? 'Saving...' : <><HiOutlineSave className="w-4 h-4" /> Save to History</>}
+                                        <button 
+                                            onClick={handleSave} 
+                                            disabled={saving || selectedPolicyIds.length === 0} 
+                                            className="btn-primary self-end"
+                                        >
+                                            {saving ? 'Saving...' : <><HiOutlineSave className="w-4 h-4" /> Save {selectedPolicyIds.length} Policies</>}
                                         </button>
                                     </div>
                                 </>
@@ -491,6 +655,11 @@ const Commissions: React.FC = () => {
                             <button onClick={exportToExcel} className="btn-secondary whitespace-nowrap">
                                 <HiOutlineDocumentDownload className="w-4 h-4 mr-1" /> Export Excel
                             </button>
+                            {selectedIds.length > 0 && (
+                                <button onClick={handleBulkMarkPaid} className="btn-primary animate-bounce-in whitespace-nowrap">
+                                    <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> Mark {selectedIds.length} Paid
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -501,6 +670,20 @@ const Commissions: React.FC = () => {
                             <table className="table">
                                 <thead>
                                     <tr>
+                                        <th className="w-10">
+                                            <input 
+                                                type="checkbox" 
+                                                className="checkbox"
+                                                checked={selectedIds.length > 0 && selectedIds.length === filteredHistory.filter(c => c.status === 'draft').length}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedIds(filteredHistory.filter(c => c.status === 'draft').map(c => c.id));
+                                                    } else {
+                                                        setSelectedIds([]);
+                                                    }
+                                                }}
+                                            />
+                                        </th>
                                         <th>Dealer</th>
                                         <th>Period</th>
                                         <th>OD%</th>
@@ -513,7 +696,20 @@ const Commissions: React.FC = () => {
                                 </thead>
                                 <tbody>
                                     {filteredHistory.map((c: any) => (
-                                        <tr key={c.id}>
+                                        <tr key={c.id} className={selectedIds.includes(c.id) ? 'bg-primary-50' : ''}>
+                                            <td>
+                                                {c.status === 'draft' && (
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="checkbox" 
+                                                        checked={selectedIds.includes(c.id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) setSelectedIds([...selectedIds, c.id]);
+                                                            else setSelectedIds(selectedIds.filter(id => id !== c.id));
+                                                        }}
+                                                    />
+                                                )}
+                                            </td>
                                             <td className="font-medium">{c.dealer?.name}</td>
                                             <td className="text-xs">
                                                 {formatDate(c.periodStart)} — {formatDate(c.periodEnd)}
@@ -533,7 +729,14 @@ const Commissions: React.FC = () => {
                                                     {c.status === 'draft' && (
                                                         <button onClick={() => handleMarkPaid(c.id)} className="btn-ghost btn-sm text-emerald-600" title="Mark Paid"><HiOutlineCheckCircle className="w-3.5 h-3.5" /></button>
                                                     )}
-                                                    <button onClick={() => handleDelete(c.id)} className="btn-ghost btn-sm text-red-500" title="Delete"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                                                    <button 
+                                                        onClick={() => handleDelete(c.id)} 
+                                                        className={`btn-ghost btn-sm ${c.status === 'paid' ? 'text-surface-300 cursor-not-allowed' : 'text-red-500'}`} 
+                                                        title={c.status === 'paid' ? 'Cannot delete paid records' : 'Delete'}
+                                                        disabled={c.status === 'paid'}
+                                                    >
+                                                        <HiOutlineTrash className="w-3.5 h-3.5" />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -616,6 +819,43 @@ const Commissions: React.FC = () => {
                         </div>
                     </div>
                 )}
+            </Modal>
+
+            {/* Volume Preview Modal */}
+            <Modal isOpen={showVolumeModal} onClose={() => setShowVolumeModal(false)} title="Policies in Range (Unprocessed)" size="lg">
+                <div className="space-y-4">
+                    <p className="text-sm text-surface-500">
+                        This is a quick preview of the {volumePolicies.length} policies found for this period. 
+                        No commissions are calculated yet.
+                    </p>
+                    <div className="table-container max-h-[60vh] overflow-auto border rounded-lg">
+                        <table className="table table-compact">
+                            <thead className="sticky top-0 bg-surface-50 z-10">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Vehicle No</th>
+                                    <th>Make / Model</th>
+                                    <th className="text-right">OD Premium</th>
+                                    <th className="text-right">TP Premium</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {volumePolicies.map((p, i) => (
+                                    <tr key={i} className="text-xs">
+                                        <td>{formatDate(p.startDate)}</td>
+                                        <td className="font-medium">{p.vehicleNumber || '-'}</td>
+                                        <td>{p.make} {p.model}</td>
+                                        <td className="text-right font-semibold text-blue-600">{formatCurrency(p.od)}</td>
+                                        <td className="text-right font-semibold text-purple-600">{formatCurrency(p.tp)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button onClick={() => setShowVolumeModal(false)} className="btn-secondary">Close</button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

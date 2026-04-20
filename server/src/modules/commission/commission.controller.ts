@@ -11,6 +11,21 @@ export class CommissionController {
         } catch (err) { next(err); }
     }
 
+    async getStats(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { dealerId, periodStart, periodEnd } = req.query;
+            if (!dealerId || !periodStart || !periodEnd) {
+                return next(Object.assign(new Error('Missing query params'), { statusCode: 400 }));
+            }
+            const result = await commissionService.getStats((req as any).user.userId, {
+                dealerId: dealerId as string,
+                periodStart: periodStart as string,
+                periodEnd: periodEnd as string
+            });
+            sendSuccess({ res, statusCode: 200, message: 'Commission stats fetched', data: result });
+        } catch (err) { next(err); }
+    }
+
     async preview(req: Request, res: Response, next: NextFunction) {
         try {
             const result = await commissionService.preview((req as any).user.userId, req.body);
@@ -89,6 +104,13 @@ export class CommissionController {
         try {
             const result = await commissionService.findById((req as any).user.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Commission record fetched', data: result });
+        } catch (err) { next(err); }
+    }
+
+    async bulkUpdateStatus(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await commissionService.bulkUpdateStatus((req as any).user.userId, req.body);
+            sendSuccess({ res, statusCode: 200, message: 'Commissions updated', data: result });
         } catch (err) { next(err); }
     }
 

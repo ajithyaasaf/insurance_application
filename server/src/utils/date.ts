@@ -15,8 +15,22 @@ export const getStartOfTodayIST = (): Date => {
     const month = parts.find(p => p.type === 'month')?.value;
     const day = parts.find(p => p.type === 'day')?.value;
 
-    // By appending +05:30 to T00:00:00, vanilla JS securely parses exactly the UTC equivalent of midnight in IST
+// By appending +05:30 to T00:00:00, vanilla JS securely parses exactly the UTC equivalent of midnight in IST
     return new Date(`${year}-${month}-${day}T00:00:00.000+05:30`);
+};
+
+/**
+ * Returns a Date object representing 00:00:00.000 IST for a given date string (YYYY-MM-DD)
+ */
+export const getStartOfDayIST = (dateStr: string): Date => {
+    return new Date(`${dateStr}T00:00:00.000+05:30`);
+};
+
+/**
+ * Returns a Date object representing 23:59:59.999 IST for a given date string (YYYY-MM-DD)
+ */
+export const getEndOfDayIST = (dateStr: string): Date => {
+    return new Date(`${dateStr}T23:59:59.999+05:30`);
 };
 
 export const buildStatusFilter = (status: string) => {
