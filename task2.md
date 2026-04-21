@@ -50,3 +50,6 @@ and perfect now when we create leads and policy lie said when he enter his old c
 * when we create payment we have the option now seelct based on customer and his policy is success fully fetched client also like to include based on vehicle number and policy no based fetching because he said some time in same name may be multiple clients
 
 
+* in reports page there is active company i dont know what it is for ?
+
+* 
