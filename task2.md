@@ -61,3 +61,5 @@ cvp -> pcv
 ccp -> cpm 
 (need to check in laptop)
 
+* in the pdf genration in commision page we have to implement indiiual history to be able to downloaded in pdf format and in that pdf 
+need to inclde brand name inusrance and adress like a format
