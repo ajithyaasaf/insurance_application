@@ -17,44 +17,60 @@ export class CommissionService {
                 status: { in: ['active', 'expired'] }, // EXCLUDE CANCELLED
                 commissionPolicies: { none: {} }
             },
-            select: { dealerId: true, startDate: true },
+            select: { 
+                dealerId: true, 
+                companyId: true, 
+                startDate: true,
+                company: { select: { name: true } }
+            },
             orderBy: { startDate: 'asc' } // Earliest first
         });
 
-        const dealerMap = new Map<string, { count: number; oldestDate: Date; newestDate: Date }>();
+        const groupingMap = new Map<string, { dealerId: string; companyId: string; companyName: string; count: number; oldestDate: Date; newestDate: Date }>();
         for (const p of unprocessedPolicies) {
-            const did = p.dealerId as string;   
-            if (!dealerMap.has(did)) {
-                dealerMap.set(did, { count: 0, oldestDate: p.startDate, newestDate: p.startDate });
+            const key = `${p.dealerId}_${p.companyId}`;
+            if (!groupingMap.has(key)) {
+                groupingMap.set(key, { 
+                    dealerId: p.dealerId!, 
+                    companyId: p.companyId, 
+                    companyName: p.company.name,
+                    count: 0, 
+                    oldestDate: p.startDate, 
+                    newestDate: p.startDate 
+                });
             }
-            const stat = dealerMap.get(did)!;
+            const stat = groupingMap.get(key)!;
             stat.count++;
             if (p.startDate > stat.newestDate) stat.newestDate = p.startDate;
         }
 
-        // Fetch dealer names
-        const dealerIds = Array.from(dealerMap.keys());
+        // Fetch dealer names once
+        const dealerIds = Array.from(new Set(unprocessedPolicies.map(p => p.dealerId!)));
         const dealers = await prisma.dealer.findMany({
             where: { id: { in: dealerIds }, deletedAt: null },
             select: { id: true, name: true, phone: true }
         });
 
-        return dealers.map(d => ({
-            dealerId: d.id,
-            dealerName: d.name,
-            dealerPhone: d.phone,
-            unprocessedCount: dealerMap.get(d.id)?.count || 0,
-            oldestPolicyDate: dealerMap.get(d.id)?.oldestDate || new Date(),
-            newestPolicyDate: dealerMap.get(d.id)?.newestDate || new Date()
-        })).sort((a, b) => b.unprocessedCount - a.unprocessedCount); // Highest pending first
+        const dealerDict = Object.fromEntries(dealers.map(d => [d.id, d]));
+
+        return Array.from(groupingMap.values()).map(g => ({
+            dealerId: g.dealerId,
+            dealerName: dealerDict[g.dealerId]?.name || 'Unknown',
+            dealerPhone: dealerDict[g.dealerId]?.phone || 'N/A',
+            companyId: g.companyId,
+            companyName: g.companyName,
+            unprocessedCount: g.count,
+            oldestPolicyDate: g.oldestDate,
+            newestPolicyDate: g.newestDate
+        })).sort((a, b) => b.unprocessedCount - a.unprocessedCount);
     }
 
     /**
      * Get aggregated business volume (OD/TP totals) for a dealer/period.
      * Used by the calculator to show context before percentages are entered.
      */
-    async getStats(userId: string, query: { dealerId: string; periodStart: string; periodEnd: string }) {
-        const { dealerId, periodStart, periodEnd } = query;
+    async getStats(userId: string, query: { dealerId: string; periodStart: string; periodEnd: string; companyId?: string }) {
+        const { dealerId, periodStart, periodEnd, companyId } = query;
         const parsedStartDate = getStartOfDayIST(periodStart);
         const parsedEndDate = getEndOfDayIST(periodEnd);
 
@@ -62,6 +78,7 @@ export class CommissionService {
             where: {
                 userId,
                 dealerId,
+                ...(companyId && { companyId }),
                 deletedAt: null,
                 status: { in: ['active', 'expired'] }, // EXCLUDE CANCELLED
                 startDate: {
@@ -105,7 +122,7 @@ export class CommissionService {
      * Preview: Fetch dealer's policies in date range and calculate commission WITHOUT saving.
      */
     async preview(userId: string, data: CommissionPreviewInput) {
-        const { dealerId, periodStart, periodEnd, odPercentage, tpPercentage } = data;
+        const { dealerId, periodStart, periodEnd, odPercentage, tpPercentage, companyId } = data;
 
         const parsedStartDate = getStartOfDayIST(periodStart);
         const parsedEndDate = getEndOfDayIST(periodEnd);
@@ -116,11 +133,12 @@ export class CommissionService {
         });
         if (!dealer) throw Object.assign(new Error('Dealer not found or unauthorized'), { statusCode: 404 });
 
-        // Count how many policies in this date range are ALREADY processed
+        // Count how many policies in this date range are ALREADY processed (for this dealer+company)
         const alreadyProcessedCount = await prisma.policy.count({
             where: {
                 userId,
                 dealerId,
+                ...(companyId && { companyId }),
                 deletedAt: null,
                 status: { in: ['active', 'expired'] }, // Consistency
                 startDate: {
@@ -138,6 +156,7 @@ export class CommissionService {
             where: {
                 userId,
                 dealerId,
+                ...(companyId && { companyId }),
                 deletedAt: null,
                 status: { in: ['active', 'expired'] }, // EXCLUDE CANCELLED
                 startDate: {
@@ -186,6 +205,7 @@ export class CommissionService {
             periodEnd,
             odPercentage,
             tpPercentage,
+            companyId,
             alreadyProcessedCount,
             policies: policyBreakdown,
             summary: { totalOdCommission, totalTpCommission, totalCommission, totalPremium, policyCount: policyBreakdown.length },
@@ -234,6 +254,7 @@ export class CommissionService {
                 data: {
                     userId,
                     dealerId: data.dealerId,
+                    companyId: data.companyId,
                     periodStart: new Date(data.periodStart),
                     periodEnd: new Date(data.periodEnd),
                     odPercentage: data.odPercentage,
@@ -275,10 +296,11 @@ export class CommissionService {
     /**
      * List all commissions for the user, with filters.
      */
-    async findAll(userId: string, dealerId?: string, status?: string, dateFrom?: string, dateTo?: string) {
+    async findAll(userId: string, dealerId?: string, status?: string, dateFrom?: string, dateTo?: string, companyId?: string) {
         const where: any = { userId };
         if (dealerId) where.dealerId = dealerId;
         if (status) where.status = status;
+        if (companyId) where.companyId = companyId;
         
         if (dateFrom || dateTo) {
             where.periodStart = {};
@@ -290,6 +312,7 @@ export class CommissionService {
             where,
             include: {
                 dealer: { select: { id: true, name: true } },
+                company: { select: { id: true, name: true } },
                 _count: { select: { commissionPolicies: true } },
             },
             orderBy: { createdAt: 'desc' },
@@ -304,6 +327,7 @@ export class CommissionService {
             where: { id, userId },
             include: {
                 dealer: { select: { id: true, name: true, phone: true } },
+                company: { select: { id: true, name: true } },
                 commissionPolicies: {
                     orderBy: { startDate: 'desc' },
                 },

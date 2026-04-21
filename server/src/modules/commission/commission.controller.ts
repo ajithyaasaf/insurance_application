@@ -13,14 +13,15 @@ export class CommissionController {
 
     async getStats(req: Request, res: Response, next: NextFunction) {
         try {
-            const { dealerId, periodStart, periodEnd } = req.query;
+            const { dealerId, periodStart, periodEnd, companyId } = req.query;
             if (!dealerId || !periodStart || !periodEnd) {
                 return next(Object.assign(new Error('Missing query params'), { statusCode: 400 }));
             }
             const result = await commissionService.getStats((req as any).user.userId, {
                 dealerId: dealerId as string,
                 periodStart: periodStart as string,
-                periodEnd: periodEnd as string
+                periodEnd: periodEnd as string,
+                companyId: companyId as string | undefined
             });
             sendSuccess({ res, statusCode: 200, message: 'Commission stats fetched', data: result });
         } catch (err) { next(err); }
@@ -42,13 +43,14 @@ export class CommissionController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { dealerId, status, dateFrom, dateTo } = req.query;
+            const { dealerId, status, dateFrom, dateTo, companyId } = req.query;
             const result = await commissionService.findAll(
                 (req as any).user.userId,
                 dealerId as string | undefined,
                 status as string | undefined,
                 dateFrom as string | undefined,
-                dateTo as string | undefined
+                dateTo as string | undefined,
+                companyId as string | undefined
             );
             sendSuccess({ res, statusCode: 200, message: 'Commission records fetched', data: result });
         } catch (err) { next(err); }
@@ -56,13 +58,14 @@ export class CommissionController {
 
     async exportExcel(req: Request, res: Response, next: NextFunction) {
         try {
-            const { dealerId, status, dateFrom, dateTo } = req.body;
+            const { dealerId, status, dateFrom, dateTo, companyId } = req.body;
             const history = await commissionService.findAll(
                 (req as any).user.userId,
                 dealerId as string | undefined,
                 status as string | undefined,
                 dateFrom as string | undefined,
-                dateTo as string | undefined
+                dateTo as string | undefined,
+                companyId as string | undefined
             );
 
             if (!history.length) {
@@ -71,11 +74,12 @@ export class CommissionController {
             }
 
             const data = history.map(c => ({
-                dealerName: c.dealer?.name || 'Unknown',
+                dealerName: (c as any).dealer?.name || 'Unknown',
+                companyName: (c as any).company?.name || 'All',
                 period: `${c.periodStart.toISOString().split('T')[0]} - ${c.periodEnd.toISOString().split('T')[0]}`,
                 odPercentage: `${c.odPercentage}%`,
                 tpPercentage: `${c.tpPercentage}%`,
-                totalPolicies: c._count?.commissionPolicies || 0,
+                totalPolicies: (c as any)._count?.commissionPolicies || 0,
                 totalCommission: `Rs. ${c.totalCommission.toFixed(2)}`,
                 status: c.status.toUpperCase(),
                 notes: c.notes || ''
@@ -83,6 +87,7 @@ export class CommissionController {
 
             const cols = [
                 { key: 'dealerName', label: 'Dealer Name' },
+                { key: 'companyName', label: 'Company' },
                 { key: 'period', label: 'Processing Period' },
                 { key: 'odPercentage', label: 'OD %' },
                 { key: 'tpPercentage', label: 'TP %' },

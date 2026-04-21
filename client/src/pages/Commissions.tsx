@@ -11,6 +11,7 @@ import autoTable from 'jspdf-autotable';
 
 const Commissions: React.FC = () => {
     const [dealers, setDealers] = useState<any[]>([]);
+    const [companies, setCompanies] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
     const [pendingDealers, setPendingDealers] = useState<any[]>([]);
     const [detailModal, setDetailModal] = useState<any>(null);
@@ -18,9 +19,11 @@ const Commissions: React.FC = () => {
 
     // Pending filters
     const [pendingSearch, setPendingSearch] = useState('');
+    const [pendingCompanyFilter, setPendingCompanyFilter] = useState('');
 
     // History filters
     const [historyDealerFilter, setHistoryDealerFilter] = useState('');
+    const [historyCompanyFilter, setHistoryCompanyFilter] = useState('');
     const [historyStatusFilter, setHistoryStatusFilter] = useState('');
     const [historyDateFrom, setHistoryDateFrom] = useState('');
     const [historyDateTo, setHistoryDateTo] = useState('');
@@ -28,6 +31,7 @@ const Commissions: React.FC = () => {
 
     // Calculator state
     const [dealerId, setDealerId] = useState('');
+    const [companyId, setCompanyId] = useState('');
     const [periodStart, setPeriodStart] = useState('');
     const [periodEnd, setPeriodEnd] = useState('');
     const [odPercentage, setOdPercentage] = useState('');
@@ -43,25 +47,36 @@ const Commissions: React.FC = () => {
     const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
 
     useEffect(() => {
-        const loadDealers = async () => {
+        const loadInitialData = async () => {
             try {
-                const res = await api.get('/dealers?limit=100');
-                setDealers(res.data.data);
+                const [dRes, cRes] = await Promise.all([
+                    api.get('/dealers?limit=500'),
+                    api.get('/companies')
+                ]);
+                setDealers(dRes.data.data);
+                setCompanies(cRes.data.data);
             } catch { }
         };
-        loadDealers();
+        loadInitialData();
     }, []);
 
     const fetchHistory = useCallback(async () => {
         try {
+            const params: any = {};
+            if (historyDealerFilter) params.dealerId = historyDealerFilter;
+            if (historyCompanyFilter) params.companyId = historyCompanyFilter;
+            if (historyStatusFilter) params.status = historyStatusFilter;
+            if (historyDateFrom) params.dateFrom = historyDateFrom;
+            if (historyDateTo) params.dateTo = historyDateTo;
+
             const [histRes, pendRes] = await Promise.all([
-                api.get('/commissions'),
+                api.get('/commissions', { params }),
                 api.get('/commissions/pending')
             ]);
             setHistory(histRes.data.data);
             setPendingDealers(pendRes.data.data);
         } catch { toast.error('Failed to load commission data'); }
-    }, []);
+    }, [historyDealerFilter, historyCompanyFilter, historyStatusFilter, historyDateFrom, historyDateTo]);
 
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
@@ -71,7 +86,7 @@ const Commissions: React.FC = () => {
                 setLoadingStats(true);
                 try {
                     const res = await api.get(`/commissions/stats`, {
-                        params: { dealerId, periodStart, periodEnd }
+                        params: { dealerId, periodStart, periodEnd, companyId: companyId || undefined }
                     });
                     setStats(res.data.data);
                 } catch { setStats(null); }
@@ -82,13 +97,14 @@ const Commissions: React.FC = () => {
             setStats(null);
             setVolumePolicies([]);
         }
-    }, [dealerId, periodStart, periodEnd, activeTab]);
+    }, [dealerId, companyId, periodStart, periodEnd, activeTab]);
 
     const handlePeekVolume = async () => {
         setLoading(true);
         try {
             const res = await api.post('/commissions/preview', {
                 dealerId,
+                companyId: companyId || undefined,
                 periodStart,
                 periodEnd,
                 odPercentage: 0,
@@ -109,6 +125,7 @@ const Commissions: React.FC = () => {
         try {
             const res = await api.post('/commissions/preview', {
                 dealerId,
+                companyId: companyId || undefined,
                 periodStart,
                 periodEnd,
                 odPercentage: parseFloat(odPercentage),
@@ -125,6 +142,7 @@ const Commissions: React.FC = () => {
 
     const handleProcessPending = (pd: any) => {
         setDealerId(pd.dealerId);
+        setCompanyId(pd.companyId);
         setPeriodStart(pd.oldestPolicyDate.split('T')[0]);
         // Use newestPolicyDate or Today, whichever is LATER
         const latestDate = new Date(pd.newestPolicyDate);
@@ -140,6 +158,7 @@ const Commissions: React.FC = () => {
         try {
             await api.post('/commissions', {
                 dealerId,
+                companyId: companyId || undefined,
                 periodStart,
                 periodEnd,
                 odPercentage: parseFloat(odPercentage),
@@ -207,9 +226,11 @@ const Commissions: React.FC = () => {
         return true;
     });
 
-    const filteredPending = pendingDealers.filter(pd => 
-        pd.dealerName.toLowerCase().includes(pendingSearch.toLowerCase())
-    );
+    const filteredPending = pendingDealers.filter(pd => {
+        if (pendingCompanyFilter && pd.companyId !== pendingCompanyFilter) return false;
+        return pd.dealerName.toLowerCase().includes(pendingSearch.toLowerCase()) || 
+               pd.companyName.toLowerCase().includes(pendingSearch.toLowerCase());
+    });
 
     const exportToExcel = async () => {
         if (filteredHistory.length === 0) {
@@ -222,6 +243,7 @@ const Commissions: React.FC = () => {
             
             const reqBody: any = {};
             if (historyDealerFilter) reqBody.dealerId = historyDealerFilter;
+            if (historyCompanyFilter) reqBody.companyId = historyCompanyFilter;
             if (historyStatusFilter) reqBody.status = historyStatusFilter;
             if (historyDateFrom) reqBody.dateFrom = historyDateFrom;
             if (historyDateTo) reqBody.dateTo = historyDateTo;
@@ -251,14 +273,15 @@ const Commissions: React.FC = () => {
         doc.text('Commission Report', 14, 20);
         doc.setFontSize(10);
         doc.text(`Dealer: ${dealerName}`, 14, 30);
-        doc.text(`Period: ${formatDate(data.periodStart)} - ${formatDate(data.periodEnd)}`, 14, 36);
-        doc.text(`OD%: ${data.odPercentage}%  |  TP%: ${data.tpPercentage}%`, 14, 42);
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 14, 48);
+        doc.text(`Insurance: ${data.company?.name || 'All Companies'}`, 14, 36);
+        doc.text(`Period: ${formatDate(data.periodStart)} - ${formatDate(data.periodEnd)}`, 14, 42);
+        doc.text(`OD%: ${data.odPercentage}%  |  TP%: ${data.tpPercentage}%`, 14, 48);
+        doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 14, 54);
 
         // Policy table
         const policies = data.commissionPolicies || data.policies || [];
         autoTable(doc, {
-            startY: 55,
+            startY: 60,
             head: [['Vehicle No', 'Make', 'Model', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
             body: policies.map((p: any) => [
                 p.vehicleNumber || '-',
@@ -316,13 +339,23 @@ const Commissions: React.FC = () => {
                 <div className="card card-body space-y-4 animate-fade-in">
                     <div className="flex justify-between items-center">
                         <h2 className="text-lg font-semibold text-surface-900">Unprocessed Commissions</h2>
-                        <input 
-                            type="text" 
-                            placeholder="Search dealer..." 
-                            className="input w-64"
-                            value={pendingSearch}
-                            onChange={(e) => setPendingSearch(e.target.value)}
-                        />
+                        <div className="flex items-center gap-3">
+                            <SearchableSelect
+                                className="w-64"
+                                options={companies.map(c => ({ value: c.id, label: c.name }))}
+                                value={pendingCompanyFilter}
+                                onChange={setPendingCompanyFilter}
+                                allLabel="All Companies"
+                                placeholder="Filter by Insurer"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="Search dealer..." 
+                                className="input w-64"
+                                value={pendingSearch}
+                                onChange={(e) => setPendingSearch(e.target.value)}
+                            />
+                        </div>
                     </div>
 
                     {filteredPending.length === 0 ? (
@@ -340,10 +373,11 @@ const Commissions: React.FC = () => {
                                 </thead>
                                 <tbody>
                                     {filteredPending.map(pd => (
-                                        <tr key={pd.dealerId} className="hover:bg-surface-50 transition-colors">
+                                        <tr key={`${pd.dealerId}_${pd.companyId}`} className="hover:bg-surface-50 transition-colors">
                                             <td>
                                                 <p className="font-bold text-surface-900">{pd.dealerName}</p>
-                                                <p className="text-xs text-surface-500">{pd.dealerPhone || 'No phone'}</p>
+                                                <p className="text-[10px] font-bold text-primary-600 uppercase tracking-tight bg-primary-50 px-1.5 py-0.5 rounded inline-block mt-0.5">{pd.companyName}</p>
+                                                <p className="text-[10px] text-surface-400 mt-0.5">{pd.dealerPhone || 'No phone'}</p>
                                             </td>
                                             <td>
                                                 <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5">
@@ -473,6 +507,18 @@ const Commissions: React.FC = () => {
                             <div>
                                 <label className="label">TP % *</label>
                                 <input type="number" min="0" max="100" step="0.1" className="input" placeholder="e.g. 5" value={tpPercentage} onChange={e => setTpPercentage(e.target.value)} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+                            <div className="lg:col-span-2">
+                                <label className="label">Insurance Company (Optional)</label>
+                                <SearchableSelect
+                                    options={companies.map(c => ({ value: c.id, label: c.name }))}
+                                    value={companyId}
+                                    onChange={setCompanyId}
+                                    allLabel="All Companies"
+                                    placeholder="Filter by Insurer"
+                                />
                             </div>
                         </div>
                         <div className="flex gap-3 mt-4">
@@ -642,6 +688,14 @@ const Commissions: React.FC = () => {
                                 placeholder="Filter Dealer"
                             />
                             <SearchableSelect
+                                className="w-full sm:w-[180px]"
+                                options={companies.map(c => ({ value: c.id, label: c.name }))}
+                                value={historyCompanyFilter}
+                                onChange={setHistoryCompanyFilter}
+                                allLabel="All Companies"
+                                placeholder="Filter Company"
+                            />
+                            <SearchableSelect
                                 className="w-full sm:w-[140px]"
                                 options={[
                                     { value: 'draft', label: 'Draft' },
@@ -685,6 +739,7 @@ const Commissions: React.FC = () => {
                                             />
                                         </th>
                                         <th>Dealer</th>
+                                        <th>Company</th>
                                         <th>Period</th>
                                         <th>OD%</th>
                                         <th>TP%</th>
@@ -710,7 +765,8 @@ const Commissions: React.FC = () => {
                                                     />
                                                 )}
                                             </td>
-                                            <td className="font-medium">{c.dealer?.name}</td>
+                                            <td className="font-medium text-surface-900">{c.dealer?.name}</td>
+                                            <td className="text-xs font-semibold text-primary-600">{c.company?.name || 'Multiple'}</td>
                                             <td className="text-xs">
                                                 {formatDate(c.periodStart)} — {formatDate(c.periodEnd)}
                                             </td>

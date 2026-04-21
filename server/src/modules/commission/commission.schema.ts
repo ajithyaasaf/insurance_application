@@ -7,6 +7,7 @@ export const commissionPreviewSchema = z.object({
         periodEnd: z.string(),
         odPercentage: z.number().min(0).max(100),
         tpPercentage: z.number().min(0).max(100),
+        companyId: z.string().uuid().optional(),
     })
 });
 

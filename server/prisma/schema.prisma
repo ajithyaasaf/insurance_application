@@ -190,7 +190,8 @@ model Company {
   type     String? // insurer, TPA, etc.
   category String? // life, general, health
 
-  policies Policy[]
+  policies    Policy[]
+  commissions Commission[]
 
   @@index([name])
 }
@@ -337,6 +338,7 @@ model Commission {
   id                String   @id @default(uuid())
   userId            String
   dealerId          String
+  companyId         String?
   periodStart       DateTime
   periodEnd         DateTime
   odPercentage      Float
@@ -352,10 +354,12 @@ model Commission {
 
   user               User               @relation(fields: [userId], references: [id])
   dealer             Dealer             @relation(fields: [dealerId], references: [id])
+  company            Company?           @relation(fields: [companyId], references: [id])
   commissionPolicies CommissionPolicy[]
 
   @@index([userId])
   @@index([dealerId])
+  @@index([companyId])
   @@index([createdAt])
 }
 
