@@ -10,7 +10,7 @@ Please make the following changes:
 * Return accessToken in JSON response:
   res.json({ accessToken: token, user })
 
-2. Auth middleware:
+2. Auth middleware:  
 
 * Stop reading from req.cookies
 * Instead read from Authorization header:
@@ -24,3 +24,29 @@ Please make the following changes:
 This will allow frontend to store token in localStorage and send via Authorization header, avoiding cross-site cookie issues.
 
 Let me know once pushed — I’ll pull and deploy on VM.
+
+need to solved
+* dealrs performance in reports page can be enhanced 
+* in the reports page filters in every tab in every filtered deatures need to be check to make sure is that actually filtered out or not 
+* since we removed active expiry in the policy creation form we need to know how it handled when we download reports in the reports page 
+* in reports page pdf is not optimized
+* in payment page when we create payment we selct customer and policy need to fetch premium amount in the amount field not editable 
+* in payment page based on policy no or vehicle number filter out needed
+* in the leads creation form we have quote part you can see in the form whe creating in that part all show as mandotory is that really mandatory?
+* since we have dat of registration in the policy creation form we dont need model field
+
+* another thisn it may need in both lead creation forma nd policy creation form since it both used shared field i think you understand it is because
+now after this application launch my cleint will enterhis existing customer previous year cutomer whos insurance is still active in that time currenntly we handle NCB as yes if no claims which is working good 
+and perfect now when we create leads and policy lie said when he enter his old customer some how if that customer claimed ncp already before this application so i think  we can add one files select ncp as yes or no if yes another filed open to enter how much percentatge valus or 20%,25%,35%,45% this is what i think but you can tell me  the better idea if you have 
+
+* Ncp based , claim based filter needed in the policy page and chart needed in the reports page 
+
+* assume some one do policy in previous company and we enter his details we need to create ncp selection right? because he can have the ncb from previous company right? (less important)
+
+* need to ask client is one he made the claim what happen in his next renwal do we reverse the ncb status or not 
+
+* in payment page can we maintain two different payment ? like current one have the feature of track payment of one specific policy payment can we implement some random payments?
+
+* when we create payment we have the option now seelct based on customer and his policy is success fully fetched client also like to include based on vehicle number and policy no based fetching because he said some time in same name may be multiple clients
+
+
