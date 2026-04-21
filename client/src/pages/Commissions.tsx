@@ -3,7 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate, formatCurrency, getStatusColor } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlineCalculator, HiOutlineSave, HiOutlineDocumentDownload, HiOutlineEye, HiOutlineTrash, HiOutlineCheckCircle } from 'react-icons/hi';
 import jsPDF from 'jspdf';
@@ -42,6 +42,7 @@ const Commissions: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [stats, setStats] = useState<any>(null);
     const [loadingStats, setLoadingStats] = useState(false);
+    const [calcErrors, setCalcErrors] = useState<Record<string, string>>({});
     const [showVolumeModal, setShowVolumeModal] = useState(false);
     const [volumePolicies, setVolumePolicies] = useState<any[]>([]);
     const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
@@ -116,11 +117,24 @@ const Commissions: React.FC = () => {
         finally { setLoading(false); }
     };
 
+    const validateCalculator = () => {
+        const errs: Record<string, string> = {};
+        if (!dealerId) errs.dealerId = 'Please select a dealer';
+        if (!periodStart) errs.periodStart = 'Period start date is required';
+        if (!periodEnd) errs.periodEnd = 'Period end date is required';
+        if (!odPercentage || parseFloat(odPercentage) < 0) errs.odPercentage = 'OD% is required';
+        if (!tpPercentage || parseFloat(tpPercentage) < 0) errs.tpPercentage = 'TP% is required';
+        return errs;
+    };
+
     const handlePreview = async () => {
-        if (!dealerId || !periodStart || !periodEnd || !odPercentage || !tpPercentage) {
-            toast.error('Please fill all required fields');
+        const errs = validateCalculator();
+        if (Object.keys(errs).length > 0) {
+            setCalcErrors(errs);
+            scrollToFirstError();
             return;
         }
+        setCalcErrors({});
         setLoading(true);
         try {
             const res = await api.post('/commissions/preview', {
@@ -149,6 +163,7 @@ const Commissions: React.FC = () => {
         const today = new Date();
         const end = latestDate > today ? latestDate : today;
         setPeriodEnd(end.toISOString().split('T')[0]);
+        setCalcErrors({});
         setActiveTab('calculator');
     };
 
@@ -488,25 +503,56 @@ const Commissions: React.FC = () => {
                                 <SearchableSelect
                                     options={dealers.map(d => ({ value: d.id, label: d.name }))}
                                     value={dealerId}
-                                    onChange={setDealerId}
+                                    onChange={(val) => { setDealerId(val); setCalcErrors(prev => ({ ...prev, dealerId: '' })); }}
                                     placeholder="Select Dealer"
                                 />
+                                {calcErrors.dealerId && <p className="text-xs text-red-500 mt-1">{calcErrors.dealerId}</p>}
                             </div>
                             <div>
                                 <label className="label">Period Start *</label>
-                                <input type="date" className="input" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
+                                <input 
+                                    type="date" 
+                                    className={`input ${calcErrors.periodStart ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                    data-error-field={calcErrors.periodStart ? 'true' : undefined}
+                                    value={periodStart} 
+                                    onChange={e => { setPeriodStart(e.target.value); setCalcErrors(prev => ({ ...prev, periodStart: '' })); }} 
+                                />
+                                {calcErrors.periodStart && <p className="text-xs text-red-500 mt-1">{calcErrors.periodStart}</p>}
                             </div>
                             <div>
                                 <label className="label">Period End *</label>
-                                <input type="date" className="input" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
+                                <input 
+                                    type="date" 
+                                    className={`input ${calcErrors.periodEnd ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                    data-error-field={calcErrors.periodEnd ? 'true' : undefined}
+                                    value={periodEnd} 
+                                    onChange={e => { setPeriodEnd(e.target.value); setCalcErrors(prev => ({ ...prev, periodEnd: '' })); }} 
+                                />
+                                {calcErrors.periodEnd && <p className="text-xs text-red-500 mt-1">{calcErrors.periodEnd}</p>}
                             </div>
                             <div>
                                 <label className="label">OD % *</label>
-                                <input type="number" min="0" max="100" step="0.1" className="input" placeholder="e.g. 10" value={odPercentage} onChange={e => setOdPercentage(e.target.value)} />
+                                <input 
+                                    type="number" min="0" max="100" step="0.1" 
+                                    className={`input ${calcErrors.odPercentage ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                    data-error-field={calcErrors.odPercentage ? 'true' : undefined}
+                                    placeholder="e.g. 10" 
+                                    value={odPercentage} 
+                                    onChange={e => { setOdPercentage(e.target.value); setCalcErrors(prev => ({ ...prev, odPercentage: '' })); }} 
+                                />
+                                {calcErrors.odPercentage && <p className="text-xs text-red-500 mt-1">{calcErrors.odPercentage}</p>}
                             </div>
                             <div>
                                 <label className="label">TP % *</label>
-                                <input type="number" min="0" max="100" step="0.1" className="input" placeholder="e.g. 5" value={tpPercentage} onChange={e => setTpPercentage(e.target.value)} />
+                                <input 
+                                    type="number" min="0" max="100" step="0.1" 
+                                    className={`input ${calcErrors.tpPercentage ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                    data-error-field={calcErrors.tpPercentage ? 'true' : undefined}
+                                    placeholder="e.g. 5" 
+                                    value={tpPercentage} 
+                                    onChange={e => { setTpPercentage(e.target.value); setCalcErrors(prev => ({ ...prev, tpPercentage: '' })); }} 
+                                />
+                                {calcErrors.tpPercentage && <p className="text-xs text-red-500 mt-1">{calcErrors.tpPercentage}</p>}
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">

@@ -3,7 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate } from '../utils/format';
+import { formatDate, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUsers } from 'react-icons/hi';
 
@@ -15,6 +15,7 @@ const Dealers: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [form, setForm] = useState({ name: '', phone: '', address: '' });
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     const fetchDealers = useCallback(async (page = 1) => {
         setLoading(true);
@@ -27,16 +28,31 @@ const Dealers: React.FC = () => {
 
     useEffect(() => { fetchDealers(); }, [fetchDealers]);
 
-    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', address: '' }); setModalOpen(true); };
+    const validate = () => {
+        const errs: Record<string, string> = {};
+        if (!form.name.trim()) errs.name = 'Name is required';
+        if (form.phone && !/^[0-9]{10}$/.test(form.phone)) errs.phone = 'Enter a valid 10-digit phone number';
+        return errs;
+    };
+
+    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', address: '' }); setErrors({}); setModalOpen(true); };
 
     const openEdit = (d: any) => {
         setEditing(d);
         setForm({ name: d.name, phone: d.phone || '', address: d.address || '' });
+        setErrors({});
         setModalOpen(true);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setErrors({});
         try {
             if (editing) {
                 const response = await api.put(`/dealers/${editing.id}`, form);
@@ -124,9 +140,30 @@ const Dealers: React.FC = () => {
 
             {/* Create/Edit Modal */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Dealer' : 'New Dealer'} size="md">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div><label className="label">Name *</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                    <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <div>
+                        <label className="label">Name *</label>
+                        <input
+                            className={`input ${errors.name ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.name ? 'true' : undefined}
+                            placeholder="Enter dealer name"
+                            value={form.name}
+                            onChange={(e) => { setForm({ ...form, name: e.target.value }); setErrors(prev => ({ ...prev, name: '' })); }}
+                        />
+                        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Phone</label>
+                        <input
+                            type="tel"
+                            className={`input ${errors.phone ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.phone ? 'true' : undefined}
+                            placeholder="9876543210 (Optional)"
+                            value={form.phone}
+                            onChange={(e) => { setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }); setErrors(prev => ({ ...prev, phone: '' })); }}
+                        />
+                        {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                    </div>
                     <div><label className="label">Address</label><textarea className="input" rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>

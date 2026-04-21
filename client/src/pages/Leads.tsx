@@ -5,7 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import PolicyFormFields from '../components/ui/PolicyFormFields';
-import { formatDate, getStatusColor } from '../utils/format';
+import { formatDate, getStatusColor, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUserAdd, HiOutlineTrendingUp } from 'react-icons/hi';
 import { LEAD_STATUSES as statusOptions } from '../utils/constants';
@@ -106,6 +106,7 @@ const Leads: React.FC = () => {
         const errs = validate();
         if (Object.keys(errs).length > 0) {
             setErrors(errs);
+            scrollToFirstError();
             return;
         }
         setErrors({});
@@ -258,6 +259,7 @@ const Leads: React.FC = () => {
                         <label className="label">Name *</label>
                         <input
                             className={`input ${errors.name ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.name ? 'true' : undefined}
                             placeholder="Enter full name"
                             value={form.name}
                             onChange={(e) => { setForm({ ...form, name: e.target.value }); setErrors(prev => ({ ...prev, name: '' })); }}
@@ -269,6 +271,7 @@ const Leads: React.FC = () => {
                         <input
                             type="tel"
                             className={`input ${errors.phone ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.phone ? 'true' : undefined}
                             placeholder="9876543210"
                             value={form.phone}
                             onChange={(e) => { setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }); setErrors(prev => ({ ...prev, phone: '' })); }}

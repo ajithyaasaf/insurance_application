@@ -4,7 +4,7 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
-import { formatDate, getStatusColor } from '../utils/format';
+import { formatDate, getStatusColor, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlinePhone, HiOutlineSearch } from 'react-icons/hi';
 import { FOLLOWUP_STATUSES as statusOptions } from '../utils/constants';
@@ -23,6 +23,7 @@ const FollowUps: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [form, setForm] = useState({ customerId: '', policyId: '', nextFollowUpDate: '', notes: '', status: 'pending' });
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     const fetchFollowUps = useCallback(async (page = 1) => {
         setLoading(true);
@@ -57,20 +58,36 @@ const FollowUps: React.FC = () => {
     const openCreate = () => {
         setEditing(null);
         setForm({ customerId: '', policyId: '', nextFollowUpDate: new Date().toISOString().split('T')[0], notes: '', status: 'pending' });
+        setErrors({});
         setModalOpen(true);
     };
 
     const openEdit = (f: any) => {
-        setEditing(f);
         setForm({
             customerId: f.customerId, policyId: f.policyId || '', nextFollowUpDate: f.nextFollowUpDate.split('T')[0],
             notes: f.notes || '', status: f.status,
         });
+        setErrors({});
         setModalOpen(true);
+    };
+
+    const validate = () => {
+        const errs: Record<string, string> = {};
+        if (!form.customerId) errs.customerId = 'Please select a customer';
+        if (!form.nextFollowUpDate) errs.nextFollowUpDate = 'Follow-up date is required';
+        if (!form.status) errs.status = 'Please select a status';
+        return errs;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setErrors({});
         try {
             const payload = { ...form, policyId: form.policyId || undefined };
             if (editing) { await api.put(`/follow-ups/${editing.id}`, payload); toast.success('Follow-up updated'); }
@@ -162,15 +179,15 @@ const FollowUps: React.FC = () => {
             )}
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Follow-up' : 'New Follow-up'}>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                     <div><label className="label">Customer *</label>
                         <SearchableSelect
-                            required
                             options={customers.map(c => ({ value: c.id, label: c.name }))}
                             value={form.customerId}
-                            onChange={(val) => setForm({ ...form, customerId: val })}
+                            onChange={(val) => { setForm({ ...form, customerId: val }); setErrors(prev => ({ ...prev, customerId: '' })); }}
                             placeholder="Select Customer"
                         />
+                        {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                     </div>
                     <div><label className="label">Policy (Optional)</label>
                         <SearchableSelect
@@ -183,15 +200,25 @@ const FollowUps: React.FC = () => {
                             allLabel="None"
                         />
                     </div>
-                    <div><label className="label">Follow-up Date *</label><input type="date" className="input" required value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
+                    <div>
+                        <label className="label">Follow-up Date *</label>
+                        <input 
+                            type="date" 
+                            className={`input ${errors.nextFollowUpDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.nextFollowUpDate ? 'true' : undefined}
+                            value={form.nextFollowUpDate} 
+                            onChange={(e) => { setForm({ ...form, nextFollowUpDate: e.target.value }); setErrors(prev => ({ ...prev, nextFollowUpDate: '' })); }} 
+                        />
+                        {errors.nextFollowUpDate && <p className="text-xs text-red-500 mt-1">{errors.nextFollowUpDate}</p>}
+                    </div>
                     <div><label className="label">Status</label>
                         <SearchableSelect
-                            required
                             options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
-                            onChange={(val) => setForm({ ...form, status: val })}
+                            onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
                         />
+                        {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">

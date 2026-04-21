@@ -77,3 +77,39 @@ export const truncate = (str: string, length: number = 40): string => {
     if (str.length <= length) return str;
     return str.slice(0, length) + '...';
 };
+
+/**
+ * Scrolls the modal's own overflow container to the first field
+ * that has a validation error (marked with data-error-field="true").
+ * Falls back to a full-page scrollIntoView if no modal overlay is found.
+ */
+export const scrollToFirstError = () => {
+    setTimeout(() => {
+        const firstError = document.querySelector<HTMLElement>('[data-error-field="true"]');
+        if (!firstError) return;
+
+        // Forms live inside a modal with its own overflow-y-auto scroll container.
+        // scrollIntoView() only works on the document scroll root, not a nested one.
+        // Walk up the DOM to find the nearest scrollable ancestor.
+        let scrollParent: HTMLElement | null = firstError.parentElement;
+        while (scrollParent && scrollParent !== document.body) {
+            const { overflowY } = getComputedStyle(scrollParent);
+            if (overflowY === 'auto' || overflowY === 'scroll') break;
+            scrollParent = scrollParent.parentElement;
+        }
+
+        if (scrollParent && scrollParent !== document.body) {
+            // Scroll the modal container so the error field lands near the top.
+            const containerTop = scrollParent.getBoundingClientRect().top;
+            const errorTop = firstError.getBoundingClientRect().top;
+            scrollParent.scrollBy({ top: errorTop - containerTop - 24, behavior: 'smooth' });
+        } else {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Focus the element if it's an input/select/textarea
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(firstError.tagName)) {
+            firstError.focus({ preventScroll: true });
+        }
+    }, 50);
+};

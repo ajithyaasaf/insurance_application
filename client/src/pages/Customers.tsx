@@ -3,7 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate } from '../utils/format';
+import { formatDate, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUsers, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +18,7 @@ const Customers: React.FC = () => {
     const [editing, setEditing] = useState<any>(null);
     const [detail, setDetail] = useState<any>(null);
     const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' });
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
 
     const fetchCustomers = useCallback(async (page = 1) => {
@@ -31,11 +32,20 @@ const Customers: React.FC = () => {
 
     useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', email: '', address: '' }); setModalOpen(true); };
+    const validate = () => {
+        const errs: Record<string, string> = {};
+        if (!form.name.trim()) errs.name = 'Name is required';
+        if (!form.phone) errs.phone = 'Phone number is required';
+        else if (!/^[0-9]{10}$/.test(form.phone)) errs.phone = 'Enter a valid 10-digit phone number';
+        return errs;
+    };
+
+    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', email: '', address: '' }); setErrors({}); setModalOpen(true); };
 
     const openEdit = (c: any) => {
         setEditing(c);
         setForm({ name: c.name, phone: c.phone || '', email: c.email || '', address: c.address || '' });
+        setErrors({});
         setModalOpen(true);
     };
 
@@ -49,6 +59,13 @@ const Customers: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setErrors({});
         setSubmitting(true);
         try {
             if (editing) {
@@ -133,32 +150,32 @@ const Customers: React.FC = () => {
 
             {/* Create/Edit Modal */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Customer' : 'New Customer'} size="md">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="label">Name *</label>
                             <input 
-                                className="input" 
-                                required 
+                                className={`input ${errors.name ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                data-error-field={errors.name ? 'true' : undefined}
                                 placeholder="Enter customer name"
                                 value={form.name} 
-                                onChange={(e) => setForm({ ...form, name: e.target.value })} 
+                                onChange={(e) => { setForm({ ...form, name: e.target.value }); setErrors(prev => ({ ...prev, name: '' })); }} 
                                 disabled={submitting}
                             />
+                            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
                         </div>
                         <div>
                             <label className="label">Phone *</label>
                             <input 
                                 type="tel" 
-                                pattern="[0-9]{10}" 
-                                title="Please enter a valid 10-digit phone number" 
-                                className="input" 
-                                required
+                                className={`input ${errors.phone ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                data-error-field={errors.phone ? 'true' : undefined}
                                 placeholder="9876543210"
                                 value={form.phone} 
-                                onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })} 
+                                onChange={(e) => { setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }); setErrors(prev => ({ ...prev, phone: '' })); }} 
                                 disabled={submitting}
                             />
+                            {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                         </div>
                         <div className="sm:col-span-2">
                             <label className="label">Email</label>

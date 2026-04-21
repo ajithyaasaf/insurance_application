@@ -10,13 +10,14 @@ interface PolicyFormFieldsProps {
     customers?: any[];
     isEditing?: boolean;
     showQuoteHeader?: boolean;
+    errors?: Record<string, string>;
+    setErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }
 
-const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false }) => {
+const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false, errors = {}, setErrors }) => {
     const isMotor = form.policyType === 'motor';
-    // Fields are only required when this component is used in the Policy form.
-    // In the Leads form it is an optional quote section (showQuoteHeader = true).
     const isRequired = !showQuoteHeader;
+
     const dateError = form.expiryDate && form.startDate && form.expiryDate <= form.startDate
         ? 'Expiry date must be after start date'
         : '';
@@ -25,13 +26,14 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
         if (typeof setForm === 'function') {
             setForm((prev: any) => {
                 const updated = { ...prev, [field]: value };
-                // Auto-sync: whenever premiumAmount changes, mirror it to totalPremium
-                // so the backend always receives both fields correctly.
                 if (field === 'premiumAmount') {
                     updated.totalPremium = value;
                 }
                 return updated;
             });
+        }
+        if (typeof setErrors === 'function') {
+            setErrors((prev: any) => ({ ...prev, [field]: '' }));
         }
     };
 
@@ -39,16 +41,17 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
         setForm((prev: any) => ({
             ...prev,
             policyType: val,
-            // Reset motor specific fields if switching away from motor
             ...(val !== 'motor' ? {
                 vehicleNumber: '', make: '', model: '', vehicleClass: '',
                 idv: '', od: '', tp: '', tax: '', totalPremium: '', registrationDate: ''
             } : {
-                // Clear fields not needed for motor
                 productName: '',
                 sumInsured: ''
             })
         }));
+        if (typeof setErrors === 'function') {
+            setErrors((prev: any) => ({ ...prev, policyType: '' }));
+        }
     };
 
     return (
@@ -69,6 +72,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                         onChange={(val) => handleChange('customerId', val)}
                         placeholder="Select Customer"
                     />
+                    {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                 </div>
             )}
 
@@ -81,10 +85,11 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     onChange={handleTypeChange}
                     placeholder="Select Type"
                 />
+                {errors.policyType && <p className="text-xs text-red-500 mt-1">{errors.policyType}</p>}
             </div>
 
             <div>
-                <label className="label">Company</label>
+                <label className="label">Company {isRequired ? '*' : ''}</label>
                 <SearchableSelect
                     options={companies
                         .filter(c => {
@@ -99,17 +104,19 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     onChange={(val) => handleChange('companyId', val)}
                     allLabel="None"
                 />
+                {errors.companyId && <p className="text-xs text-red-500 mt-1">{errors.companyId}</p>}
             </div>
 
             <div>
                 <label className="label">Policy Number {isRequired ? '*' : ''}</label>
                 <input 
-                    className="input" 
-                    required={isRequired}
+                    className={`input ${errors.policyNumber ? 'border-red-500 focus:ring-red-400' : ''}`}
+                    data-error-field={errors.policyNumber ? 'true' : undefined}
                     value={form.policyNumber || ''} 
                     onChange={(e) => handleChange('policyNumber', e.target.value)} 
                     placeholder="Enter Policy Number"
                 />
+                {errors.policyNumber && <p className="text-xs text-red-500 mt-1">{errors.policyNumber}</p>}
             </div>
 
             <div>
@@ -138,19 +145,22 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 <>
                     <div><label className="label">Vehicle Number {isRequired ? '*' : ''}</label>
                         <input
-                            className="input uppercase"
-                            required={isRequired}
+                            className={`input uppercase ${errors.vehicleNumber ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.vehicleNumber ? 'true' : undefined}
                             placeholder="e.g. TN01AB1234"
                             title="Enter a valid vehicle registration number"
                             value={form.vehicleNumber || ''}
                             onChange={(e) => handleChange('vehicleNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
                         />
+                        {errors.vehicleNumber && <p className="text-xs text-red-500 mt-1">{errors.vehicleNumber}</p>}
                     </div>
                     <div><label className="label">Make {isRequired ? '*' : ''}</label>
-                        <input className="input" required={isRequired} placeholder="e.g. Maruti" value={form.make || ''} onChange={(e) => handleChange('make', e.target.value)} />
+                        <input className={`input ${errors.make ? 'border-red-500 focus:ring-red-400' : ''}`} data-error-field={errors.make ? 'true' : undefined} placeholder="e.g. Maruti" value={form.make || ''} onChange={(e) => handleChange('make', e.target.value)} />
+                        {errors.make && <p className="text-xs text-red-500 mt-1">{errors.make}</p>}
                     </div>
                     <div><label className="label">Model {isRequired ? '*' : ''}</label>
-                        <input className="input" required={isRequired} placeholder="e.g. Swift" value={form.model || ''} onChange={(e) => handleChange('model', e.target.value)} />
+                        <input className={`input ${errors.model ? 'border-red-500 focus:ring-red-400' : ''}`} data-error-field={errors.model ? 'true' : undefined} placeholder="e.g. Swift" value={form.model || ''} onChange={(e) => handleChange('model', e.target.value)} />
+                        {errors.model && <p className="text-xs text-red-500 mt-1">{errors.model}</p>}
                     </div>
                     <div><label className="label">Date of Registration</label>
                         <input type="date" className="input" value={form.registrationDate?.split('T')[0] || ''} onChange={(e) => handleChange('registrationDate', e.target.value)} />
@@ -194,24 +204,26 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
             )}
 
             <div><label className="label">Premium Amount {isRequired ? '*' : ''}</label>
-                <input type="number" min="0" step="0.01" className="input" required={isRequired} value={form.premiumAmount || ''} onChange={(e) => handleChange('premiumAmount', e.target.value)} />
+                <input type="number" min="0" step="0.01" className={`input ${errors.premiumAmount ? 'border-red-500 focus:ring-red-400' : ''}`} data-error-field={errors.premiumAmount ? 'true' : undefined} value={form.premiumAmount || ''} onChange={(e) => handleChange('premiumAmount', e.target.value)} />
+                {errors.premiumAmount && <p className="text-xs text-red-500 mt-1">{errors.premiumAmount}</p>}
             </div>
             
             <div><label className="label">Start Date {isRequired ? '*' : ''}</label>
-                <input type="date" className="input" required={isRequired} value={form.startDate?.split('T')[0] || ''} onChange={(e) => handleChange('startDate', e.target.value)} />
+                <input type="date" className={`input ${errors.startDate ? 'border-red-500 focus:ring-red-400' : ''}`} data-error-field={errors.startDate ? 'true' : undefined} value={form.startDate?.split('T')[0] || ''} onChange={(e) => handleChange('startDate', e.target.value)} />
+                {errors.startDate && <p className="text-xs text-red-500 mt-1">{errors.startDate}</p>}
             </div>
             
             <div>
                 <label className="label">Expiry Date {isRequired ? '*' : ''}</label>
                 <input
                     type="date"
-                    className={`input ${dateError ? 'border-red-500 focus:ring-red-400' : ''}`}
-                    required={isRequired}
+                    className={`input ${dateError || errors.expiryDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                    data-error-field={(dateError || errors.expiryDate) ? 'true' : undefined}
                     min={form.startDate || undefined}
                     value={form.expiryDate?.split('T')[0] || ''}
                     onChange={(e) => handleChange('expiryDate', e.target.value)}
                 />
-                {dateError && <p className="text-xs text-red-500 mt-1">{dateError}</p>}
+                {(dateError || errors.expiryDate) && <p className="text-xs text-red-500 mt-1">{dateError || errors.expiryDate}</p>}
             </div>
 
             <div><label className="label">Payment Method</label>

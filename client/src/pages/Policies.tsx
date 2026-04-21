@@ -5,7 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import PolicyFormFields from '../components/ui/PolicyFormFields';
-import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate, scrollToFirstError } from '../utils/format';
 import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, EDITABLE_POLICY_STATUSES, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';
@@ -36,9 +36,10 @@ const Policies: React.FC = () => {
         make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '',
         registrationDate: ''
     });
-    // For edit modal only: tracks the manually-selectable status ('active' | 'cancelled')
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
     const [renewForm, setRenewForm] = useState({ startDate: '', expiryDate: '', premiumAmount: '', policyNumber: '', paidAmount: '' });
+    const [errors, setErrors] = useState<Record<string, string>>({});
+    const [renewErrors, setRenewErrors] = useState<Record<string, string>>({});
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; counts: { paymentsCount: number; claimsCount: number; followUpsCount: number } } | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -79,6 +80,7 @@ const Policies: React.FC = () => {
         setEditing(null);
         setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '' });
         setEditStatus('active');
+        setErrors({});
         setModalOpen(true);
     };
 
@@ -96,6 +98,7 @@ const Policies: React.FC = () => {
         });
         // Pre-fill editStatus from existing policy — only valid manual values
         setEditStatus((p.status === 'cancelled' ? 'cancelled' : 'active') as 'active' | 'cancelled');
+        setErrors({});
         setModalOpen(true);
     };
 
@@ -116,8 +119,33 @@ const Policies: React.FC = () => {
         }));
     };
 
+    const validate = () => {
+        const errs: Record<string, string> = {};
+        if (!form.customerId) errs.customerId = 'Please select a customer';
+        if (!form.policyType) errs.policyType = 'Please select a policy type';
+        if (!form.companyId) errs.companyId = 'Please select a company';
+        if (!form.policyNumber) errs.policyNumber = 'Policy number is required';
+        if (!form.premiumAmount || parseFloat(form.premiumAmount) <= 0) errs.premiumAmount = 'Valid premium amount is required';
+        if (!form.startDate) errs.startDate = 'Start date is required';
+        if (!form.expiryDate) errs.expiryDate = 'Expiry date is required';
+
+        if (form.policyType === 'motor') {
+            if (!form.vehicleNumber) errs.vehicleNumber = 'Vehicle number is required';
+            if (!form.make) errs.make = 'Make is required';
+            if (!form.model) errs.model = 'Model is required';
+        }
+        return errs;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setErrors({});
         try {
             const payload = {
                 ...form,
@@ -183,11 +211,28 @@ const Policies: React.FC = () => {
             policyNumber: '',
             paidAmount: '',
         });
+        setRenewErrors({});
         setRenewModalOpen(true);
+    };
+
+    const validateRenew = () => {
+        const errs: Record<string, string> = {};
+        if (!renewForm.policyNumber) errs.policyNumber = 'New policy number is required';
+        if (!renewForm.startDate) errs.startDate = 'Start date is required';
+        if (!renewForm.expiryDate) errs.expiryDate = 'Expiry date is required';
+        if (!renewForm.premiumAmount || parseFloat(renewForm.premiumAmount) <= 0) errs.premiumAmount = 'Valid premium amount is required';
+        return errs;
     };
 
     const handleRenew = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validateRenew();
+        if (Object.keys(errs).length > 0) {
+            setRenewErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setRenewErrors({});
         try {
             await api.post(`/policies/${renewingPolicy.id}/renew`, {
                 ...renewForm, 
@@ -322,7 +367,7 @@ const Policies: React.FC = () => {
 
             {/* Create/Edit Modal */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Policy' : 'New Policy'} size="lg">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                     <PolicyFormFields 
                         form={form} 
                         setForm={setForm} 
@@ -330,6 +375,8 @@ const Policies: React.FC = () => {
                         dealers={dealers} 
                         customers={customers} 
                         isEditing={!!editing} 
+                        errors={errors}
+                        setErrors={setErrors}
                     />
 
                     {/* Status selection is still handled here as it's specific to the logic in this page */}
@@ -368,17 +415,33 @@ const Policies: React.FC = () => {
 
             {/* Renew Modal */}
             <Modal isOpen={renewModalOpen} onClose={() => setRenewModalOpen(false)} title="Renew Policy">
-                <form onSubmit={handleRenew} className="space-y-4">
+                <form onSubmit={handleRenew} className="space-y-4" noValidate>
                     <p className="text-sm text-surface-500">Renewing policy for <strong>{renewingPolicy?.customer?.name}</strong></p>
                     {renewingPolicy?._count?.payments > 0 && (
                         <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-sm font-medium border border-amber-200">
                             ⚠️ Warning: This policy has an outstanding balance of pending payments. Don't forget to collect it.
                         </div>
                     )}
-                    <div><label className="label">New Policy Number *</label><input className="input" required value={renewForm.policyNumber} onChange={(e) => setRenewForm({ ...renewForm, policyNumber: e.target.value })} /></div>
-                    <div><label className="label">Start Date *</label><input type="date" className="input" required value={renewForm.startDate} onChange={(e) => setRenewForm({ ...renewForm, startDate: e.target.value })} /></div>
-                    <div><label className="label">Expiry Date *</label><input type="date" className="input" required value={renewForm.expiryDate} onChange={(e) => setRenewForm({ ...renewForm, expiryDate: e.target.value })} /></div>
-                    <div><label className="label">Premium Amount *</label><input type="number" min="0" step="0.01" className="input" required value={renewForm.premiumAmount} onChange={(e) => setRenewForm({ ...renewForm, premiumAmount: e.target.value })} /></div>
+                    <div>
+                        <label className="label">New Policy Number *</label>
+                        <input className={`input ${renewErrors.policyNumber ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.policyNumber} onChange={(e) => { setRenewForm({ ...renewForm, policyNumber: e.target.value }); setRenewErrors(prev => ({ ...prev, policyNumber: '' })); }} />
+                        {renewErrors.policyNumber && <p className="text-xs text-red-500 mt-1">{renewErrors.policyNumber}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Start Date *</label>
+                        <input type="date" className={`input ${renewErrors.startDate ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.startDate} onChange={(e) => { setRenewForm({ ...renewForm, startDate: e.target.value }); setRenewErrors(prev => ({ ...prev, startDate: '' })); }} />
+                        {renewErrors.startDate && <p className="text-xs text-red-500 mt-1">{renewErrors.startDate}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Expiry Date *</label>
+                        <input type="date" className={`input ${renewErrors.expiryDate ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.expiryDate} onChange={(e) => { setRenewForm({ ...renewForm, expiryDate: e.target.value }); setRenewErrors(prev => ({ ...prev, expiryDate: '' })); }} />
+                        {renewErrors.expiryDate && <p className="text-xs text-red-500 mt-1">{renewErrors.expiryDate}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Premium Amount *</label>
+                        <input type="number" min="0" step="0.01" className={`input ${renewErrors.premiumAmount ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.premiumAmount} onChange={(e) => { setRenewForm({ ...renewForm, premiumAmount: e.target.value }); setRenewErrors(prev => ({ ...prev, premiumAmount: '' })); }} />
+                        {renewErrors.premiumAmount && <p className="text-xs text-red-500 mt-1">{renewErrors.premiumAmount}</p>}
+                    </div>
                     <div>
                         <label className="label">Initial Paid Amount (₹)</label>
                         <input 

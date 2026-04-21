@@ -4,7 +4,7 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
-import { formatDate, formatCurrency, getStatusColor } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 import { CLAIM_STATUSES as claimStatusOptions } from '../utils/constants';
@@ -26,6 +26,7 @@ const Claims: React.FC = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [form, setForm] = useState(initialForm);
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; customerName: string } | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -53,9 +54,20 @@ const Claims: React.FC = () => {
         loadDropdowns();
     }, []);
 
+    const validate = () => {
+        const errs: Record<string, string> = {};
+        if (!form.customerId) errs.customerId = 'Please select a customer';
+        if (!form.policyId) errs.policyId = 'Please select a policy';
+        if (!form.claimAmount || parseFloat(form.claimAmount) <= 0) errs.claimAmount = 'Valid amount is required';
+        if (!form.claimDate) errs.claimDate = 'Claim date is required';
+        if (!form.status) errs.status = 'Please select a status';
+        return errs;
+    };
+
     const openCreate = () => {
         setEditing(null);
         setForm({ ...initialForm, claimDate: new Date().toISOString().split('T')[0] });
+        setErrors({});
         setModalOpen(true);
     };
 
@@ -70,11 +82,19 @@ const Claims: React.FC = () => {
             status: claim.status,
             reason: claim.reason || '',
         });
+        setErrors({});
         setModalOpen(true);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setErrors({});
         const payload = { ...form, claimAmount: parseFloat(form.claimAmount) };
         try {
             if (editing) {
@@ -202,41 +222,64 @@ const Claims: React.FC = () => {
             )}
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Claim' : 'File New Claim'}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div><label className="label">Customer *</label>
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <div>
+                        <label className="label">Customer *</label>
                         <SearchableSelect
-                            required
                             disabled={!!editing}
                             options={customers.map(c => ({ value: c.id, label: c.name }))}
                             value={form.customerId}
-                            onChange={(val) => setForm({ ...form, customerId: val })}
+                            onChange={(val) => { setForm({ ...form, customerId: val }); setErrors(prev => ({ ...prev, customerId: '' })); }}
                             placeholder="Select Customer"
                         />
+                        {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                     </div>
-                    <div><label className="label">Policy *</label>
+                    <div>
+                        <label className="label">Policy *</label>
                         <SearchableSelect
-                            required
                             disabled={!!editing}
                             options={policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => ({
                                 value: p.id,
                                 label: `${p.productName || p.policyType} ${p.vehicleNumber ? `(${p.vehicleNumber})` : ''} - ${p.customer?.name}`
                             }))}
                             value={form.policyId}
-                            onChange={(val) => setForm({ ...form, policyId: val })}
+                            onChange={(val) => { setForm({ ...form, policyId: val }); setErrors(prev => ({ ...prev, policyId: '' })); }}
                             placeholder="Select Policy"
                         />
+                        {errors.policyId && <p className="text-xs text-red-500 mt-1">{errors.policyId}</p>}
                     </div>
                     <div><label className="label">Claim Number</label><input className="input" value={form.claimNumber} onChange={(e) => setForm({ ...form, claimNumber: e.target.value })} /></div>
-                    <div><label className="label">Claim Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.claimAmount} onChange={(e) => setForm({ ...form, claimAmount: e.target.value })} /></div>
-                    <div><label className="label">Claim Date *</label><input type="date" className="input" required value={form.claimDate} onChange={(e) => setForm({ ...form, claimDate: e.target.value })} /></div>
-                    <div><label className="label">Status *</label>
+                    <div>
+                        <label className="label">Claim Amount *</label>
+                        <input
+                            type="number" min="0" step="0.01"
+                            className={`input ${errors.claimAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.claimAmount ? 'true' : undefined}
+                            value={form.claimAmount}
+                            onChange={(e) => { setForm({ ...form, claimAmount: e.target.value }); setErrors(prev => ({ ...prev, claimAmount: '' })); }}
+                        />
+                        {errors.claimAmount && <p className="text-xs text-red-500 mt-1">{errors.claimAmount}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Claim Date *</label>
+                        <input
+                            type="date"
+                            className={`input ${errors.claimDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.claimDate ? 'true' : undefined}
+                            value={form.claimDate}
+                            onChange={(e) => { setForm({ ...form, claimDate: e.target.value }); setErrors(prev => ({ ...prev, claimDate: '' })); }}
+                        />
+                        {errors.claimDate && <p className="text-xs text-red-500 mt-1">{errors.claimDate}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Status *</label>
                         <SearchableSelect
-                            required
                             options={claimStatusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
-                            onChange={(val) => setForm({ ...form, status: val })}
+                            onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
                         />
+                        {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>
                     <div><label className="label">Reason / Notes</label><textarea className="input" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">

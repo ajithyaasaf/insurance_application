@@ -4,7 +4,7 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
-import { formatDate, formatCurrency, getStatusColor } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineCreditCard } from 'react-icons/hi';
 import { PAYMENT_STATUSES as statusOptions } from '../utils/constants';
@@ -28,6 +28,7 @@ const Payments: React.FC = () => {
     const [form, setForm] = useState({
         customerId: '', policyId: '', amount: '', dueDate: '', paidDate: '', paidAmount: '', status: 'pending', notes: '',
     });
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     const fetchPayments = useCallback(async (page = 1) => {
         setLoading(true);
@@ -66,9 +67,20 @@ const Payments: React.FC = () => {
         loadDropdowns();
     }, []);
 
+    const validate = () => {
+        const errs: Record<string, string> = {};
+        if (!form.customerId) errs.customerId = 'Please select a customer';
+        if (!form.policyId) errs.policyId = 'Please select a policy';
+        if (!form.amount || parseFloat(form.amount) <= 0) errs.amount = 'Valid amount is required';
+        if (!form.dueDate) errs.dueDate = 'Due date is required';
+        if (!form.status) errs.status = 'Please select a status';
+        return errs;
+    };
+
     const openCreate = () => {
         setEditing(null);
         setForm({ customerId: '', policyId: '', amount: '', dueDate: '', paidDate: '', paidAmount: '', status: 'pending', notes: '' });
+        setErrors({});
         setModalOpen(true);
     };
 
@@ -78,11 +90,19 @@ const Payments: React.FC = () => {
             customerId: p.customerId, policyId: p.policyId, amount: p.amount.toString(), dueDate: p.dueDate.split('T')[0],
             paidDate: p.paidDate?.split('T')[0] || '', paidAmount: p.paidAmount?.toString() || '', status: p.status, notes: p.notes || '',
         });
+        setErrors({});
         setModalOpen(true);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setErrors({});
         try {
             const payload = {
                 ...form, amount: parseFloat(form.amount), paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
@@ -246,44 +266,67 @@ const Payments: React.FC = () => {
             )}
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Update Payment' : 'New Payment'}>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                     {!editing && (
                         <>
-                            <div><label className="label">Customer *</label>
+                            <div>
+                                <label className="label">Customer *</label>
                                 <SearchableSelect
-                                    required
                                     options={customers.map(c => ({ value: c.id, label: c.name }))}
                                     value={form.customerId}
-                                    onChange={(val) => setForm({ ...form, customerId: val })}
+                                    onChange={(val) => { setForm({ ...form, customerId: val }); setErrors(prev => ({ ...prev, customerId: '' })); }}
                                     placeholder="Select Customer"
                                 />
+                                {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                             </div>
-                            <div><label className="label">Policy *</label>
+                            <div>
+                                <label className="label">Policy *</label>
                                 <SearchableSelect
-                                    required
                                     options={policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => ({
                                         value: p.id,
                                         label: `${p.productName || p.policyType} ${p.vehicleNumber ? `(${p.vehicleNumber})` : ''} - ${p.customer?.name}`
                                     }))}
                                     value={form.policyId}
-                                    onChange={(val) => setForm({ ...form, policyId: val })}
+                                    onChange={(val) => { setForm({ ...form, policyId: val }); setErrors(prev => ({ ...prev, policyId: '' })); }}
                                     placeholder="Select Policy"
                                 />
+                                {errors.policyId && <p className="text-xs text-red-500 mt-1">{errors.policyId}</p>}
                             </div>
                         </>
                     )}
-                    <div><label className="label">Amount *</label><input type="number" min="0" step="0.01" className="input" required value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></div>
-                    <div><label className="label">Due Date *</label><input type="date" className="input" required value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></div>
+                    <div>
+                        <label className="label">Amount *</label>
+                        <input
+                            type="number" min="0" step="0.01"
+                            className={`input ${errors.amount ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.amount ? 'true' : undefined}
+                            value={form.amount}
+                            onChange={(e) => { setForm({ ...form, amount: e.target.value }); setErrors(prev => ({ ...prev, amount: '' })); }}
+                        />
+                        {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Due Date *</label>
+                        <input
+                            type="date"
+                            className={`input ${errors.dueDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            data-error-field={errors.dueDate ? 'true' : undefined}
+                            value={form.dueDate}
+                            onChange={(e) => { setForm({ ...form, dueDate: e.target.value }); setErrors(prev => ({ ...prev, dueDate: '' })); }}
+                        />
+                        {errors.dueDate && <p className="text-xs text-red-500 mt-1">{errors.dueDate}</p>}
+                    </div>
                     <div><label className="label">Paid Date</label><input type="date" className="input" value={form.paidDate} onChange={(e) => setForm({ ...form, paidDate: e.target.value })} /></div>
                     <div><label className="label">Paid Amount</label><input type="number" min="0" step="0.01" className="input" value={form.paidAmount} onChange={(e) => setForm({ ...form, paidAmount: e.target.value })} placeholder="Partial or full" /></div>
-                    <div><label className="label">Status</label>
+                    <div>
+                        <label className="label">Status *</label>
                         <SearchableSelect
-                            required
                             options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
-                            onChange={(val) => setForm({ ...form, status: val })}
+                            onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
                         />
+                        {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>
                     <div><label className="label">Notes</label><textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
