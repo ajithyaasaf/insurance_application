@@ -21,7 +21,9 @@ export class DashboardService {
             totalActivePolicies,
             totalLeads,
             recentClaims,
-            companyGrouping
+            companyGrouping,
+            todayLeadFollowUps,
+            todayLeadFollowUpsCount
         ] = await Promise.all([
             // Policies expiring in next 30 days
             prisma.policy.findMany({
@@ -94,7 +96,7 @@ export class DashboardService {
             // Counts
             prisma.customer.count({ where: { userId, deletedAt: null } }),
             prisma.policy.count({ where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any }),
-            prisma.lead.count({ where: { userId, deletedAt: null } }),
+            prisma.lead.count({ where: { userId, deletedAt: null, status: { not: 'converted' } } }),
 
             // Recent claims
             prisma.claim.findMany({
@@ -111,7 +113,35 @@ export class DashboardService {
                 _count: { _all: true },
                 _sum: { premiumAmount: true },
             }),
+
+            // Today's lead follow-ups
+            prisma.lead.findMany({
+                where: {
+                    userId,
+                    deletedAt: null,
+                    nextFollowUpDate: { gte: todayStart, lt: todayEnd },
+                },
+                orderBy: { nextFollowUpDate: 'asc' },
+                take: 10,
+            }),
+            prisma.lead.count({
+                where: {
+                    userId,
+                    deletedAt: null,
+                    nextFollowUpDate: { gte: todayStart, lt: todayEnd },
+                },
+            }),
         ]);
+
+        // Merge and process follow-ups
+        const combinedFollowUps = [
+            ...todayFollowUps.map(f => ({ ...f, type: 'followup' })),
+            ...todayLeadFollowUps.map(l => ({ ...l, type: 'lead', customer: { name: l.name } }))
+        ].sort((a: any, b: any) => 
+            new Date(a.nextFollowUpDate!).getTime() - new Date(b.nextFollowUpDate!).getTime()
+        ).slice(0, 10);
+
+        const combinedFollowUpsCount = todayFollowUpsCount + todayLeadFollowUpsCount;
 
         // Fetch company names for the stats
         const companyIds = companyGrouping.map((s: any) => s.companyId);
@@ -136,12 +166,12 @@ export class DashboardService {
                 totalActivePolicies,
                 totalLeads,
                 expiringPoliciesCount,
-                todayFollowUpsCount,
+                todayFollowUpsCount: combinedFollowUpsCount,
                 pendingPaymentsCount,
                 overduePaymentsCount,
             },
             expiringPolicies,
-            todayFollowUps,
+            todayFollowUps: combinedFollowUps,
             pendingPayments,
             overduePayments,
             recentClaims,

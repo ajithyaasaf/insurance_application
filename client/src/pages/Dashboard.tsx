@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
     const statCards = [
         { label: 'Total Customers', value: data.stats.totalCustomers, icon: HiOutlineUsers, color: 'text-blue-600 bg-blue-50' },
         { label: 'Active Policies', value: data.stats.totalActivePolicies, icon: HiOutlineDocumentText, color: 'text-emerald-600 bg-emerald-50' },
-        { label: 'Open Leads', value: data.stats.totalLeads, icon: HiOutlineTrendingUp, color: 'text-violet-600 bg-violet-50' },
+        { label: 'Total Leads', value: data.stats.totalLeads, icon: HiOutlineTrendingUp, color: 'text-violet-600 bg-violet-50' },
         { label: 'Expiring (30d)', value: data.stats.expiringPoliciesCount, icon: HiOutlineClock, color: 'text-amber-600 bg-amber-50' },
         { label: "Today's Follow-ups", value: data.stats.todayFollowUpsCount, icon: HiOutlinePhone, color: 'text-cyan-600 bg-cyan-50' },
         { label: 'Pending Payments', value: data.stats.pendingPaymentsCount, icon: HiOutlineCreditCard, color: 'text-orange-600 bg-orange-50' },
@@ -154,7 +154,6 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Today's Follow-ups */}
                 <div className="card">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
                         <h2 className="font-semibold text-surface-900">Today's Follow-ups</h2>
@@ -166,13 +165,18 @@ const Dashboard: React.FC = () => {
                         {data.todayFollowUps.length === 0 ? (
                             <p className="px-5 py-8 text-center text-sm text-surface-400">No follow-ups today</p>
                         ) : (
-                            data.todayFollowUps.map((fu: any) => (
-                                <div key={fu.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
+                                data.todayFollowUps.map((item: any) => (
+                                <div key={item.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50 cursor-pointer" onClick={() => navigate(item.type === 'lead' ? '/leads' : '/follow-ups')}>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-medium text-surface-900 truncate">{fu.customer?.name}</p>
-                                        <p className="text-xs text-surface-500 truncate">{fu.notes || 'No notes'}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-medium text-surface-900 truncate">{item.customer?.name}</p>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${item.type === 'lead' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {item.type === 'lead' ? 'Lead' : 'Customer'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-surface-500 truncate">{item.notes || 'No notes'}</p>
                                     </div>
-                                    <span className={getStatusColor(fu.status)}>{fu.status}</span>
+                                    <span className={getStatusColor(item.status)}>{item.status}</span>
                                 </div>
                             ))
                         )}
