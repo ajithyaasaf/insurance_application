@@ -26,6 +26,15 @@ This will allow frontend to store token in localStorage and send via Authorizati
 Let me know once pushed — I’ll pull and deploy on VM.
 
 need to solved
+
+
+*need to chart view in reports page
+*in leads page open lead word is not understandable
+*need whats app integration but plan well for this (whover get expired in 3 days)
+*when creating policy my client need to mention fresh or renewal in the new policy form itself becuase in this application we are gogint o enter old customers 
+*in reports also Fresh are renewal stats should be needed to see fresh how many and renewal how many like that 
+*in the reports page renel currently based on new then if we renwal but we now gogint to add fresh or renewal in the policy creating form itself so need to carefuly in the chart itself
+
 * dealrs performance in reports page can be enhanced 
 * in the reports page filters in every tab in every filtered deatures need to be check to make sure is that actually filtered out or not 
 * since we removed active expiry in the policy creation form we need to know how it handled when we download reports in the reports page 
