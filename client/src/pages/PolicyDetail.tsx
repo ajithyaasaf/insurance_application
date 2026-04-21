@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { formatDate, formatCurrency, getStatusColor, daysUntil } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, daysUntil, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import Modal from '../components/ui/Modal';
 import { 
@@ -29,6 +29,7 @@ const PolicyDetail: React.FC = () => {
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentNotes, setPaymentNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errors, setErrors] = useState<Record<string, string>>({});
 
     const fetchPolicy = async () => {
         try {
@@ -46,13 +47,28 @@ const PolicyDetail: React.FC = () => {
         fetchPolicy();
     }, [id, navigate]);
 
+    const validatePayment = () => {
+        const errs: Record<string, string> = {};
+        const amt = parseFloat(paymentAmount);
+        if (!paymentAmount) errs.paymentAmount = 'Amount is required';
+        else if (amt <= 0) errs.paymentAmount = 'Amount must be greater than zero';
+        else if (amt > summary.balanceDue) errs.paymentAmount = `Amount cannot exceed balance (${formatCurrency(summary.balanceDue)})`;
+        return errs;
+    };
+
     const handleAddPayment = async (e: React.FormEvent) => {
         e.preventDefault();
-        const amt = parseFloat(paymentAmount);
-        if (!paymentAmount || amt <= 0) return toast.error('Please enter a valid amount');
+        const errs = validatePayment();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            scrollToFirstError();
+            return;
+        }
+        setErrors({});
         
         setIsSubmitting(true);
         try {
+            const amt = parseFloat(paymentAmount);
             // 1. Find the existing pending record (the balance placeholder)
             const pendingPayment = policy.payments?.find((p: any) => p.status === 'pending');
 
@@ -429,10 +445,10 @@ const PolicyDetail: React.FC = () => {
             {/* Quick Add Payment Modal */}
             <Modal
                 isOpen={showPaymentModal}
-                onClose={() => !isSubmitting && setShowPaymentModal(false)}
+                onClose={() => { if (!isSubmitting) { setShowPaymentModal(false); setErrors({}); } }}
                 title="Record Collection"
             >
-                <form onSubmit={handleAddPayment} className="space-y-4">
+                <form onSubmit={handleAddPayment} className="space-y-4" noValidate>
                     <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl mb-4">
                         <div className="flex justify-between items-center mb-1">
                             <p className="text-[10px] font-bold text-amber-600 uppercase">Remaining Balance</p>
@@ -445,14 +461,14 @@ const PolicyDetail: React.FC = () => {
                         <label className="label">Amount Received (₹) *</label>
                         <input 
                             type="number" 
-                            className="input" 
+                            className={`input ${errors.paymentAmount ? 'border-red-500 focus:ring-red-400' : ''}`} 
+                            data-error-field={errors.paymentAmount ? 'true' : undefined}
                             placeholder="e.g. 5000"
-                            required
-                            max={summary.balanceDue}
                             value={paymentAmount}
-                            onChange={(e) => setPaymentAmount(e.target.value)}
+                            onChange={(e) => { setPaymentAmount(e.target.value); setErrors(prev => ({ ...prev, paymentAmount: '' })); }}
                             disabled={isSubmitting}
                         />
+                        {errors.paymentAmount && <p className="text-xs text-red-500 mt-1">{errors.paymentAmount}</p>}
                     </div>
                     <div>
                         <label className="label">Notes / Reference</label>
