@@ -31,6 +31,7 @@ const Leads: React.FC = () => {
         dealerId: '', registrationDate: ''
     };
     const [form, setForm] = useState(initialFormState);
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const [convertForm, setConvertForm] = useState({ address: '', email: '' });
 
     const fetchLeads = useCallback(async (page = 1) => {
@@ -66,14 +67,25 @@ const Leads: React.FC = () => {
         loadInitialData();
     }, [fetchLeads]);
 
+    const validate = () => {
+        const errs: Record<string, string> = {};
+        if (!form.name.trim()) errs.name = 'Name is required';
+        if (!form.phone) errs.phone = 'Phone number is required';
+        else if (!/^[0-9]{10}$/.test(form.phone)) errs.phone = 'Enter a valid 10-digit phone number';
+        if (!form.status) errs.status = 'Please select a status';
+        return errs;
+    };
+
     const openCreate = () => {
         setEditing(null);
         setForm(initialFormState);
+        setErrors({});
         setModalOpen(true);
     };
 
     const openEdit = (lead: any) => {
         setEditing(lead);
+        setErrors({});
         setForm({
             ...initialFormState,
             name: lead.name, phone: lead.phone || '', interestedProduct: lead.interestedProduct || '',
@@ -91,6 +103,12 @@ const Leads: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            return;
+        }
+        setErrors({});
         try {
             // Parse numbers for payload
             const payload = { 
@@ -235,18 +253,38 @@ const Leads: React.FC = () => {
 
             {/* Create/Edit Modal */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Lead' : 'New Lead'}>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div><label className="label">Name *</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                    <div><label className="label">Phone</label><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    <div>
+                        <label className="label">Name *</label>
+                        <input
+                            className={`input ${errors.name ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            placeholder="Enter full name"
+                            value={form.name}
+                            onChange={(e) => { setForm({ ...form, name: e.target.value }); setErrors(prev => ({ ...prev, name: '' })); }}
+                        />
+                        {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+                    </div>
+                    <div>
+                        <label className="label">Phone *</label>
+                        <input
+                            type="tel"
+                            className={`input ${errors.phone ? 'border-red-500 focus:ring-red-400' : ''}`}
+                            placeholder="9876543210"
+                            value={form.phone}
+                            onChange={(e) => { setForm({ ...form, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }); setErrors(prev => ({ ...prev, phone: '' })); }}
+                        />
+                        {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                    </div>
                     <div><label className="label">Interested Product</label><input className="input" value={form.interestedProduct} onChange={(e) => setForm({ ...form, interestedProduct: e.target.value })} /></div>
-                    <div><label className="label">Status</label>
+                    <div>
+                        <label className="label">Status *</label>
                         <SearchableSelect
-                            required
                             options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
-                            onChange={(val) => setForm({ ...form, status: val })}
+                            onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
                         />
+                        {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>

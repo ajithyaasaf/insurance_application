@@ -14,6 +14,12 @@ interface PolicyFormFieldsProps {
 
 const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false }) => {
     const isMotor = form.policyType === 'motor';
+    // Fields are only required when this component is used in the Policy form.
+    // In the Leads form it is an optional quote section (showQuoteHeader = true).
+    const isRequired = !showQuoteHeader;
+    const dateError = form.expiryDate && form.startDate && form.expiryDate <= form.startDate
+        ? 'Expiry date must be after start date'
+        : '';
 
     const handleChange = (field: string, value: any) => {
         if (typeof setForm === 'function') {
@@ -58,7 +64,6 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 <div>
                     <label className="label">Customer *</label>
                     <SearchableSelect
-                        required
                         options={customers.map(c => ({ value: c.id, label: c.name }))}
                         value={form.customerId || ''}
                         onChange={(val) => handleChange('customerId', val)}
@@ -68,9 +73,8 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
             )}
 
             <div>
-                <label className="label">Policy Type *</label>
+                <label className="label">Policy Type {isRequired ? '*' : ''}</label>
                 <SearchableSelect
-                    required
                     disabled={isEditing}
                     options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
                     value={form.policyType || ''}
@@ -98,10 +102,10 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
             </div>
 
             <div>
-                <label className="label">Policy Number *</label>
+                <label className="label">Policy Number {isRequired ? '*' : ''}</label>
                 <input 
                     className="input" 
-                    required 
+                    required={isRequired}
                     value={form.policyNumber || ''} 
                     onChange={(e) => handleChange('policyNumber', e.target.value)} 
                     placeholder="Enter Policy Number"
@@ -132,14 +136,21 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
 
             {isMotor && (
                 <>
-                    <div><label className="label">Vehicle Number</label>
-                        <input className="input" value={form.vehicleNumber || ''} onChange={(e) => handleChange('vehicleNumber', e.target.value)} />
+                    <div><label className="label">Vehicle Number {isRequired ? '*' : ''}</label>
+                        <input
+                            className="input uppercase"
+                            required={isRequired}
+                            placeholder="e.g. TN01AB1234"
+                            title="Enter a valid vehicle registration number"
+                            value={form.vehicleNumber || ''}
+                            onChange={(e) => handleChange('vehicleNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
+                        />
                     </div>
-                    <div><label className="label">Make</label>
-                        <input className="input" value={form.make || ''} onChange={(e) => handleChange('make', e.target.value)} />
+                    <div><label className="label">Make {isRequired ? '*' : ''}</label>
+                        <input className="input" required={isRequired} placeholder="e.g. Maruti" value={form.make || ''} onChange={(e) => handleChange('make', e.target.value)} />
                     </div>
-                    <div><label className="label">Model</label>
-                        <input className="input" value={form.model || ''} onChange={(e) => handleChange('model', e.target.value)} />
+                    <div><label className="label">Model {isRequired ? '*' : ''}</label>
+                        <input className="input" required={isRequired} placeholder="e.g. Swift" value={form.model || ''} onChange={(e) => handleChange('model', e.target.value)} />
                     </div>
                     <div><label className="label">Date of Registration</label>
                         <input type="date" className="input" value={form.registrationDate?.split('T')[0] || ''} onChange={(e) => handleChange('registrationDate', e.target.value)} />
@@ -182,16 +193,25 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 </div>
             )}
 
-            <div><label className="label">Premium Amount *</label>
-                <input type="number" min="0" step="0.01" className="input" required value={form.premiumAmount || ''} onChange={(e) => handleChange('premiumAmount', e.target.value)} />
+            <div><label className="label">Premium Amount {isRequired ? '*' : ''}</label>
+                <input type="number" min="0" step="0.01" className="input" required={isRequired} value={form.premiumAmount || ''} onChange={(e) => handleChange('premiumAmount', e.target.value)} />
             </div>
             
-            <div><label className="label">Start Date *</label>
-                <input type="date" className="input" required value={form.startDate?.split('T')[0] || ''} onChange={(e) => handleChange('startDate', e.target.value)} />
+            <div><label className="label">Start Date {isRequired ? '*' : ''}</label>
+                <input type="date" className="input" required={isRequired} value={form.startDate?.split('T')[0] || ''} onChange={(e) => handleChange('startDate', e.target.value)} />
             </div>
             
-            <div><label className="label">Expiry Date *</label>
-                <input type="date" className="input" required value={form.expiryDate?.split('T')[0] || ''} onChange={(e) => handleChange('expiryDate', e.target.value)} />
+            <div>
+                <label className="label">Expiry Date {isRequired ? '*' : ''}</label>
+                <input
+                    type="date"
+                    className={`input ${dateError ? 'border-red-500 focus:ring-red-400' : ''}`}
+                    required={isRequired}
+                    min={form.startDate || undefined}
+                    value={form.expiryDate?.split('T')[0] || ''}
+                    onChange={(e) => handleChange('expiryDate', e.target.value)}
+                />
+                {dateError && <p className="text-xs text-red-500 mt-1">{dateError}</p>}
             </div>
 
             <div><label className="label">Payment Method</label>
