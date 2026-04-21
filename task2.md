@@ -52,4 +52,12 @@ and perfect now when we create leads and policy lie said when he enter his old c
 
 * in reports page there is active company i dont know what it is for ?
 
-* 
+* in policy creation form is no of years really needed ?
+
+* need to collect DOB for customer and send remainder for them in their Birthday features need to be planed 
+
+* change 
+cvp -> pcv
+ccp -> cpm 
+(need to check in laptop)
+
