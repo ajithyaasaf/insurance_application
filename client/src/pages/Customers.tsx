@@ -17,7 +17,7 @@ const Customers: React.FC = () => {
     const [detailOpen, setDetailOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [detail, setDetail] = useState<any>(null);
-    const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' });
+    const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', dob: '' });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
 
@@ -40,11 +40,17 @@ const Customers: React.FC = () => {
         return errs;
     };
 
-    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', email: '', address: '' }); setErrors({}); setModalOpen(true); };
+    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', email: '', address: '', dob: '' }); setErrors({}); setModalOpen(true); };
 
     const openEdit = (c: any) => {
         setEditing(c);
-        setForm({ name: c.name, phone: c.phone || '', email: c.email || '', address: c.address || '' });
+        setForm({ 
+            name: c.name, 
+            phone: c.phone || '', 
+            email: c.email || '', 
+            address: c.address || '',
+            dob: c.dob ? c.dob.split('T')[0] : ''
+        });
         setErrors({});
         setModalOpen(true);
     };
@@ -189,6 +195,16 @@ const Customers: React.FC = () => {
                             />
                         </div>
                         <div className="sm:col-span-2">
+                            <label className="label">Date of Birth</label>
+                            <input 
+                                type="date" 
+                                className="input" 
+                                value={form.dob} 
+                                onChange={(e) => setForm({ ...form, dob: e.target.value })} 
+                                disabled={submitting}
+                            />
+                        </div>
+                        <div className="sm:col-span-2">
                             <label className="label">Address</label>
                             <textarea 
                                 className="input" 
@@ -217,7 +233,8 @@ const Customers: React.FC = () => {
                             <div><p className="text-xs text-surface-500">Name</p><p className="font-medium">{detail.name}</p></div>
                             <div><p className="text-xs text-surface-500">Phone</p><p className="font-medium">{detail.phone || '—'}</p></div>
                             <div><p className="text-xs text-surface-500">Email</p><p className="font-medium">{detail.email || '—'}</p></div>
-                            <div><p className="text-xs text-surface-500">Address</p><p className="font-medium">{detail.address || '—'}</p></div>
+                            <div><p className="text-xs text-surface-500">Date of Birth</p><p className="font-medium">{detail.dob ? formatDate(detail.dob) : '—'}</p></div>
+                            <div className="col-span-2"><p className="text-xs text-surface-500">Address</p><p className="font-medium">{detail.address || '—'}</p></div>
                         </div>
                         {detail.policies?.length > 0 && (
                             <div>

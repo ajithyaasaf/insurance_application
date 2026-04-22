@@ -7,10 +7,16 @@ interface CreateCustomerInput {
     phone?: string;
     email?: string;
     address?: string;
+    dob?: string | Date | null;
 }
 
 export class CustomerService {
     async create(userId: string, role: string, data: CreateCustomerInput) {
+        // Transform dob to Date
+        if (data.dob && typeof data.dob === 'string') {
+            data.dob = new Date(data.dob);
+        }
+
         // Duplicate phone warning
         if (data.phone) {
             const existing = await prisma.customer.findFirst({
@@ -82,6 +88,12 @@ export class CustomerService {
 
     async update(userId: string, role: string, id: string, data: Partial<CreateCustomerInput>) {
         await this.findById(userId, id);
+
+        // Transform dob to Date
+        if (data.dob && typeof data.dob === 'string') {
+            data.dob = new Date(data.dob);
+        }
+
         return prisma.customer.update({ where: { id }, data: { ...data, updatedBy: role } });
     }
 

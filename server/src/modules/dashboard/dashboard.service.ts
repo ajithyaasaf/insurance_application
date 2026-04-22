@@ -8,24 +8,8 @@ export class DashboardService {
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
-        const [
-            expiringPolicies,
-            expiringPoliciesCount,
-            todayFollowUps,
-            todayFollowUpsCount,
-            pendingPayments,
-            pendingPaymentsCount,
-            overduePayments,
-            overduePaymentsCount,
-            totalCustomers,
-            totalActivePolicies,
-            totalLeads,
-            recentClaims,
-            companyGrouping,
-            todayLeadFollowUps,
-            todayLeadFollowUpsCount
-        ] = await Promise.all([
-            // Policies expiring in next 30 days
+        const results = await Promise.all([
+            // 0: Policies expiring in next 30 days
             prisma.policy.findMany({
                 where: {
                     userId,
@@ -37,6 +21,7 @@ export class DashboardService {
                 orderBy: { expiryDate: 'asc' },
                 take: 10,
             }),
+            // 1: Count of expiring policies
             prisma.policy.count({
                 where: {
                     userId,
@@ -46,7 +31,7 @@ export class DashboardService {
                 } as any,
             }),
 
-            // Today's follow-ups
+            // 2: Today's follow-ups
             prisma.followUp.findMany({
                 where: {
                     userId,
@@ -57,6 +42,7 @@ export class DashboardService {
                 orderBy: { nextFollowUpDate: 'asc' },
                 take: 10,
             }),
+            // 3: Count of follow-ups
             prisma.followUp.count({
                 where: {
                     userId,
@@ -65,16 +51,17 @@ export class DashboardService {
                 },
             }),
 
-            // Pending payments
+            // 4: Pending payments
             prisma.payment.findMany({
                 where: { userId, status: 'pending' },
                 include: { customer: true, policy: true },
                 orderBy: { dueDate: 'asc' },
                 take: 10,
             }),
+            // 5: Count pending payments
             prisma.payment.count({ where: { userId, status: 'pending' } }),
 
-            // Overdue payments
+            // 6: Overdue payments
             prisma.payment.findMany({
                 where: { 
                     userId, 
@@ -85,6 +72,7 @@ export class DashboardService {
                 orderBy: { dueDate: 'asc' },
                 take: 10,
             }),
+            // 7: Count overdue payments
             prisma.payment.count({ 
                 where: { 
                     userId, 
@@ -93,12 +81,14 @@ export class DashboardService {
                 } 
             }),
 
-            // Counts
+            // 8: Total Customers
             prisma.customer.count({ where: { userId, deletedAt: null } }),
+            // 9: Total Active Policies
             prisma.policy.count({ where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any }),
+            // 10: Total Leads
             prisma.lead.count({ where: { userId, deletedAt: null, status: { not: 'converted' } } }),
 
-            // Recent claims
+            // 11: Recent claims
             prisma.claim.findMany({
                 where: { userId },
                 include: { customer: true, policy: true },
@@ -106,7 +96,7 @@ export class DashboardService {
                 take: 5,
             }),
 
-            // Company stats (grouped by company)
+            // 12: Company stats (grouped by company)
             prisma.policy.groupBy({
                 by: ['companyId'],
                 where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any,
@@ -114,7 +104,7 @@ export class DashboardService {
                 _sum: { premiumAmount: true },
             }),
 
-            // Today's lead follow-ups
+            // 13: Today's lead follow-ups
             prisma.lead.findMany({
                 where: {
                     userId,
@@ -124,6 +114,7 @@ export class DashboardService {
                 orderBy: { nextFollowUpDate: 'asc' },
                 take: 10,
             }),
+            // 14: Count lead follow-ups
             prisma.lead.count({
                 where: {
                     userId,
@@ -131,7 +122,43 @@ export class DashboardService {
                     nextFollowUpDate: { gte: todayStart, lt: todayEnd },
                 },
             }),
+
+            // 15: Today's birthdays candidates
+            prisma.customer.findMany({
+                where: {
+                    userId,
+                    deletedAt: null,
+                    dob: { not: null },
+                },
+                select: { id: true, name: true, phone: true, dob: true },
+            }),
         ]);
+
+        const expiringPolicies = results[0] as any[];
+        const expiringPoliciesCount = results[1] as number;
+        const todayFollowUps = results[2] as any[];
+        const todayFollowUpsCount = results[3] as number;
+        const pendingPayments = results[4] as any[];
+        const pendingPaymentsCount = results[5] as number;
+        const overduePayments = results[6] as any[];
+        const overduePaymentsCount = results[7] as number;
+        const totalCustomers = results[8] as number;
+        const totalActivePolicies = results[9] as number;
+        const totalLeads = results[10] as number;
+        const recentClaims = results[11] as any[];
+        const companyGrouping = results[12] as any[];
+        const todayLeadFollowUps = results[13] as any[];
+        const todayLeadFollowUpsCount = results[14] as number;
+        const allBirthdayCandidates = results[15] as any[];
+
+        // Filter birthdays in JS for compatibility across DB engines (sqlite/postgres)
+        const todayMonth = now.getMonth();
+        const todayDay = now.getDate();
+        const todayBirthdays = allBirthdayCandidates.filter(c => {
+            if (!c.dob) return false;
+            const d = new Date(c.dob);
+            return d.getMonth() === todayMonth && d.getDate() === todayDay;
+        });
 
         // Merge and process follow-ups
         const combinedFollowUps = [
@@ -169,6 +196,7 @@ export class DashboardService {
                 todayFollowUpsCount: combinedFollowUpsCount,
                 pendingPaymentsCount,
                 overduePaymentsCount,
+                todayBirthdaysCount: todayBirthdays.length,
             },
             expiringPolicies,
             todayFollowUps: combinedFollowUps,
@@ -176,6 +204,7 @@ export class DashboardService {
             overduePayments,
             recentClaims,
             companyStats,
+            todayBirthdays,
         };
     }
 }

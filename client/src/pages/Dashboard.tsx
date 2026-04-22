@@ -12,7 +12,9 @@ import {
     HiOutlineClock,
     HiOutlineChevronRight,
     HiOutlineOfficeBuilding,
+    HiOutlineCake,
 } from 'react-icons/hi';
+import { FaWhatsapp } from 'react-icons/fa';
 
 interface DashboardData {
     stats: {
@@ -23,6 +25,7 @@ interface DashboardData {
         todayFollowUpsCount: number;
         pendingPaymentsCount: number;
         overduePaymentsCount: number;
+        todayBirthdaysCount?: number;
     };
     expiringPolicies: any[];
     todayFollowUps: any[];
@@ -30,12 +33,20 @@ interface DashboardData {
     overduePayments: any[];
     recentClaims: any[];
     companyStats: any[];
+    todayBirthdays?: any[];
 }
 
 const Dashboard: React.FC = () => {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const handleWhatsAppWish = (customer: any) => {
+        const phone = customer.phone?.replace(/\D/g, '');
+        if (!phone) return;
+        const message = encodeURIComponent(`Hi ${customer.name}, Happy Birthday! Wishing you a wonderful day ahead. Warm regards, InsureCRM Team.`);
+        window.open(`https://wa.me/91${phone}?text=${message}`, '_blank');
+    };
 
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -69,6 +80,7 @@ const Dashboard: React.FC = () => {
         { label: "Today's Follow-ups", value: data.stats.todayFollowUpsCount, icon: HiOutlinePhone, color: 'text-cyan-600 bg-cyan-50' },
         { label: 'Pending Payments', value: data.stats.pendingPaymentsCount, icon: HiOutlineCreditCard, color: 'text-orange-600 bg-orange-50' },
         { label: 'Overdue Payments', value: data.stats.overduePaymentsCount, icon: HiOutlineExclamation, color: 'text-red-600 bg-red-50' },
+        { label: "Today's Birthdays", value: data.stats.todayBirthdaysCount || 0, icon: HiOutlineCake, color: 'text-pink-600 bg-pink-50' },
     ];
 
     return (
@@ -227,6 +239,42 @@ const Dashboard: React.FC = () => {
                                         <p className="text-xs text-red-500">Due: {formatDate(payment.dueDate)}</p>
                                     </div>
                                     <p className="text-sm font-semibold text-red-600">{formatCurrency(payment.amount)}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Today's Birthdays */}
+                <div className="card lg:col-span-2">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
+                        <div className="flex items-center gap-2">
+                            <HiOutlineCake className="w-5 h-5 text-pink-500" />
+                            <h2 className="font-semibold text-surface-900">Today's Birthdays</h2>
+                        </div>
+                    </div>
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
+                        {!data.todayBirthdays || data.todayBirthdays.length === 0 ? (
+                            <div className="px-5 py-8 text-center">
+                                <p className="text-sm text-surface-400">No birthdays today</p>
+                            </div>
+                        ) : (
+                            data.todayBirthdays.map((customer: any) => (
+                                <div key={customer.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-surface-900 truncate">{customer.name}</p>
+                                        <p className="text-xs text-surface-500">
+                                            {customer.phone || 'No phone number'}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => handleWhatsAppWish(customer)}
+                                        disabled={!customer.phone}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <FaWhatsapp className="w-3.5 h-3.5" />
+                                        Wish on WhatsApp
+                                    </button>
                                 </div>
                             ))
                         )}
