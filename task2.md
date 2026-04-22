@@ -4,7 +4,7 @@ need to solved
 
 
 *need to chart view in reports page
-*in leads page open lead word is not understandable
+*in leads page open lead word is not understandable(completed)
 *need whats app integration but plan well for this (whover get expired in 3 days)
 *when creating policy my client need to mention fresh or renewal in the new policy form itself becuase in this application we are gogint o enter old customers 
 *in reports also Fresh are renewal stats should be needed to see fresh how many and renewal how many like that 
