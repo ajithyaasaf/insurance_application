@@ -14,10 +14,10 @@ need to solved
 * in the reports page filters in every tab in every filtered deatures need to be check to make sure is that actually filtered out or not 
 * since we removed active expiry in the policy creation form we need to know how it handled when we download reports in the reports page 
 * in reports page pdf is not optimized
-* in payment page when we create payment we selct customer and policy need to fetch premium amount in the amount field not editable 
+* in payment page when we create payment we selct customer and policy need to fetch premium amount in the amount field not editable (completed)
 
-* in the leads creation form we have quote part you can see in the form whe creating in that part all show as mandotory is that really mandatory?
-* since we have dat of registration in the policy creation form we dont need model field
+* in the leads creation form we have quote part you can see in the form whe creating in that part all show as mandotory is that really mandatory?(completed)
+* since we have dat of registration in the policy creation form we dont need model field(need to be discussed with client becuase it is okay for wtite model like activa, swift like that )
 
 * another thisn it may need in both lead creation forma nd policy creation form since it both used shared field i think you understand it is because
 now after this application launch my cleint will enterhis existing customer previous year cutomer whos insurance is still active in that time currenntly we handle NCB as yes if no claims which is working good 
@@ -32,14 +32,14 @@ and perfect now when we create leads and policy lie said when he enter his old c
 * in payment page can we maintain two different payment ? like current one have the feature of track payment of one specific policy payment can we implement some random payments?
 
 * in payment page based on policy no or vehicle number filter out needed also
- when we create payment we have the option now seelct based on customer and his policy is success fully fetched client also like to include based on vehicle number and policy no based fetching because he said some time in same name may be multiple clients
+ when we create payment we have the option now seelct based on customer and his policy is success fully fetched client also like to include based on vehicle number and policy no based fetching because he said some time in same name may be multiple clients(completed)
 
 
 * in reports page there is active company i dont know what it is for ?
 
 * in policy creation form is no of years really needed ?
 
-* need to collect DOB for customer and send remainder for them in their Birthday features need to be planed 
+* need to collect DOB for customer and send remainder for them in their Birthday features need to be planed (completed)
 
 * change 
 cvp -> pcv
