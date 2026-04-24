@@ -101,7 +101,7 @@ export class DashboardService {
                 by: ['companyId'],
                 where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any,
                 _count: { _all: true },
-                _sum: { premiumAmount: true },
+                _sum: { premiumAmount: true, totalPremium: true },
             }),
 
             // 13: Today's lead follow-ups
@@ -183,7 +183,7 @@ export class DashboardService {
                 companyId: s.companyId,
                 companyName: company?.name || 'Unknown',
                 count: s._count._all,
-                totalPremium: s._sum.premiumAmount || 0,
+                totalPremium: s._sum.totalPremium || s._sum.premiumAmount || 0,
             };
         });
 

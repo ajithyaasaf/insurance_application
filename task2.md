@@ -15,7 +15,7 @@ need to solved
 * since we removed active expiry in the policy creation form we need to know how it handled when we download reports in the reports page 
 * in reports page pdf is not optimized
 * in payment page when we create payment we selct customer and policy need to fetch premium amount in the amount field not editable 
-* in payment page based on policy no or vehicle number filter out needed
+
 * in the leads creation form we have quote part you can see in the form whe creating in that part all show as mandotory is that really mandatory?
 * since we have dat of registration in the policy creation form we dont need model field
 
@@ -31,7 +31,8 @@ and perfect now when we create leads and policy lie said when he enter his old c
 
 * in payment page can we maintain two different payment ? like current one have the feature of track payment of one specific policy payment can we implement some random payments?
 
-* when we create payment we have the option now seelct based on customer and his policy is success fully fetched client also like to include based on vehicle number and policy no based fetching because he said some time in same name may be multiple clients
+* in payment page based on policy no or vehicle number filter out needed also
+ when we create payment we have the option now seelct based on customer and his policy is success fully fetched client also like to include based on vehicle number and policy no based fetching because he said some time in same name may be multiple clients
 
 
 * in reports page there is active company i dont know what it is for ?

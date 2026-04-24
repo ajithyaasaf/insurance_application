@@ -28,9 +28,10 @@ export class PaymentService {
                 _sum: { amount: true },
             });
             const totalExistingAmount = existingPayments._sum.amount || 0;
-            if (totalExistingAmount + data.amount > policy.premiumAmount + 0.01) {
+            const fullPremium = policy.totalPremium || policy.premiumAmount;
+            if (totalExistingAmount + data.amount > fullPremium + 0.01) {
                 throw Object.assign(
-                    new Error(`Total payment schedule cannot exceed policy premium (${policy.premiumAmount})`),
+                    new Error(`Total payment schedule cannot exceed the premium (${fullPremium})`),
                     { statusCode: 400 }
                 );
             }
@@ -77,6 +78,8 @@ export class PaymentService {
         dateFrom?: string,
         dateTo?: string,
         dealerId?: string,
+        policyNumber?: string,
+        vehicleNumber?: string,
     ) {
         const todayIST = getStartOfTodayIST();
 
@@ -105,8 +108,14 @@ export class PaymentService {
             ...(status && status !== 'overdue' && status !== 'pending' && { status: status as any }),
             ...(Object.keys(dueDateFilter).length > 0 && { dueDate: dueDateFilter }),
             ...(dealerId && { policy: { dealerId } }),
+            ...(policyNumber && { policy: { policyNumber: { contains: policyNumber, mode: 'insensitive' } } }),
+            ...(vehicleNumber && { policy: { vehicleNumber: { contains: vehicleNumber, mode: 'insensitive' } } }),
             ...(search && {
-                customer: { name: { contains: search, mode: 'insensitive' }, deletedAt: null },
+                OR: [
+                    { customer: { name: { contains: search, mode: 'insensitive' }, deletedAt: null } },
+                    { policy: { policyNumber: { contains: search, mode: 'insensitive' }, deletedAt: null } },
+                    { policy: { vehicleNumber: { contains: search, mode: 'insensitive' }, deletedAt: null } },
+                ],
             }),
         };
 
@@ -145,14 +154,16 @@ export class PaymentService {
 
             // 2. Atomic validation for amount changes
             const currentAmount = data.amount !== undefined ? data.amount : payment.amount;
+            const fullPremium = payment.policy.totalPremium || payment.policy.premiumAmount; // Corrected Fallback
+
             if (data.amount !== undefined && data.amount !== payment.amount) {
                 const existingPayments = await tx.payment.aggregate({
                     where: { policyId: payment.policyId, id: { not: id } },
                     _sum: { amount: true }
                 });
                 const totalExistingAmount = existingPayments._sum.amount || 0;
-                if (totalExistingAmount + data.amount > payment.policy.premiumAmount + 0.01) {
-                    throw Object.assign(new Error(`Total payment schedule cannot exceed policy premium (${payment.policy.premiumAmount})`), { statusCode: 400 });
+                if (totalExistingAmount + data.amount > fullPremium + 0.01) {
+                    throw Object.assign(new Error(`Total payment schedule cannot exceed the premium (${fullPremium})`), { statusCode: 400 });
                 }
             }
 

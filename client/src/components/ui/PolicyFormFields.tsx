@@ -26,9 +26,25 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
         if (typeof setForm === 'function') {
             setForm((prev: any) => {
                 const updated = { ...prev, [field]: value };
-                if (field === 'premiumAmount') {
-                    updated.totalPremium = value;
+                
+                // --- Smart Auto-Calculation Logic ---
+                if (field === 'od' || field === 'tp' || field === 'tax' || field === 'premiumAmount') {
+                    const od = parseFloat(field === 'od' ? value : prev.od) || 0;
+                    const tp = parseFloat(field === 'tp' ? value : prev.tp) || 0;
+                    const tax = parseFloat(field === 'tax' ? value : prev.tax) || 0;
+                    
+                    // 1. Calculate Net Premium (OD + TP) if either OD or TP was the trigger
+                    if (field === 'od' || field === 'tp') {
+                        updated.premiumAmount = (od + tp).toString();
+                    }
+                    
+                    // 2. Calculate Total Premium (Net + Tax) if any part changed
+                    const net = parseFloat(updated.premiumAmount || prev.premiumAmount) || 0;
+                    if (field === 'od' || field === 'tp' || field === 'tax' || field === 'premiumAmount') {
+                        updated.totalPremium = (net + tax).toString();
+                    }
                 }
+                
                 return updated;
             });
         }
@@ -43,7 +59,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
             policyType: val,
             ...(val !== 'motor' ? {
                 vehicleNumber: '', make: '', model: '', vehicleClass: '',
-                idv: '', od: '', tp: '', tax: '', totalPremium: '', registrationDate: ''
+                idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: '', registrationDate: ''
             } : {
                 productName: '',
                 sumInsured: ''
@@ -67,7 +83,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 <div>
                     <label className="label">Customer *</label>
                     <SearchableSelect
-                        options={customers.map(c => ({ value: c.id, label: c.name }))}
+                        options={customers.map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` }))}
                         value={form.customerId || ''}
                         onChange={(val) => handleChange('customerId', val)}
                         placeholder="Select Customer"
@@ -203,9 +219,14 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 </div>
             )}
 
-            <div><label className="label">Premium Amount {isRequired ? '*' : ''}</label>
+            <div><label className="label">Net Premium (OD + TP) {isRequired ? '*' : ''}</label>
                 <input type="number" min="0" step="0.01" className={`input ${errors.premiumAmount ? 'border-red-500 focus:ring-red-400' : ''}`} data-error-field={errors.premiumAmount ? 'true' : undefined} value={form.premiumAmount || ''} onChange={(e) => handleChange('premiumAmount', e.target.value)} />
                 {errors.premiumAmount && <p className="text-xs text-red-500 mt-1">{errors.premiumAmount}</p>}
+            </div>
+
+            <div><label className="label">Total Premium (Net + Tax) {isRequired ? '*' : ''}</label>
+                <input type="number" min="0" step="0.01" className={`input ${errors.totalPremium ? 'border-red-500 focus:ring-red-400' : ''}`} data-error-field={errors.totalPremium ? 'true' : undefined} value={form.totalPremium || ''} onChange={(e) => handleChange('totalPremium', e.target.value)} />
+                {errors.totalPremium && <p className="text-xs text-red-500 mt-1">{errors.totalPremium}</p>}
             </div>
             
             <div><label className="label">Start Date {isRequired ? '*' : ''}</label>
@@ -241,7 +262,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     <input 
                         type="number" 
                         min="0" 
-                        max={form.premiumAmount} 
+                        max={parseFloat(form.totalPremium || form.premiumAmount) || 0} 
                         step="0.01" 
                         className="input" 
                         placeholder="Leave empty if pending"

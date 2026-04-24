@@ -626,7 +626,7 @@ const Commissions: React.FC = () => {
                                                     <th>Class</th>
                                                     <th className="text-right">OD</th>
                                                     <th className="text-right">TP</th>
-                                                    <th className="text-right">Premium</th>
+                                                    <th className="text-right">Net Premium</th>
                                                     <th>Policy Start</th>
                                                     <th>Policy End</th>
                                                     <th className="text-right">OD Comm.</th>
@@ -875,7 +875,7 @@ const Commissions: React.FC = () => {
                         <div className="table-container">
                             <table className="table">
                                 <thead>
-                                    <tr><th>Vehicle</th><th>Make</th><th>Model</th><th>OD</th><th>TP</th><th>Premium</th><th>OD Comm.</th><th>TP Comm.</th></tr>
+                                    <tr><th>Vehicle</th><th>Make</th><th>Model</th><th>OD</th><th>TP</th><th>Net Premium</th><th>OD Comm.</th><th>TP Comm.</th></tr>
                                 </thead>
                                 <tbody>
                                     {detailModal.commissionPolicies?.map((p: any) => (

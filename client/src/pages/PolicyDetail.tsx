@@ -209,39 +209,41 @@ const PolicyDetail: React.FC = () => {
                             </div>
                         )}
 
-                        {policy.policyType === 'motor' && (policy.idv || policy.od || policy.tp || policy.tax || policy.totalPremium) && (
-                            <div className="pt-4 border-t border-surface-100 grid grid-cols-2 sm:grid-cols-5 gap-4">
-                                {policy.idv && <div>
+                        {/* Premium Breakdown Section */}
+                        <div className="pt-4 border-t border-surface-100">
+                            <h3 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-3">Premium Breakdown</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                {policy.idv > 0 && <div>
                                     <p className="text-xs text-surface-500 mb-1">IDV</p>
                                     <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.idv)}</p>
                                 </div>}
-                                {policy.od && <div>
+                                {policy.od > 0 && <div>
                                     <p className="text-xs text-surface-500 mb-1">OD Premium</p>
                                     <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.od)}</p>
                                 </div>}
-                                {policy.tp && <div>
+                                {policy.tp > 0 && <div>
                                     <p className="text-xs text-surface-500 mb-1">TP Premium</p>
                                     <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.tp)}</p>
                                 </div>}
-                                {policy.tax && <div>
-                                    <p className="text-xs text-surface-500 mb-1">Tax</p>
+                                {policy.tax > 0 && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Tax (GST)</p>
                                     <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.tax)}</p>
                                 </div>}
-                                {policy.totalPremium && <div>
-                                    <p className="text-xs text-surface-500 mb-1">Total Computed</p>
-                                    <p className="text-sm font-bold text-surface-900">{formatCurrency(policy.totalPremium)}</p>
-                                </div>}
+                                <div>
+                                    <p className="text-xs text-surface-500 mb-1">Payment Method</p>
+                                    <p className="text-sm font-medium text-surface-900 capitalize">{policy.paymentMethod || 'Not set'}</p>
+                                </div>
                             </div>
-                        )}
+                        </div>
 
                         <div className="pt-6 border-t border-surface-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
                             <div>
-                                <p className="text-xs text-surface-500 mb-1">Premium</p>
+                                <p className="text-xs text-surface-500 mb-1">Net Premium</p>
                                 <p className="text-base font-bold text-surface-900">{formatCurrency(policy.premiumAmount)}</p>
                             </div>
                             <div>
-                                <p className="text-xs text-surface-500 mb-1">Status</p>
-                                <p className="text-sm font-medium text-surface-900 capitalize">{policy.status}</p>
+                                <p className="text-xs text-surface-500 mb-1">Total Premium</p>
+                                <p className="text-lg font-black text-primary-600">{formatCurrency(policy.totalPremium || policy.premiumAmount)}</p>
                             </div>
                             <div>
                                 <p className="text-xs text-surface-500 mb-1">Start Date</p>

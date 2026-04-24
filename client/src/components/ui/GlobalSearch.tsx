@@ -121,9 +121,13 @@ const GlobalSearch: React.FC = () => {
                                         className="w-full flex items-center gap-3 px-3 py-2 hover:bg-surface-50 rounded-lg transition-colors text-left"
                                     >
                                         <HiOutlineDocumentText className="w-4 h-4 text-emerald-500" />
-                                        <div>
+                                        <div className="flex-1">
                                             <p className="text-sm font-medium text-surface-900">{p.customer?.name}</p>
-                                            <p className="text-xs text-surface-500">{p.vehicleNumber || p.policyNumber}</p>
+                                            <p className="text-[10px] text-surface-500">{p.vehicleNumber || p.policyNumber}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-bold text-primary-600">₹{(p.totalPremium || p.premiumAmount || 0).toLocaleString('en-IN')}</p>
+                                            <p className="text-[9px] text-surface-400 capitalize">{p.status}</p>
                                         </div>
                                     </button>
                                 ))}

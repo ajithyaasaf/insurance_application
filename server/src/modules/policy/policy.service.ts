@@ -42,6 +42,14 @@ export class PolicyService {
             throw Object.assign(new Error('Expiry date must be after the start date'), { statusCode: 400 });
         }
 
+        // --- Smart Premium Pre-calculation ---
+        if (!data.premiumAmount && (data.od || data.tp)) {
+            data.premiumAmount = (data.od || 0) + (data.tp || 0);
+        }
+        if (!data.totalPremium && (data.premiumAmount || data.tax)) {
+            data.totalPremium = (data.premiumAmount || 0) + (data.tax || 0);
+        }
+
         // Status is always forced to 'active' on creation — the system handles expiry automatically
 
         // Validate: Vehicle number required for motor policies
@@ -94,10 +102,10 @@ export class PolicyService {
             });
 
             const paidAmount = data.paidAmount || 0;
-            const fullPremium = policy.premiumAmount;
+            const fullPremium = policy.totalPremium || policy.premiumAmount; // Smart fallback: uses total if provided, else base premium
 
             if (paidAmount > fullPremium + 0.01) {
-                throw Object.assign(new Error(`Paid amount (${paidAmount}) cannot exceed total premium (${fullPremium})`), { statusCode: 400 });
+                throw Object.assign(new Error(`Paid amount (${paidAmount}) cannot exceed the premium (${fullPremium})`), { statusCode: 400 });
             }
 
             if (paidAmount >= fullPremium - 0.01 && fullPremium > 0) {
@@ -230,11 +238,12 @@ export class PolicyService {
         if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
         
         // Calculate financial summary
+        const effectivePremium = policy.totalPremium || policy.premiumAmount;
         const totalPaid = policy.payments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
         const paymentSummary = {
-            totalPremium: policy.premiumAmount,
+            totalPremium: effectivePremium,
             totalPaid,
-            balanceDue: Math.max(0, policy.premiumAmount - totalPaid)
+            balanceDue: Math.max(0, effectivePremium - totalPaid)
         };
 
         const hasNCB = policy.claims.filter(c => c.status !== 'REJECTED').length === 0;
@@ -243,6 +252,18 @@ export class PolicyService {
 
     async update(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
         const policy = await this.findById(userId, id);
+
+        // --- Smart Premium Pre-calculation ---
+        const od = data.od !== undefined ? data.od : policy.od;
+        const tp = data.tp !== undefined ? data.tp : policy.tp;
+        const tax = data.tax !== undefined ? data.tax : policy.tax;
+
+        if (data.premiumAmount === undefined && (data.od !== undefined || data.tp !== undefined)) {
+            data.premiumAmount = (od || 0) + (tp || 0);
+        }
+        if (data.totalPremium === undefined && (data.premiumAmount !== undefined || data.tax !== undefined)) {
+            data.totalPremium = (data.premiumAmount || policy.premiumAmount || 0) + (tax || 0);
+        }
 
         // 1. Date Validation: Expiry must be after Start
         const newStart = data.startDate ? new Date(data.startDate) : policy.startDate;
@@ -302,16 +323,28 @@ export class PolicyService {
                 include: { customer: true, company: true, dealer: true },
             });
 
-            // IF premiumAmount changed, sync the 'pending' payment
-            if (data.premiumAmount !== undefined && data.premiumAmount !== policy.premiumAmount) {
+            // IF premiumAmount or totalPremium changed, adjust the 'pending' payment placeholder
+            const oldEffective = policy.totalPremium || policy.premiumAmount;
+            const newEffective = updatedPolicy.totalPremium || updatedPolicy.premiumAmount;
+
+            if (newEffective !== oldEffective) {
+                // 1. Calculate how much has already been paid across all non-pending records
+                const collections = await tx.payment.aggregate({
+                    where: { policyId: id, userId, status: { not: 'pending' } },
+                    _sum: { paidAmount: true }
+                });
+                const totalCollected = collections._sum.paidAmount || 0;
+                const newBalance = Math.max(0, newEffective - totalCollected);
+
+                // 2. Update the pending placeholder to the new balance
                 await tx.payment.updateMany({
                     where: {
                         policyId: id,
                         userId,
-                        status: 'pending' // Only sync if it hasn't been paid yet
+                        status: 'pending'
                     },
                     data: {
-                        amount: data.premiumAmount
+                        amount: newBalance
                     }
                 });
             }
@@ -346,6 +379,18 @@ export class PolicyService {
     // Renewal = create a new policy linked via parentPolicyId using $transaction
     async renew(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
         const originalPolicy = await this.findById(userId, id);
+
+        // --- Smart Premium Pre-calculation for Renewal ---
+        const od = data.od !== undefined ? data.od : originalPolicy.od;
+        const tp = data.tp !== undefined ? data.tp : originalPolicy.tp;
+        const tax = data.tax !== undefined ? data.tax : originalPolicy.tax;
+
+        if (data.premiumAmount === undefined && (data.od !== undefined || data.tp !== undefined)) {
+            data.premiumAmount = (Number(od) || 0) + (Number(tp) || 0);
+        }
+        if (data.totalPremium === undefined && (data.premiumAmount !== undefined || data.tax !== undefined)) {
+            data.totalPremium = (data.premiumAmount || originalPolicy.premiumAmount || 0) + (Number(tax) || 0);
+        }
 
         // Date validation: same rule as create/update — expiry must be strictly after start
         const newStart = data.startDate ? new Date(data.startDate) : new Date(originalPolicy.expiryDate);
@@ -401,10 +446,10 @@ export class PolicyService {
 
             // 3. Derive payment status and split records if needed
             const paidAmount = data.paidAmount || 0;
-            const fullPremium = renewedPolicy.premiumAmount;
+            const fullPremium = renewedPolicy.totalPremium || renewedPolicy.premiumAmount; // Smart fallback for renewal
 
             if (paidAmount > fullPremium + 0.01) {
-                throw Object.assign(new Error(`Paid amount (${paidAmount}) cannot exceed total premium (${fullPremium})`), { statusCode: 400 });
+                throw Object.assign(new Error(`Paid amount (${paidAmount}) cannot exceed the premium (${fullPremium})`), { statusCode: 400 });
             }
 
             if (paidAmount >= fullPremium - 0.01 && fullPremium > 0) {

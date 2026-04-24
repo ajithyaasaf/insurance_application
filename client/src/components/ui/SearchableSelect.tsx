@@ -39,7 +39,11 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         : (allLabel || placeholder);
 
     const filtered = search.trim()
-        ? options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()))
+        ? options.filter(o => {
+            const label = o.label.toLowerCase();
+            const searchWords = search.toLowerCase().split(' ').filter(word => word.length > 0);
+            return searchWords.every(word => label.includes(word));
+        })
         : options;
 
     const displayList = allLabel 
@@ -123,7 +127,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         setSearch('');
     };
 
-    const showCount = options.length > 8;
+    const showCount = options.length > 0;
 
     return (
         <div ref={containerRef} className={`relative ${className}`} onKeyDown={handleKeyDown}>
@@ -148,9 +152,12 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 aria-haspopup="listbox"
                 aria-expanded={open}
             >
-                <span className={`truncate ${!value && !allLabel ? 'text-surface-400' : ''}`}>
-                    {selectedLabel}
-                </span>
+                <div className="flex items-center gap-2 truncate">
+                    <HiSearch className="w-3.5 h-3.5 text-surface-400 flex-shrink-0" />
+                    <span className={`truncate ${!value && !allLabel ? 'text-surface-400' : ''}`}>
+                        {selectedLabel}
+                    </span>
+                </div>
 
                 {/* Hidden input for native form validation */}
                 <input
@@ -177,27 +184,25 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     animate-in fade-in slide-in-from-top-1 duration-150
                     overflow-hidden
                 ">
-                    {/* Search box — only shown when there are enough options to warrant it */}
-                    {options.length > 6 && (
-                        <div className="p-2 border-b border-surface-100">
-                            <div className="flex items-center gap-2 px-2 py-1.5 bg-surface-50 rounded-lg">
-                                <HiSearch className="w-3.5 h-3.5 text-surface-400 flex-shrink-0" />
-                                <input
-                                    ref={searchRef}
-                                    type="text"
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                    placeholder={`Search ${options.length} options...`}
-                                    className="flex-1 bg-transparent text-sm text-surface-700 placeholder-surface-400 outline-none min-w-0"
-                                />
-                                {search && (
-                                    <button onClick={() => setSearch('')} className="text-surface-400 hover:text-surface-600">
-                                        <HiX className="w-3 h-3" />
-                                    </button>
-                                )}
-                            </div>
+                    {/* Search box — Always shown for searchable fields */}
+                    <div className="p-2 border-b border-surface-100">
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-surface-50 rounded-lg">
+                            <HiSearch className="w-3.5 h-3.5 text-surface-400 flex-shrink-0" />
+                            <input
+                                ref={searchRef}
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Start typing to search..."
+                                className="flex-1 bg-transparent text-sm text-surface-700 placeholder-surface-400 outline-none min-w-0"
+                            />
+                            {search && (
+                                <button onClick={() => setSearch('')} className="text-surface-400 hover:text-surface-600">
+                                    <HiX className="w-3 h-3" />
+                                </button>
+                            )}
                         </div>
-                    )}
+                    </div>
 
                     {/* Options list */}
                     <ul

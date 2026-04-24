@@ -43,11 +43,10 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'customerName', label: 'Customer' },
         { key: 'customerPhone', label: 'Phone' },
         { key: 'companyName', label: 'Company' },
-        { key: 'dealerName', label: 'Dealer' },
         { key: 'policyType', label: 'Type' },
         { key: 'vehicleNumber', label: 'Vehicle #' },
-        { key: 'vehicleClass', label: 'Vehicle Class' },
-        { key: 'premiumAmount', label: 'Premium (₹)' },
+        { key: 'premiumAmount', label: 'Net Premium (₹)' },
+        { key: 'tax', label: 'Tax (₹)' },
         { key: 'totalPremium', label: 'Total Premium (₹)' },
         { key: 'startDate', label: 'Start Date' },
         { key: 'expiryDate', label: 'Expiry Date' },
@@ -223,6 +222,7 @@ export class ReportService {
             vehicleNumber: r.vehicleNumber || '—',
             vehicleClass: r.vehicleClass || '—',
             premiumAmount: r.premiumAmount,
+            tax: r.tax || 0,
             totalPremium: r.totalPremium || r.premiumAmount,
             sumInsured: r.policyType === 'motor' ? (r.idv || 0) : (r.sumInsured || 0),
             startDate: fmtDate(r.startDate),
@@ -311,7 +311,7 @@ export class ReportService {
             email: r.email || '—',
             address: r.address || '—',
             totalPolicies: r.policies?.length || 0,
-            totalPremium: r.policies?.reduce((s: number, p: any) => s + (p.premiumAmount || 0), 0) || 0,
+            totalPremium: r.policies?.reduce((s: number, p: any) => s + (p.totalPremium || p.premiumAmount || 0), 0) || 0,
             createdAt: fmtDate(r.createdAt),
         }));
 
@@ -691,11 +691,12 @@ export class ReportService {
             // Period premium total
             prisma.policy.aggregate({
                 where: kpiWhere,
-                _sum: { premiumAmount: true },
+                _sum: { premiumAmount: true, totalPremium: true },
             }),
         ]);
 
         const [renewedCount, expiredCount] = renewalStats;
+        const totalRev = (periodPremium as any)?._sum?.totalPremium || (periodPremium as any)?._sum?.premiumAmount || 0;
 
         return {
             companyPerformance,
@@ -714,7 +715,7 @@ export class ReportService {
             periodLabel: (filters?.dateFrom || filters?.dateTo) ? 'Selected Period' : 'This Month',
             thisMonth: {
                 policiesAdded: periodCount,
-                totalPremium: (periodPremium as any)?._sum?.premiumAmount || 0,
+                totalPremium: totalRev,
             },
         };
     }

@@ -55,9 +55,9 @@ const Payments: React.FC = () => {
         const loadDropdowns = async () => {
             try {
                 const [custRes, polRes, dlrRes] = await Promise.all([
-                    api.get('/customers?limit=100'),
-                    api.get('/policies?limit=100'),
-                    api.get('/dealers?limit=100')
+                    api.get('/customers?limit=1000'),
+                    api.get('/policies?limit=1000'),
+                    api.get('/dealers?limit=1000')
                 ]);
                 setCustomers(custRes.data.data);
                 setPolicies(polRes.data.data);
@@ -141,7 +141,7 @@ const Payments: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
                 <div className="relative flex-1 min-w-[160px]">
                     <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input className="input pl-10" placeholder="Search by customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <input className="input pl-10" placeholder="Search by customer, policy or vehicle..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
                 <SearchableSelect
                     className="w-full sm:w-40"
@@ -272,9 +272,18 @@ const Payments: React.FC = () => {
                             <div>
                                 <label className="label">Customer *</label>
                                 <SearchableSelect
-                                    options={customers.map(c => ({ value: c.id, label: c.name }))}
+                                    options={customers.map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` }))}
                                     value={form.customerId}
-                                    onChange={(val) => { setForm({ ...form, customerId: val }); setErrors(prev => ({ ...prev, customerId: '' })); }}
+                                    onChange={(val) => { 
+                                        const selectedPolicy = policies.find(p => p.id === form.policyId);
+                                        const policyBelongsToNewCustomer = selectedPolicy && selectedPolicy.customerId === val;
+                                        setForm({ 
+                                            ...form, 
+                                            customerId: val,
+                                            policyId: policyBelongsToNewCustomer ? form.policyId : '' 
+                                        }); 
+                                        setErrors(prev => ({ ...prev, customerId: '', policyId: '' })); 
+                                    }}
                                     placeholder="Select Customer"
                                 />
                                 {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
@@ -284,25 +293,37 @@ const Payments: React.FC = () => {
                                 <SearchableSelect
                                     options={policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => ({
                                         value: p.id,
-                                        label: `${p.productName || p.policyType} ${p.vehicleNumber ? `(${p.vehicleNumber})` : ''} - ${p.customer?.name}`
+                                        label: `${p.policyNumber ? p.policyNumber + ' - ' : ''}${p.vehicleNumber ? p.vehicleNumber + ' - ' : ''}${p.customer?.name || ''}${p.customer?.phone ? ` (${p.customer.phone})` : ''} (${p.productName || p.policyType})`
                                     }))}
                                     value={form.policyId}
-                                    onChange={(val) => { setForm({ ...form, policyId: val }); setErrors(prev => ({ ...prev, policyId: '' })); }}
-                                    placeholder="Select Policy"
+                                    onChange={(val) => { 
+                                        const selectedPolicy = policies.find(p => p.id === val);
+                                        setForm({ 
+                                            ...form, 
+                                            policyId: val,
+                                            customerId: selectedPolicy ? selectedPolicy.customerId : form.customerId,
+                                            amount: selectedPolicy ? (selectedPolicy.totalPremium || selectedPolicy.premiumAmount).toString() : form.amount,
+                                            dueDate: selectedPolicy ? selectedPolicy.startDate.split('T')[0] : form.dueDate
+                                        }); 
+                                        setErrors(prev => ({ ...prev, policyId: '', customerId: '', amount: '', dueDate: '' })); 
+                                    }}
+                                    placeholder="Search by Policy #, Vehicle # or Name"
                                 />
                                 {errors.policyId && <p className="text-xs text-red-500 mt-1">{errors.policyId}</p>}
                             </div>
                         </>
                     )}
                     <div>
-                        <label className="label">Amount *</label>
+                        <label className="label">Payment Amount *</label>
                         <input
                             type="number" min="0" step="0.01"
                             className={`input ${errors.amount ? 'border-red-500 focus:ring-red-400' : ''}`}
                             data-error-field={errors.amount ? 'true' : undefined}
                             value={form.amount}
                             onChange={(e) => { setForm({ ...form, amount: e.target.value }); setErrors(prev => ({ ...prev, amount: '' })); }}
+                            placeholder="Enter amount"
                         />
+                        <p className="text-[10px] text-surface-400 mt-1 italic">Auto-filled from Total Premium when policy is selected.</p>
                         {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount}</p>}
                     </div>
                     <div>

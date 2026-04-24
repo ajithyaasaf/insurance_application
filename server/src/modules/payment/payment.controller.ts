@@ -12,8 +12,19 @@ export class PaymentController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { page, limit, status, search, dateFrom, dateTo, dealerId } = req.query as any;
-            const result = await paymentService.findAll(req.user!.userId, +page || 1, +limit || 20, status, search, dateFrom, dateTo, dealerId);
+            const { page, limit, status, search, dateFrom, dateTo, dealerId, policyNumber, vehicleNumber } = req.query as any;
+            const result = await paymentService.findAll(
+                req.user!.userId, 
+                +page || 1, 
+                +limit || 20, 
+                status, 
+                search, 
+                dateFrom, 
+                dateTo, 
+                dealerId,
+                policyNumber,
+                vehicleNumber
+            );
             sendSuccess({ res, statusCode: 200, message: 'Payments fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }

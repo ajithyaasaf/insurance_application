@@ -219,13 +219,24 @@ export class LeadService {
 
             // 3. Auto-create Policy and initial Payment if quote data exists
             if (lead.policyType && lead.premiumAmount !== null && lead.startDate && lead.expiryDate && lead.companyId) {
+                // --- Smart Premium Pre-calculation for Conversion ---
+                let finalNet = lead.premiumAmount!;
+                let finalTotal = lead.totalPremium;
+                
+                if (!finalNet && (lead.od || lead.tp)) {
+                    finalNet = (Number(lead.od) || 0) + (Number(lead.tp) || 0);
+                }
+                if (!finalTotal && (finalNet || lead.tax)) {
+                    finalTotal = (finalNet || 0) + (Number(lead.tax) || 0);
+                }
+
                 const policy = await tx.policy.create({
                     data: {
                         userId,
                         customerId: customer.id,
                         companyId: lead.companyId,
                         policyType: lead.policyType,
-                        premiumAmount: lead.premiumAmount!,
+                        premiumAmount: finalNet,
                         startDate: lead.startDate,
                         expiryDate: lead.expiryDate,
                         
@@ -234,11 +245,12 @@ export class LeadService {
                         make: lead.make,
                         model: lead.model,
                         registrationDate: lead.registrationDate,
-                        vehicleClass: lead.vehicleClass,                        idv: lead.idv,
+                        vehicleClass: lead.vehicleClass,
+                        idv: lead.idv,
                         od: lead.od,
                         tp: lead.tp,
                         tax: lead.tax,
-                        totalPremium: lead.totalPremium,
+                        totalPremium: finalTotal,
                         dealerId: lead.dealerId,
                         
                         status: 'active',
@@ -248,12 +260,13 @@ export class LeadService {
                 });
 
                 // Create initial payment record
+                const fullPremium = finalTotal || finalNet;
                 await tx.payment.create({
                     data: {
                         userId,
                         policyId: policy.id,
                         customerId: customer.id,
-                        amount: policy.premiumAmount,
+                        amount: fullPremium,
                         dueDate: policy.startDate, // Due on policy start
                         status: 'pending',
                         createdBy: role,
