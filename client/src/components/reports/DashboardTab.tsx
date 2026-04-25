@@ -168,7 +168,7 @@ const DashboardTab: React.FC = () => {
                         <h3 className="text-sm font-bold text-surface-900">Company-wise Performance</h3>
                         <span className="badge-info">{companyData.length} companies</span>
                     </div>
-                    <CompanyBarChart data={companyData} nameKey="name" valueKey="premiumSum" />
+                    <CompanyBarChart data={companyData} nameKey="name" valueKey="totalPremiumSum" />
                 </div>
 
                 {/* Policy Type Breakdown */}
@@ -189,7 +189,7 @@ const DashboardTab: React.FC = () => {
                         <h3 className="text-sm font-bold text-surface-900">Dealer Performance</h3>
                         <span className="badge-info">{dealerData.length} dealers</span>
                     </div>
-                    <BarChartRow data={dealerData} nameKey="name" valueKey="premiumSum" label="Premium (₹)" />
+                    <BarChartRow data={dealerData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
                     {!dealerData?.length && (
                         <p className="text-xs text-surface-400 text-center py-6">No dealer data available</p>
                     )}
@@ -201,7 +201,7 @@ const DashboardTab: React.FC = () => {
                         <h3 className="text-sm font-bold text-surface-900">Monthly Premium Trend</h3>
                         <span className="badge-info">Last 12 months</span>
                     </div>
-                    <BarChartRow data={monthlyData} nameKey="name" valueKey="premiumSum" label="Premium (₹)" />
+                    <BarChartRow data={monthlyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
                     {!monthlyData?.length && (
                         <p className="text-xs text-surface-400 text-center py-6">No monthly data available</p>
                     )}
