@@ -28,11 +28,11 @@ const Leads: React.FC = () => {
         name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '',
         policyType: '', companyId: '', vehicleNumber: '', make: '', model: '', vehicleClass: '',
         idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: '', startDate: '', expiryDate: '',
-        dealerId: '', registrationDate: ''
+        dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: ''
     };
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [convertForm, setConvertForm] = useState({ address: '', email: '' });
+    const [convertForm, setConvertForm] = useState({ address: '', email: '', policyOrigin: 'fresh', ncbPercentage: '' });
 
     const fetchLeads = useCallback(async (page = 1) => {
         setLoading(true);
@@ -96,7 +96,9 @@ const Leads: React.FC = () => {
             tax: lead.tax?.toString() || '', totalPremium: lead.totalPremium?.toString() || '', 
             premiumAmount: lead.premiumAmount?.toString() || '',
             startDate: lead.startDate?.split('T')[0] || '', expiryDate: lead.expiryDate?.split('T')[0] || '',
-            dealerId: lead.dealerId || '', registrationDate: lead.registrationDate?.split('T')[0] || ''
+            dealerId: lead.dealerId || '', registrationDate: lead.registrationDate?.split('T')[0] || '',
+            policyOrigin: lead.policyOrigin || 'fresh',
+            ncbPercentage: lead.ncbPercentage !== null && lead.ncbPercentage !== undefined ? lead.ncbPercentage.toString() : ''
         });
         setModalOpen(true);
     };
@@ -131,6 +133,8 @@ const Leads: React.FC = () => {
                 totalPremium: form.totalPremium ? parseFloat(form.totalPremium) : (form.premiumAmount ? parseFloat(form.premiumAmount) : undefined),
                 premiumAmount: form.premiumAmount ? parseFloat(form.premiumAmount) : undefined,
                 registrationDate: form.registrationDate || undefined,
+                policyOrigin: form.policyOrigin,
+                ncbPercentage: form.ncbPercentage ? parseFloat(form.ncbPercentage as string) : undefined,
             };
 
             if (editing) {
@@ -156,7 +160,11 @@ const Leads: React.FC = () => {
 
     const openConvert = (lead: any) => {
         setConvertingLead(lead);
-        setConvertForm({ address: '', email: '' });
+        setConvertForm({ 
+            address: '', email: '', 
+            policyOrigin: lead.policyOrigin || 'fresh', 
+            ncbPercentage: lead.ncbPercentage !== null && lead.ncbPercentage !== undefined ? lead.ncbPercentage.toString() : '' 
+        });
         setConvertModalOpen(true);
     };
 
@@ -209,7 +217,12 @@ const Leads: React.FC = () => {
                             <tbody>
                                 {leads.map((lead) => (
                                     <tr key={lead.id}>
-                                        <td className="font-medium text-surface-900">{lead.name}</td>
+                                        <td className="font-medium text-surface-900">
+                                            {lead.name}
+                                            {lead.policyOrigin === 'external_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
+                                            {lead.policyOrigin === 'in_system_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
+                                            {lead.policyOrigin === 'fresh' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
+                                        </td>
                                         <td>{lead.phone || '—'}</td>
                                         <td>{lead.interestedProduct || '—'}</td>
                                         <td><span className={getStatusColor(lead.status)}>{lead.status}</span></td>
@@ -233,7 +246,12 @@ const Leads: React.FC = () => {
                             <div key={lead.id} className="card card-body">
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <p className="font-semibold text-surface-900">{lead.name}</p>
+                                        <p className="font-semibold text-surface-900 flex items-center gap-1.5">
+                                            {lead.name}
+                                            {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
+                                            {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Renewal</span>}
+                                            {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-surface-200 text-[10px] font-medium bg-surface-50 text-surface-600">Fresh</span>}
+                                        </p>
                                         <p className="text-xs text-surface-500">{lead.phone || 'No phone'}</p>
                                     </div>
                                     <span className={getStatusColor(lead.status)}>{lead.status}</span>
@@ -305,8 +323,44 @@ const Leads: React.FC = () => {
             <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)} title="Convert Lead to Customer">
                 <form onSubmit={handleConvert} className="space-y-4">
                     <p className="text-sm text-surface-500">Converting <strong>{convertingLead?.name}</strong> to a customer.</p>
-                    <div><label className="label">Email</label><input type="email" className="input" value={convertForm.email} onChange={(e) => setConvertForm({ ...convertForm, email: e.target.value })} /></div>
-                    <div><label className="label">Address</label><textarea className="input" rows={2} value={convertForm.address} onChange={(e) => setConvertForm({ ...convertForm, address: e.target.value })} /></div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-surface-200 pb-4 mb-4">
+                        <div>
+                            <label className="label">Policy Origin *</label>
+                            <SearchableSelect
+                                options={[
+                                    { value: 'fresh', label: 'Fresh (New Policy)' },
+                                    { value: 'external_renewal', label: 'External Renewal (Prior outside policy)' },
+                                ]}
+                                value={convertForm.policyOrigin}
+                                onChange={(val) => setConvertForm({ ...convertForm, policyOrigin: val })}
+                                placeholder="Select Origin"
+                            />
+                        </div>
+                        {convertingLead?.policyType === 'motor' && convertForm.policyOrigin !== 'fresh' && (
+                            <div>
+                                <label className="label">
+                                    {convertForm.policyOrigin === 'external_renewal' ? 'Prior NCB (from previous insurer) %' : 'NCB Applied %'}
+                                </label>
+                                <SearchableSelect
+                                    options={[
+                                        { value: '0', label: 'None (0%)' },
+                                        { value: '20', label: '20%' },
+                                        { value: '25', label: '25%' },
+                                        { value: '35', label: '35%' },
+                                        { value: '45', label: '45%' },
+                                        { value: '50', label: '50%' },
+                                    ]}
+                                    value={convertForm.ncbPercentage}
+                                    onChange={(val) => setConvertForm({ ...convertForm, ncbPercentage: val })}
+                                    allLabel="Leave blank / N/A"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    <div><label className="label">Customer Email (Optional)</label><input type="email" className="input" value={convertForm.email} onChange={(e) => setConvertForm({ ...convertForm, email: e.target.value })} /></div>
+                    <div><label className="label">Customer Address (Optional)</label><textarea className="input" rows={2} value={convertForm.address} onChange={(e) => setConvertForm({ ...convertForm, address: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setConvertModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <button type="submit" className="btn-primary flex-1">Convert</button>

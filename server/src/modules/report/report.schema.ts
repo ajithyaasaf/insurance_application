@@ -17,6 +17,7 @@ export const ReportGroupBy = z.enum([
     'vehicleClass',
     'status',
     'month',
+    'policyOrigin',
 ]);
 export type ReportGroupBy = z.infer<typeof ReportGroupBy>;
 
@@ -31,6 +32,7 @@ const filtersSchema = z.object({
     policyType:   z.string().optional(),
     vehicleClass: z.string().optional(),
     status:       z.string().optional(),
+    policyOrigin: z.string().optional(),
     dateFrom:     z.string().optional(),   // ISO date string
     dateTo:       z.string().optional(),
 }).strict().optional();

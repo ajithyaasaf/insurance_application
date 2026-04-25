@@ -419,6 +419,15 @@ const PolicyDetail: React.FC = () => {
                                 ) : (
                                     <span className="text-[10px] font-bold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">NO</span>
                                 )}
+                                {policy.policyType === 'motor' && (
+                                    <>
+                                        <span className="text-surface-300 mx-1">|</span>
+                                        <span className="text-[10px] uppercase font-bold text-surface-500">Applied:</span>
+                                        <span className="text-[10px] font-bold bg-surface-100 text-surface-700 px-1.5 py-0.5 rounded">
+                                            {policy.ncbPercentage ? `${policy.ncbPercentage}%` : '—'}
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
                         <div className="p-4">

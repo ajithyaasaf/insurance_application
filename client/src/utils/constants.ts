@@ -1,5 +1,5 @@
 export const POLICY_TYPES = ['motor', 'health', 'life', 'other'];
-export const VEHICLE_CLASSES = ['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others'];
+export const VEHICLE_CLASSES = ['TW', 'PCV', 'PVT', 'GCV', 'Misc_D', 'CPM', 'Fire', 'Public_Liability', 'Others'];
 export const PREMIUM_MODES = ['monthly', 'quarterly', 'halfYearly', 'yearly', 'single'];
 
 export const POLICY_STATUSES = ['active', 'expired', 'cancelled']; // expired is read-only (auto-calculated)

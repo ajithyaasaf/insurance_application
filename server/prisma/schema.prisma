@@ -58,14 +58,20 @@ enum PolicyType {
 
 enum PolicyVehicleClass {
   TW
-  CVP
+  PCV
   PVT
   GCV
   Misc_D
-  CCP
+  CPM
   Fire
   Public_Liability
   Others
+}
+
+enum PolicyOrigin {
+  fresh
+  external_renewal
+  in_system_renewal
 }
 
 // ─── User ───────────────────────────────────────────────
@@ -146,6 +152,8 @@ model Lead {
   premiumAmount    Float?
   startDate        DateTime?
   expiryDate       DateTime?
+  policyOrigin     PolicyOrigin?
+  ncbPercentage    Float?
   dealerId         String?
 
   user User @relation(fields: [userId], references: [id])
@@ -226,6 +234,8 @@ model Policy {
   tax            Float?
   totalPremium   Float?
   paymentMethod  String?
+  policyOrigin   PolicyOrigin  @default(fresh)
+  ncbPercentage  Float?
   dealerId       String?
 
   status         PolicyStatus @default(active)

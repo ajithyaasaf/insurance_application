@@ -16,7 +16,7 @@ export const createLeadSchema = z.object({
         make: z.string().optional().or(z.literal('')),
         model: z.string().optional().or(z.literal('')),
         registrationDate: z.string().optional().nullable(),
-        vehicleClass: z.enum(['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others']).optional(),
+        vehicleClass: z.enum(['TW', 'PCV', 'PVT', 'GCV', 'Misc_D', 'CPM', 'Fire', 'Public_Liability', 'Others']).optional(),
         idv: z.number().min(0).optional(),
         od: z.number().min(0).optional(),
         tp: z.number().min(0).optional(),
@@ -26,6 +26,8 @@ export const createLeadSchema = z.object({
         startDate: z.string().optional(),
         expiryDate: z.string().optional(),
         dealerId: z.string().optional().or(z.literal('')),
+        policyOrigin: z.enum(['fresh', 'external_renewal', 'in_system_renewal']).optional(),
+        ncbPercentage: z.number().min(0).max(50).optional().nullable(),
     }),
 });
 
@@ -45,7 +47,7 @@ export const updateLeadSchema = z.object({
         make: z.string().optional().or(z.literal('')),
         model: z.string().optional().or(z.literal('')),
         registrationDate: z.string().optional().nullable(),
-        vehicleClass: z.enum(['TW', 'CVP', 'PVT', 'GCV', 'Misc_D', 'CCP', 'Fire', 'Public_Liability', 'Others']).optional(),
+        vehicleClass: z.enum(['TW', 'PCV', 'PVT', 'GCV', 'Misc_D', 'CPM', 'Fire', 'Public_Liability', 'Others']).optional(),
         idv: z.number().min(0).optional(),
         od: z.number().min(0).optional(),
         tp: z.number().min(0).optional(),
@@ -55,6 +57,8 @@ export const updateLeadSchema = z.object({
         startDate: z.string().optional(),
         expiryDate: z.string().optional(),
         dealerId: z.string().optional().or(z.literal('')),
+        policyOrigin: z.enum(['fresh', 'external_renewal', 'in_system_renewal']).optional(),
+        ncbPercentage: z.number().min(0).max(50).optional().nullable(),
     }),
     params: z.object({
         id: z.string().uuid(),
@@ -68,5 +72,7 @@ export const convertLeadSchema = z.object({
     body: z.object({
         address: z.string().optional(),
         email: z.string().email().optional(),
+        policyOrigin: z.enum(['fresh', 'external_renewal', 'in_system_renewal']).optional(),
+        ncbPercentage: z.number().min(0).max(50).optional().nullable(),
     }),
 });

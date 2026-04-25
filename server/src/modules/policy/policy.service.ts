@@ -28,6 +28,8 @@ interface CreatePolicyInput {
     paidAmount?: number;
     dealerId?: string;
     registrationDate?: string;
+    policyOrigin?: string;
+    ncbPercentage?: number | null;
 }
 
 /** Only these two statuses can be set manually on an existing policy. */
@@ -94,6 +96,8 @@ export class PolicyService {
                     tax: data.tax,
                     totalPremium: data.totalPremium,
                     paymentMethod: data.paymentMethod,
+                    policyOrigin: (data.policyOrigin as any) || 'fresh',
+                    ncbPercentage: data.ncbPercentage ?? null,
                     dealerId: data.dealerId,
                     createdBy: role,
                     updatedBy: role,
@@ -246,7 +250,14 @@ export class PolicyService {
             balanceDue: Math.max(0, effectivePremium - totalPaid)
         };
 
-        const hasNCB = policy.claims.filter(c => c.status !== 'REJECTED').length === 0;
+        const currentHasNoClaims = policy.claims.filter(c => c.status !== 'REJECTED').length === 0;
+        // Also check parent policy's claims for accurate NCB on renewals
+        const parentHasNoClaims = policy.parentPolicyId
+            ? (await prisma.claim.count({
+                where: { policyId: policy.parentPolicyId, status: { not: 'REJECTED' } }
+              })) === 0
+            : true;
+        const hasNCB = currentHasNoClaims && parentHasNoClaims;
         return mapPolicyStatus({ ...policy, hasNCB, paymentSummary });
     }
 
@@ -437,6 +448,8 @@ export class PolicyService {
                     tax: data.tax ?? originalPolicy.tax,
                     totalPremium: data.totalPremium ?? originalPolicy.totalPremium,
                     paymentMethod: data.paymentMethod || originalPolicy.paymentMethod,
+                    policyOrigin: 'in_system_renewal',
+                    ncbPercentage: data.ncbPercentage ?? null,
                     dealerId: data.dealerId || originalPolicy.dealerId,
                     createdBy: role,
                     updatedBy: role,

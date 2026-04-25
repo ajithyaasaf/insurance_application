@@ -10,11 +10,13 @@ interface PolicyFormFieldsProps {
     customers?: any[];
     isEditing?: boolean;
     showQuoteHeader?: boolean;
+    isRenewal?: boolean;
+    parentHadClaim?: boolean;
     errors?: Record<string, string>;
     setErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 }
 
-const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false, errors = {}, setErrors }) => {
+const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false, isRenewal = false, parentHadClaim = false, errors = {}, setErrors }) => {
     const isMotor = form.policyType === 'motor';
     const isRequired = !showQuoteHeader;
 
@@ -95,7 +97,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
             <div>
                 <label className="label">Policy Type {isRequired ? '*' : ''}</label>
                 <SearchableSelect
-                    disabled={isEditing}
+                    disabled={isEditing || isRenewal}
                     options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
                     value={form.policyType || ''}
                     onChange={handleTypeChange}
@@ -103,6 +105,47 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 />
                 {errors.policyType && <p className="text-xs text-red-500 mt-1">{errors.policyType}</p>}
             </div>
+
+            {!isRenewal && (
+                <div>
+                    <label className="label">Policy Origin {isRequired ? '*' : ''}</label>
+                    <SearchableSelect
+                        options={[
+                            { value: 'fresh', label: 'Fresh (New Vehicle / No Prior Policy)' },
+                            { value: 'external_renewal', label: 'External Renewal (From another insurer)' },
+                        ]}
+                        value={form.policyOrigin || 'fresh'}
+                        onChange={(val) => handleChange('policyOrigin', val)}
+                        placeholder="Select Origin"
+                    />
+                </div>
+            )}
+
+            {isMotor && form.policyOrigin !== 'fresh' && (
+                <div>
+                    <label className="label">
+                        {form.policyOrigin === 'external_renewal' ? 'Prior NCB (from previous insurer) %' : 'NCB Applied %'}
+                    </label>
+                    <SearchableSelect
+                        options={[
+                            { value: '0', label: 'None (0%)' },
+                            { value: '20', label: '20%' },
+                            { value: '25', label: '25%' },
+                            { value: '35', label: '35%' },
+                            { value: '45', label: '45%' },
+                            { value: '50', label: '50%' },
+                        ]}
+                        value={form.ncbPercentage !== null && form.ncbPercentage !== undefined ? form.ncbPercentage.toString() : ''}
+                        onChange={(val) => handleChange('ncbPercentage', val ? Number(val) : null)}
+                        allLabel="Leave blank / N/A"
+                    />
+                    {isRenewal && parentHadClaim && (
+                        <p className="text-xs text-amber-600 mt-1 font-medium bg-amber-50 p-1.5 rounded border border-amber-200">
+                            ⚠️ Parent policy had a claim. NCB is not applicable — enter 0% or leave blank.
+                        </p>
+                    )}
+                </div>
+            )}
 
             <div>
                 <label className="label">Company {isRequired ? '*' : ''}</label>

@@ -25,6 +25,8 @@ interface CreateLeadInput {
     startDate?: string;
     expiryDate?: string;
     dealerId?: string;
+    policyOrigin?: 'fresh' | 'external_renewal' | 'in_system_renewal';
+    ncbPercentage?: number | null;
 }
 
 interface UpdateLeadInput {
@@ -51,6 +53,8 @@ interface UpdateLeadInput {
     startDate?: string;
     expiryDate?: string;
     dealerId?: string;
+    policyOrigin?: 'fresh' | 'external_renewal' | 'in_system_renewal';
+    ncbPercentage?: number | null;
 }
 
 export class LeadService {
@@ -84,6 +88,8 @@ export class LeadService {
                 startDate: data.startDate ? new Date(data.startDate) : null,
                 expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
                 dealerId: data.dealerId || null,
+                policyOrigin: data.policyOrigin as any || null,
+                ncbPercentage: data.ncbPercentage ?? null,
 
                 createdBy: role,
                 updatedBy: role,
@@ -189,7 +195,7 @@ export class LeadService {
         userId: string,
         role: string,
         id: string,
-        extra: { address?: string; email?: string }
+        extra: { address?: string; email?: string; policyOrigin?: string; ncbPercentage?: number | null }
     ) {
         const lead = await this.findById(userId, id);
 
@@ -252,6 +258,8 @@ export class LeadService {
                         tax: lead.tax,
                         totalPremium: finalTotal,
                         dealerId: lead.dealerId,
+                        policyOrigin: (extra.policyOrigin || lead.policyOrigin || 'fresh') as any,
+                        ncbPercentage: extra.ncbPercentage ?? lead.ncbPercentage ?? null,
                         
                         status: 'active',
                         createdBy: role,

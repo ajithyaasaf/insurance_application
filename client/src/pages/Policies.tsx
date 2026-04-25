@@ -34,13 +34,14 @@ const Policies: React.FC = () => {
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
         sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1',
         make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '',
-        registrationDate: ''
+        registrationDate: '', policyOrigin: 'fresh', ncbPercentage: ''
     });
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
     const [renewForm, setRenewForm] = useState({ 
         startDate: '', expiryDate: '', premiumAmount: '', totalPremium: '', policyNumber: '', paidAmount: '',
-        od: '', tp: '', tax: '' 
+        od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: ''
     });
+    const [renewingParentHadClaim, setRenewingParentHadClaim] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [renewErrors, setRenewErrors] = useState<Record<string, string>>({});
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; counts: { paymentsCount: number; claimsCount: number; followUpsCount: number } } | null>(null);
@@ -81,7 +82,7 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '' });
         setEditStatus('active');
         setErrors({});
         setModalOpen(true);
@@ -97,7 +98,9 @@ const Policies: React.FC = () => {
             make: p.make || '', model: p.model || '', vehicleClass: p.vehicleClass || '', idv: p.idv?.toString() || '',
             od: p.od?.toString() || '', tp: p.tp?.toString() || '', tax: p.tax?.toString() || '', totalPremium: p.totalPremium?.toString() || '',
             paymentMethod: p.paymentMethod || '', paidAmount: '', dealerId: p.dealerId || '',
-            registrationDate: p.registrationDate || ''
+            registrationDate: p.registrationDate || '',
+            policyOrigin: p.policyOrigin || 'fresh',
+            ncbPercentage: p.ncbPercentage !== null && p.ncbPercentage !== undefined ? p.ncbPercentage.toString() : ''
         });
         setEditStatus((p.status === 'cancelled' ? 'cancelled' : 'active') as 'active' | 'cancelled');
         setErrors({});
@@ -150,6 +153,8 @@ const Policies: React.FC = () => {
                 paymentMethod: form.paymentMethod || undefined,
                 paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
                 dealerId: form.dealerId || undefined,
+                policyOrigin: form.policyOrigin,
+                ncbPercentage: form.ncbPercentage ? parseFloat(form.ncbPercentage as string) : undefined,
                 ...(editing ? { status: editStatus } : {}),
             };
             if (editing) { await api.put(`/policies/${editing.id}`, payload); toast.success('Policy updated'); }
@@ -212,7 +217,11 @@ const Policies: React.FC = () => {
             od: p.od?.toString() || '',
             tp: p.tp?.toString() || '',
             tax: p.tax?.toString() || '',
+            policyOrigin: 'in_system_renewal',
+            ncbPercentage: '',
         });
+        const parentHadClaim = p.claims?.some((c: any) => c.status !== 'REJECTED');
+        setRenewingParentHadClaim(!!parentHadClaim);
         setRenewErrors({});
         setRenewModalOpen(true);
     };
@@ -244,6 +253,7 @@ const Policies: React.FC = () => {
                 tp: renewForm.tp ? parseFloat(renewForm.tp) : undefined,
                 tax: renewForm.tax ? parseFloat(renewForm.tax) : undefined,
                 paidAmount: renewForm.paidAmount ? parseFloat(renewForm.paidAmount) : undefined,
+                ncbPercentage: renewForm.ncbPercentage ? parseFloat(renewForm.ncbPercentage.toString()) : undefined,
             });
             toast.success('Policy renewed!');
             setRenewModalOpen(false); fetchPolicies(meta.page);
@@ -318,7 +328,11 @@ const Policies: React.FC = () => {
                                 {policies.map((p) => (
                                     <tr key={p.id}>
                                         <td><p className="font-medium text-surface-900">{p.customer?.name}</p><p className="text-xs text-surface-500">{p.productName || p.policyNumber || ''}</p></td>
-                                        <td className="capitalize">{p.policyType}</td>
+                                        <td className="capitalize">{p.policyType}
+                                            {p.policyOrigin === 'external_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
+                                            {p.policyOrigin === 'in_system_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
+                                            {p.policyOrigin === 'fresh' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
+                                        </td>
                                         <td className="text-xs">{p.company?.name}</td>
                                         <td className="font-medium">{formatCurrency(p.totalPremium || p.premiumAmount)}</td>
                                         <td>
@@ -348,7 +362,12 @@ const Policies: React.FC = () => {
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
                                         <p className="font-semibold text-surface-900">{p.customer?.name}</p>
-                                        <p className="text-xs text-surface-500 capitalize">{p.policyType} • {p.company?.name}</p>
+                                        <p className="text-xs text-surface-500 capitalize flex items-center gap-1.5">
+                                            {p.policyType} • {p.company?.name}
+                                            {p.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
+                                            {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Renewal</span>}
+                                            {p.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-surface-200 text-[10px] font-medium bg-surface-50 text-surface-600">Fresh</span>}
+                                        </p>
                                     </div>
                                     <span className={getStatusColor(p.status)}>{p.status}</span>
                                 </div>
@@ -442,6 +461,36 @@ const Policies: React.FC = () => {
 
                         {renewingPolicy?.policyType === 'motor' && (
                             <>
+                                <div>
+                                    <label className="label">Policy Origin *</label>
+                                    <SearchableSelect
+                                        disabled={true}
+                                        options={[{ value: 'in_system_renewal', label: 'In-System Renewal' }]}
+                                        value={renewForm.policyOrigin}
+                                        onChange={() => {}}
+                                    />
+                                </div>
+                                <div className="sm:col-span-1">
+                                    <label className="label">NCB Applied %</label>
+                                    <SearchableSelect
+                                        options={[
+                                            { value: '0', label: 'None (0%)' },
+                                            { value: '20', label: '20%' },
+                                            { value: '25', label: '25%' },
+                                            { value: '35', label: '35%' },
+                                            { value: '45', label: '45%' },
+                                            { value: '50', label: '50%' },
+                                        ]}
+                                        value={renewForm.ncbPercentage !== null && renewForm.ncbPercentage !== undefined ? renewForm.ncbPercentage.toString() : ''}
+                                        onChange={(val) => handleRenewChange('ncbPercentage', val)}
+                                        allLabel="Leave blank / N/A"
+                                    />
+                                    {renewingParentHadClaim && (
+                                        <p className="text-xs text-amber-600 mt-1 font-medium bg-amber-50 p-1.5 rounded border border-amber-200">
+                                            ⚠️ Parent policy had a claim. NCB is not applicable — enter 0% or leave blank.
+                                        </p>
+                                    )}
+                                </div>
                                 <div>
                                     <label className="label">OD Premium</label>
                                     <input type="number" min="0" step="0.01" className="input" value={renewForm.od} onChange={(e) => handleRenewChange('od', e.target.value)} />

@@ -6,7 +6,7 @@ need to solved
 *need to chart view in reports page
 *in leads page open lead word is not understandable(completed)
 *need whats app integration but plan well for this (whover get expired in 3 days)
-*when creating policy my client need to mention fresh or renewal in the new policy form itself becuase in this application we are gogint o enter old customers 
+*when creating policy my client need to mention fresh or renewal in the new policy form itself becuase in this application we are gogint o enter old customers (completed)
 *in reports also Fresh are renewal stats should be needed to see fresh how many and renewal how many like that 
 *in the reports page renel currently based on new then if we renwal but we now gogint to add fresh or renewal in the policy creating form itself so need to carefuly in the chart itself
 
@@ -21,15 +21,15 @@ need to solved
 
 * another thisn it may need in both lead creation forma nd policy creation form since it both used shared field i think you understand it is because
 now after this application launch my cleint will enterhis existing customer previous year cutomer whos insurance is still active in that time currenntly we handle NCB as yes if no claims which is working good 
-and perfect now when we create leads and policy lie said when he enter his old customer some how if that customer claimed ncp already before this application so i think  we can add one files select ncp as yes or no if yes another filed open to enter how much percentatge valus or 20%,25%,35%,45% this is what i think but you can tell me  the better idea if you have 
+and perfect now when we create leads and policy lie said when he enter his old customer some how if that customer claimed ncp already before this application so i think  we can add one files select ncp as yes or no if yes another filed open to enter how much percentatge valus or 20%,25%,35%,45% this is what i think but you can tell me  the better idea if you have (completed)
 
 * Ncp based , claim based filter needed in the policy page and chart needed in the reports page 
 
-* assume some one do policy in previous company and we enter his details we need to create ncp selection right? because he can have the ncb from previous company right? (less important)
+* assume some one do policy in previous company and we enter his details we need to create ncp selection right? because he can have the ncb from previous company right? (less important)(completed)
 
 * need to ask client is one he made the claim what happen in his next renwal do we reverse the ncb status or not 
 
-* in payment page can we maintain two different payment ? like current one have the feature of track payment of one specific policy payment can we implement some random payments?
+* in payment page can we maintain two different payment ? like current one have the feature of track payment of one specific policy payment can we implement some random payments?(less important)
 
 * in payment page based on policy no or vehicle number filter out needed also
  when we create payment we have the option now seelct based on customer and his policy is success fully fetched client also like to include based on vehicle number and policy no based fetching because he said some time in same name may be multiple clients(completed)
@@ -44,7 +44,7 @@ and perfect now when we create leads and policy lie said when he enter his old c
 * change 
 cvp -> pcv
 ccp -> cpm 
-(need to check in laptop)
+(need to check in laptop)(completed)
 
 * in the pdf genration in commision page we have to implement indiiual history to be able to downloaded in pdf format and in that pdf 
 need to inclde brand name inusrance and adress like a format

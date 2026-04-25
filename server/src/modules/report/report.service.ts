@@ -14,6 +14,7 @@ interface ReportFilters {
     policyType?: string;
     vehicleClass?: string;
     status?: string;
+    policyOrigin?: string;
     dateFrom?: string;
     dateTo?: string;
 }
@@ -51,6 +52,7 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'startDate', label: 'Start Date' },
         { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'status', label: 'Status' },
+        { key: 'policyOrigin', label: 'Origin' },
     ],
     payments: [
         { key: 'customerName', label: 'Customer' },
@@ -100,6 +102,7 @@ function buildPolicyWhere(userId: string, filters?: ReportFilters) {
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.policyType) where.policyType = filters.policyType;
     if (filters?.vehicleClass) where.vehicleClass = filters.vehicleClass;
+    if (filters?.policyOrigin) where.policyOrigin = filters.policyOrigin;
     if (filters?.status) {
         Object.assign(where, buildStatusFilter(filters.status));
     }
@@ -228,6 +231,9 @@ export class ReportService {
             startDate: fmtDate(r.startDate),
             expiryDate: fmtDate(r.expiryDate),
             status: r.status,
+            policyOrigin: r.policyOrigin === 'external_renewal' ? 'External Renewal'
+                : r.policyOrigin === 'in_system_renewal' ? 'In-System Renewal'
+                : 'Fresh',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.policies };
@@ -495,25 +501,61 @@ export class ReportService {
             };
         }
 
-        if (groupBy === 'month') {
-            // Fetch all matching policies and group in JS (Prisma doesn't support date_trunc groupBy)
-            const allPolicies = await prisma.policy.findMany({
+        if (groupBy === 'policyOrigin') {
+            const groups = await prisma.policy.groupBy({
+                by: ['policyOrigin'],
                 where,
-                select: { createdAt: true, premiumAmount: true, totalPremium: true },
-                orderBy: { createdAt: 'desc' },
+                _count: { _all: true },
+                _sum: { premiumAmount: true, totalPremium: true },
             });
-            const monthMap = new Map<string, { count: number; premiumSum: number; totalPremiumSum: number }>();
-            for (const p of allPolicies) {
-                const key = `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, '0')}`;
-                const entry = monthMap.get(key) || { count: 0, premiumSum: 0, totalPremiumSum: 0 };
-                entry.count++;
-                entry.premiumSum += p.premiumAmount || 0;
-                entry.totalPremiumSum += p.totalPremium || p.premiumAmount || 0;
-                monthMap.set(key, entry);
-            }
-            const data = Array.from(monthMap.entries())
-                .map(([month, vals]) => ({ name: month, ...vals }))
-                .sort((a, b) => b.name.localeCompare(a.name));
+            const originLabels: Record<string, string> = {
+                fresh: 'Fresh',
+                external_renewal: 'External Renewal',
+                in_system_renewal: 'In-System Renewal',
+            };
+            return {
+                grouped: true,
+                groupLabel: 'Policy Origin',
+                columns: [
+                    { key: 'name', label: 'Origin' },
+                    { key: 'count', label: 'Total Policies' },
+                    { key: 'premiumSum', label: 'Premium (₹)' },
+                    { key: 'totalPremiumSum', label: 'Total Premium (₹)' },
+                ],
+                data: groups.map((g: any) => ({
+                    name: originLabels[g.policyOrigin] || g.policyOrigin,
+                    count: g._count._all,
+                    premiumSum: g._sum.premiumAmount || 0,
+                    totalPremiumSum: g._sum.totalPremium || 0,
+                })).sort((a: any, b: any) => b.count - a.count),
+                total: groups.length,
+            };
+        }
+
+        if (groupBy === 'month') {
+            const dateFrom = filters?.dateFrom ? new Date(filters.dateFrom) : undefined;
+            const dateTo = filters?.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
+
+            // Use Raw SQL for efficient grouping in the database
+            const results: any[] = await prisma.$queryRaw`
+                SELECT 
+                    TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS name,
+                    COUNT(*)::INT AS count,
+                    SUM("premiumAmount")::FLOAT AS "premiumSum",
+                    SUM(COALESCE("totalPremium", "premiumAmount"))::FLOAT AS "totalPremiumSum"
+                FROM "Policy"
+                WHERE 
+                    "userId" = ${userId}
+                    AND "deletedAt" IS NULL
+                    ${dateFrom ? Prisma.sql`AND "createdAt" >= ${dateFrom}` : Prisma.empty}
+                    ${dateTo ? Prisma.sql`AND "createdAt" <= ${dateTo}` : Prisma.empty}
+                    ${filters?.companyId ? Prisma.sql`AND "companyId" = ${filters.companyId}` : Prisma.empty}
+                    ${filters?.dealerId ? Prisma.sql`AND "dealerId" = ${filters.dealerId}` : Prisma.empty}
+                    ${filters?.policyType ? Prisma.sql`AND "policyType"::text = ${filters.policyType}` : Prisma.empty}
+                GROUP BY name
+                ORDER BY name DESC
+            `;
+
             return {
                 grouped: true,
                 groupLabel: 'Month',
@@ -523,8 +565,8 @@ export class ReportService {
                     { key: 'premiumSum', label: 'Premium (₹)' },
                     { key: 'totalPremiumSum', label: 'Total Premium (₹)' },
                 ],
-                data,
-                total: data.length,
+                data: results,
+                total: results.length,
             };
         }
 
@@ -561,29 +603,36 @@ export class ReportService {
         }
 
         if (groupBy === 'month') {
-            const all = await prisma.payment.findMany({
-                where,
-                select: { createdAt: true, amount: true, paidAmount: true },
-            });
-            const monthMap = new Map<string, { count: number; amountSum: number; paidSum: number }>();
-            for (const p of all) {
-                const key = `${p.createdAt.getFullYear()}-${String(p.createdAt.getMonth() + 1).padStart(2, '0')}`;
-                const entry = monthMap.get(key) || { count: 0, amountSum: 0, paidSum: 0 };
-                entry.count++;
-                entry.amountSum += p.amount || 0;
-                entry.paidSum += p.paidAmount || 0;
-                monthMap.set(key, entry);
-            }
-            const data = Array.from(monthMap.entries())
-                .map(([month, vals]) => ({ name: month, ...vals }))
-                .sort((a, b) => b.name.localeCompare(a.name));
+            const dateFrom = filters?.dateFrom ? new Date(filters.dateFrom) : undefined;
+            const dateTo = filters?.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
+
+            const results: any[] = await prisma.$queryRaw`
+                SELECT 
+                    TO_CHAR(DATE_TRUNC('month', p."createdAt"), 'YYYY-MM') AS name,
+                    COUNT(*)::INT AS count,
+                    SUM(p."amount")::FLOAT AS "amountSum",
+                    SUM(COALESCE(p."paidAmount", 0))::FLOAT AS "paidSum"
+                FROM "Payment" p
+                ${(filters?.companyId || filters?.dealerId || filters?.policyType) ? Prisma.sql`JOIN "Policy" pol ON p."policyId" = pol."id"` : Prisma.empty}
+                WHERE 
+                    p."userId" = ${userId}
+                    ${dateFrom ? Prisma.sql`AND p."createdAt" >= ${dateFrom}` : Prisma.empty}
+                    ${dateTo ? Prisma.sql`AND p."createdAt" <= ${dateTo}` : Prisma.empty}
+                    ${filters?.customerId ? Prisma.sql`AND p."customerId" = ${filters.customerId}` : Prisma.empty}
+                    ${filters?.companyId ? Prisma.sql`AND pol."companyId" = ${filters.companyId}` : Prisma.empty}
+                    ${filters?.dealerId ? Prisma.sql`AND pol."dealerId" = ${filters.dealerId}` : Prisma.empty}
+                    ${filters?.policyType ? Prisma.sql`AND pol."policyType"::text = ${filters.policyType}` : Prisma.empty}
+                GROUP BY name
+                ORDER BY name DESC
+            `;
+
             const columns = [
                 { key: 'name', label: 'Month' },
                 { key: 'count', label: 'Total Payments' },
                 { key: 'amountSum', label: 'Total Amount (₹)' },
                 { key: 'paidSum', label: 'Paid Amount (₹)' },
             ];
-            return { grouped: true, groupLabel: 'Month', columns, data, total: data.length };
+            return { grouped: true, groupLabel: 'Month', columns, data: results, total: results.length };
         }
 
         return null;
