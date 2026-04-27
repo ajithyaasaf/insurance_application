@@ -12,7 +12,7 @@ import api from '../../api/client';
 import SearchableSelect from '../ui/SearchableSelect';
 import Pagination from '../ui/Pagination';
 import ReportTable from './ReportTable';
-import { BarChartRow, PolicyPieChart } from './ReportCharts';
+import { BarChartRow, PolicyPieChart, CompanyBarChart } from './ReportCharts';
 import { 
     POLICY_TYPES, VEHICLE_CLASSES, POLICY_STATUSES, 
     PAYMENT_STATUSES, CLAIM_STATUSES, FOLLOWUP_STATUSES 
@@ -462,12 +462,12 @@ const ReportBuilderTab: React.FC = () => {
                                 )}
                                 {report.chartsData.status && report.chartsData.status.length > 0 && (
                                     <div className="card card-body">
-                                        <p className="text-sm font-bold text-surface-900 mb-4">Financials by Status</p>
-                                        <BarChartRow
+                                        <p className="text-sm font-bold text-surface-900 mb-1">Analytics by Status</p>
+                                        <CompanyBarChart
                                             data={report.chartsData.status}
                                             nameKey="name"
-                                            valueKey={source === 'payments' ? 'amountSum' : 'totalPremiumSum'}
-                                            label={source === 'payments' ? 'Amount (₹)' : 'Premium (₹)'}
+                                            valueKey={source === 'payments' ? 'amountSum' : source === 'claims' ? 'claimSum' : source === 'followups' ? 'count' : 'totalPremiumSum'}
+                                            label={source === 'payments' ? 'Amount (₹)' : source === 'claims' ? 'Claim Amount (₹)' : source === 'followups' ? 'Follow-ups' : 'Premium (₹)'}
                                         />
                                     </div>
                                 )}

@@ -283,31 +283,51 @@ const Commissions: React.FC = () => {
         const doc = new jsPDF();
         const dealerName = data.dealer?.name || 'Dealer';
 
-        // Title
-        doc.setFontSize(16);
-        doc.text('Commission Report', 14, 20);
+        // Branding Header
+        doc.setFontSize(22);
+        doc.setTextColor(30, 58, 138); // Royal Blue
+        doc.text('ROYAL INSURANCE', 14, 22);
+
         doc.setFontSize(10);
-        doc.text(`Dealer: ${dealerName}`, 14, 30);
-        doc.text(`Insurance: ${data.company?.name || 'All Companies'}`, 14, 36);
-        doc.text(`Period: ${formatDate(data.periodStart)} - ${formatDate(data.periodEnd)}`, 14, 42);
-        doc.text(`OD%: ${data.odPercentage}%  |  TP%: ${data.tpPercentage}%`, 14, 48);
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 14, 54);
+        doc.setTextColor(107, 114, 128); // Gray
+        doc.text('Proprietor: Senthil Kumar', 14, 28);
+        doc.text('Madurai, Tamil Nadu', 14, 33);
+
+        // Divider Line
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.5);
+        doc.line(14, 38, doc.internal.pageSize.width - 14, 38);
+
+        // Report Info
+        doc.setTextColor(17, 24, 39); // Almost Black
+        doc.setFontSize(14);
+        doc.text('Commission Report', 14, 48);
+        
+        doc.setFontSize(10);
+        doc.text(`Dealer: ${dealerName}`, 14, 56);
+        doc.text(`Insurance: ${data.company?.name || 'All Companies'}`, 14, 62);
+        doc.text(`Period: ${formatDate(data.periodStart)} - ${formatDate(data.periodEnd)}`, 14, 68);
+        
+        // Align these to the right side
+        const rightX = doc.internal.pageSize.width - 14;
+        doc.text(`OD%: ${data.odPercentage}%  |  TP%: ${data.tpPercentage}%`, rightX, 56, { align: 'right' });
+        doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, rightX, 62, { align: 'right' });
 
         // Policy table
         const policies = data.commissionPolicies || data.policies || [];
         autoTable(doc, {
-            startY: 60,
+            startY: 75,
             head: [['Vehicle No', 'Make', 'Model', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
             body: policies.map((p: any) => [
                 p.vehicleNumber || '-',
                 p.make || '-',
                 p.model || '-',
-                `₹${(p.od || 0).toLocaleString('en-IN')}`,
-                `₹${(p.tp || 0).toLocaleString('en-IN')}`,
-                `₹${(p.premiumAmount || 0).toLocaleString('en-IN')}`,
-                `₹${(p.odCommission || 0).toLocaleString('en-IN')}`,
-                `₹${(p.tpCommission || 0).toLocaleString('en-IN')}`,
-                `₹${((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN')}`,
+                `Rs. ${(p.od || 0).toLocaleString('en-IN')}`,
+                `Rs. ${(p.tp || 0).toLocaleString('en-IN')}`,
+                `Rs. ${(p.premiumAmount || 0).toLocaleString('en-IN')}`,
+                `Rs. ${(p.odCommission || 0).toLocaleString('en-IN')}`,
+                `Rs. ${(p.tpCommission || 0).toLocaleString('en-IN')}`,
+                `Rs. ${((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN')}`,
             ]),
             styles: { fontSize: 8 },
             headStyles: { fillColor: [59, 130, 246] },
@@ -316,10 +336,10 @@ const Commissions: React.FC = () => {
         // Summary
         const finalY = (doc as any).lastAutoTable?.finalY || 120;
         doc.setFontSize(11);
-        doc.text(`Total OD Commission: ₹${(data.totalOdCommission || data.summary?.totalOdCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 10);
-        doc.text(`Total TP Commission: ₹${(data.totalTpCommission || data.summary?.totalTpCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 17);
+        doc.text(`Total OD Commission: Rs. ${(data.totalOdCommission || data.summary?.totalOdCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 10);
+        doc.text(`Total TP Commission: Rs. ${(data.totalTpCommission || data.summary?.totalTpCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 17);
         doc.setFontSize(13);
-        doc.text(`Grand Total: ₹${(data.totalCommission || data.summary?.totalCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 27);
+        doc.text(`Grand Total: Rs. ${(data.totalCommission || data.summary?.totalCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 27);
 
         doc.save(`commission_${dealerName}_${data.periodStart?.split('T')[0] || 'report'}.pdf`);
     };

@@ -10,7 +10,7 @@ export const BarChartRow: React.FC<{ data: any[], nameKey: string, valueKey: str
     if (!data?.length) return null;
     const maxVal = Math.max(...data.map((d: any) => d[valueKey] || 0), 1);
     return (
-        <div className="space-y-2.5">
+        <div className="space-y-2.5 mt-2">
             {data.slice(0, 8).map((item: any, i: number) => (
                 <div key={item[nameKey] || item.id || i} className="group">
                     <div className="flex items-center justify-between text-xs mb-1">
@@ -40,7 +40,7 @@ export const BarChartRow: React.FC<{ data: any[], nameKey: string, valueKey: str
     );
 };
 
-export const CompanyBarChart: React.FC<{ data: any[], nameKey: string, valueKey: string }> = ({ data, nameKey, valueKey }) => {
+export const CompanyBarChart: React.FC<{ data: any[], nameKey: string, valueKey: string, label?: string }> = ({ data, nameKey, valueKey, label = 'Premium' }) => {
     if (!data?.length) return null;
 
     const chartData = data.slice(0, 8).map(d => ({
@@ -75,7 +75,7 @@ export const CompanyBarChart: React.FC<{ data: any[], nameKey: string, valueKey:
                                     <div className="bg-white px-3 py-2 shadow-lg shadow-surface-900/5 rounded-xl border border-surface-100">
                                         <p className="text-xs font-bold text-surface-900 mb-1">{payload[0].payload.name}</p>
                                         <p className="text-sm font-semibold text-primary-600">
-                                            {formatCurrency(payload[0].value as number)} Premium
+                                            {formatCurrency(payload[0].value as number)} {label}
                                         </p>
                                     </div>
                                 );

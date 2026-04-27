@@ -638,6 +638,59 @@ export class ReportService {
         return null;
     }
 
+    private async groupClaims(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildClaimWhere(userId, filters);
+        if (groupBy === 'status') {
+            const groups = await prisma.claim.groupBy({
+                by: ['status'],
+                where,
+                _count: { _all: true },
+                _sum: { claimAmount: true },
+            });
+            return {
+                grouped: true,
+                groupLabel: 'Claim Status',
+                columns: [
+                    { key: 'name', label: 'Status' },
+                    { key: 'count', label: 'Total Claims' },
+                    { key: 'claimSum', label: 'Total Amount (₹)' },
+                ],
+                data: groups.map((g: any) => ({
+                    name: g.status,
+                    count: g._count._all,
+                    claimSum: g._sum.claimAmount || 0,
+                })).sort((a: any, b: any) => b.count - a.count),
+                total: groups.length,
+            };
+        }
+        return null;
+    }
+
+    private async groupFollowUps(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildFollowUpWhere(userId, filters);
+        if (groupBy === 'status') {
+            const groups = await prisma.followUp.groupBy({
+                by: ['status'],
+                where,
+                _count: { _all: true },
+            });
+            return {
+                grouped: true,
+                groupLabel: 'Follow-up Status',
+                columns: [
+                    { key: 'name', label: 'Status' },
+                    { key: 'count', label: 'Total Follow-ups' },
+                ],
+                data: groups.map((g: any) => ({
+                    name: g.status,
+                    count: g._count._all,
+                })).sort((a: any, b: any) => b.count - a.count),
+                total: groups.length,
+            };
+        }
+        return null;
+    }
+
     // ── Public API ───────────────────────────────────────
 
     async generateReport(userId: string, params: GenerateParams) {
@@ -673,6 +726,16 @@ export class ReportService {
                 };
             } else if (source === 'payments') {
                 const statusGroup = await this.groupPayments(userId, filters, 'status');
+                chartsData = {
+                    status: statusGroup?.data || []
+                };
+            } else if (source === 'claims') {
+                const statusGroup = await this.groupClaims(userId, filters, 'status');
+                chartsData = {
+                    status: statusGroup?.data || []
+                };
+            } else if (source === 'followups') {
+                const statusGroup = await this.groupFollowUps(userId, filters, 'status');
                 chartsData = {
                     status: statusGroup?.data || []
                 };
@@ -875,20 +938,26 @@ export class ReportService {
             const startX = 40;
 
             // Header row
-            doc.fontSize(8).font('Helvetica-Bold').fillColor('#FFFFFF');
+            doc.fontSize(8).font('Helvetica-Bold');
             let x = startX;
+            const headerY = doc.y; // Fix: lock Y coordinate for the entire row
+            
             for (const col of visibleCols) {
-                doc.rect(x, doc.y, colWidth, 22).fill('#4338CA');
+                // Background color resets fill color, so do it first
+                doc.rect(x, headerY, colWidth, 22).fill('#4338CA');
+                
+                // Draw text
                 doc.fillColor('#FFFFFF')
-                    .text(col.label, x + 4, doc.y + 6, { width: colWidth - 8, align: 'left' });
+                    .text(col.label, x + 4, headerY + 6, { width: colWidth - 8, align: 'left', lineBreak: false });
+                
                 x += colWidth;
             }
-            // Fix: reset Y after header
-            doc.y += 22;
+            
+            // Step cursor past header
+            doc.y = headerY + 22;
             doc.moveDown(0.2);
 
             // Data rows
-            doc.font('Helvetica').fontSize(7).fillColor('#1f2937');
             let rowIdx = 0;
             for (const row of data) {
                 if (doc.y > doc.page.height - 60) {
@@ -897,15 +966,26 @@ export class ReportService {
                 }
 
                 x = startX;
+                const rowY = doc.y; // Fix: lock Y coordinate for this specific row data
                 const bgColor = rowIdx % 2 === 0 ? '#F9FAFB' : '#FFFFFF';
+                
                 for (const col of visibleCols) {
                     const val = String(row[col.key] ?? '—');
-                    doc.rect(x, doc.y, colWidth, 18).fill(bgColor);
-                    doc.fillColor('#1f2937')
-                        .text(val, x + 4, doc.y + 4, { width: colWidth - 8, align: 'left' });
+                    
+                    doc.rect(x, rowY, colWidth, 18).fill(bgColor);
+                    doc.font('Helvetica').fontSize(7).fillColor('#1f2937')
+                        .text(val, x + 4, rowY + 4, { 
+                            width: colWidth - 8, 
+                            align: 'left', 
+                            height: 10,
+                            lineBreak: false 
+                        });
+                        
                     x += colWidth;
                 }
-                doc.y += 18;
+                
+                // Explicitly step down to the next row safely
+                doc.y = rowY + 18;
                 rowIdx++;
             }
 
