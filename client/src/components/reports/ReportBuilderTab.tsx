@@ -12,6 +12,7 @@ import api from '../../api/client';
 import SearchableSelect from '../ui/SearchableSelect';
 import Pagination from '../ui/Pagination';
 import ReportTable from './ReportTable';
+import { BarChartRow, PolicyPieChart } from './ReportCharts';
 import { 
     POLICY_TYPES, VEHICLE_CLASSES, POLICY_STATUSES, 
     PAYMENT_STATUSES, CLAIM_STATUSES, FOLLOWUP_STATUSES 
@@ -415,15 +416,64 @@ const ReportBuilderTab: React.FC = () => {
                     <div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" />
                 </div>
             ) : report ? (
-                <div>
+                <div className="space-y-4">
                     {/* Summary info */}
-                    <div className="flex items-center justify-between mb-3 mt-4">
-                        <p className="text-xs text-surface-500">
+                    <div className="flex items-center justify-between mt-4">
+                        <p className="text-xs text-surface-500 font-medium">
                             {report.grouped
                                 ? `Grouped by ${report.groupLabel} • ${report.total} groups`
                                 : `${report.total} records found`}
                         </p>
                     </div>
+
+                    {/* Dynamic Charts Section */}
+                    {report.grouped ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="card card-body">
+                                <p className="text-sm font-bold text-surface-900 mb-4">Volume by {report.groupLabel}</p>
+                                <BarChartRow
+                                    data={report.data}
+                                    nameKey="name"
+                                    valueKey={source === 'payments' ? 'amountSum' : 'totalPremiumSum'}
+                                    label={source === 'payments' ? 'Amount (₹)' : 'Premium (₹)'}
+                                />
+                            </div>
+                            <div className="card card-body">
+                                <p className="text-sm font-bold text-surface-900 mb-4">Distribution by {report.groupLabel}</p>
+                                <PolicyPieChart
+                                    data={report.data}
+                                    nameKey="name"
+                                    valueKey="count"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        report.chartsData && (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {report.chartsData.policyType && report.chartsData.policyType.length > 0 && (
+                                    <div className="card card-body">
+                                        <p className="text-sm font-bold text-surface-900 mb-4">Breakdown by Policy Type</p>
+                                        <PolicyPieChart
+                                            data={report.chartsData.policyType}
+                                            nameKey="name"
+                                            valueKey="count"
+                                        />
+                                    </div>
+                                )}
+                                {report.chartsData.status && report.chartsData.status.length > 0 && (
+                                    <div className="card card-body">
+                                        <p className="text-sm font-bold text-surface-900 mb-4">Financials by Status</p>
+                                        <BarChartRow
+                                            data={report.chartsData.status}
+                                            nameKey="name"
+                                            valueKey={source === 'payments' ? 'amountSum' : 'totalPremiumSum'}
+                                            label={source === 'payments' ? 'Amount (₹)' : 'Premium (₹)'}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    )}
 
                     <ReportTable 
                         data={report.data} 

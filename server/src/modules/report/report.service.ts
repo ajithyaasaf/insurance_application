@@ -659,9 +659,30 @@ export class ReportService {
         };
 
         const result = await queryMap[source]();
+        
+        let chartsData = null;
+        if (!groupBy) {
+            if (source === 'policies') {
+                const [statusGroup, typeGroup] = await Promise.all([
+                    this.groupPolicies(userId, filters, 'status'),
+                    this.groupPolicies(userId, filters, 'policyType')
+                ]);
+                chartsData = {
+                    status: statusGroup?.data || [],
+                    policyType: typeGroup?.data || []
+                };
+            } else if (source === 'payments') {
+                const statusGroup = await this.groupPayments(userId, filters, 'status');
+                chartsData = {
+                    status: statusGroup?.data || []
+                };
+            }
+        }
+
         return {
             grouped: false,
             ...result,
+            chartsData,
             page,
             limit,
             totalPages: Math.ceil(result.total / limit),
