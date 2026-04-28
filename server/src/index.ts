@@ -21,6 +21,7 @@ import commissionRoutes from './modules/commission/commission.routes';
 import { initCronJobs } from './utils/cron';
 
 const app = express();
+app.set('trust proxy', 1);
 
 // ─── Middleware ──────────────────────────────────────────
 app.use(
