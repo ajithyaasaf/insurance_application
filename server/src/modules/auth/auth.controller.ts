@@ -4,10 +4,12 @@ import { sendSuccess, sendError } from '../../utils/apiResponse';
 import { verifyRefreshToken } from '../../utils/jwt';
 import { env } from '../../config/env';
 
+const isProd = env.NODE_ENV === 'production' || env.CLIENT_URL.includes('pages.dev');
+
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
+    secure: isProd,
+    sameSite: isProd ? 'none' as const : 'lax' as const,
     path: '/',
 };
 
