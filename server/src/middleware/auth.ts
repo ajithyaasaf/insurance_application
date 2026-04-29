@@ -8,7 +8,12 @@ export const authenticate = (
     next: NextFunction
 ): void => {
     try {
-        const token = req.cookies?.accessToken;
+        let token = req.cookies?.accessToken;
+
+        // Fallback to Authorization header if cookie is missing
+        if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
 
         if (!token) {
             sendError({ res, statusCode: 401, message: 'Authentication required' });

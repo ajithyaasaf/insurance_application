@@ -8,6 +8,15 @@ const api = axios.create({
     },
 });
 
+// Request interceptor — attach token from localStorage
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 // Response interceptor — auto-refresh on 401
 api.interceptors.response.use(
     (response) => response,
@@ -19,9 +28,16 @@ api.interceptors.response.use(
 
             try {
                 const refreshUrl = (import.meta.env.VITE_API_URL || '/api') + '/auth/refresh';
-                await axios.post(refreshUrl, {}, { withCredentials: true });
+                const res = await axios.post(refreshUrl, {}, { withCredentials: true });
+                
+                // If the backend returned a new token in the body, save it
+                if (res.data?.data?.accessToken) {
+                    localStorage.setItem('accessToken', res.data.data.accessToken);
+                }
+
                 return api(originalRequest);
             } catch (refreshError) {
+                localStorage.removeItem('accessToken');
                 if (window.location.pathname !== '/login') {
                     window.location.href = '/login';
                 }

@@ -34,7 +34,7 @@ export class AuthController {
                 res,
                 statusCode: 201,
                 message: 'Registration successful',
-                data: user,
+                data: { user, accessToken, refreshToken },
             });
         } catch (error: any) {
             if (error.statusCode) {
@@ -69,7 +69,7 @@ export class AuthController {
                 res,
                 statusCode: 200,
                 message: 'Login successful',
-                data: user,
+                data: { user, accessToken, refreshToken },
             });
         } catch (error: any) {
             if (error.statusCode) {
@@ -109,6 +109,7 @@ export class AuthController {
                 res,
                 statusCode: 200,
                 message: 'Token refreshed',
+                data: { accessToken: newAccessToken },
             });
         } catch (error: any) {
             sendError({ res, statusCode: 401, message: 'Invalid refresh token' });
