@@ -12,6 +12,11 @@ interface CreateCustomerInput {
 
 export class CustomerService {
     async create(userId: string, role: string, data: CreateCustomerInput) {
+        // Clean up empty strings from frontend
+        if (data.dob === '') data.dob = null;
+        if (data.phone === '') data.phone = null;
+        if (data.email === '') data.email = null;
+
         // Transform dob to Date
         if (data.dob && typeof data.dob === 'string') {
             data.dob = new Date(data.dob);
@@ -88,6 +93,11 @@ export class CustomerService {
 
     async update(userId: string, role: string, id: string, data: Partial<CreateCustomerInput>) {
         await this.findById(userId, id);
+
+        // Clean up empty strings from frontend
+        if (data.dob === '') data.dob = null;
+        if (data.phone === '') data.phone = null;
+        if (data.email === '') data.email = null;
 
         // Transform dob to Date
         if (data.dob && typeof data.dob === 'string') {
