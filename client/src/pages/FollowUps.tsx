@@ -186,6 +186,7 @@ const FollowUps: React.FC = () => {
                             value={form.customerId}
                             onChange={(val) => { setForm({ ...form, customerId: val }); setErrors(prev => ({ ...prev, customerId: '' })); }}
                             placeholder="Select Customer"
+                            hasError={!!errors.customerId}
                         />
                         {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                     </div>
@@ -217,6 +218,7 @@ const FollowUps: React.FC = () => {
                             value={form.status}
                             onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
+                            hasError={!!errors.status}
                         />
                         {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>

@@ -89,6 +89,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                         value={form.customerId || ''}
                         onChange={(val) => handleChange('customerId', val)}
                         placeholder="Select Customer"
+                        hasError={!!errors.customerId}
                     />
                     {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                 </div>
@@ -102,6 +103,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     value={form.policyType || ''}
                     onChange={handleTypeChange}
                     placeholder="Select Type"
+                    hasError={!!errors.policyType}
                 />
                 {errors.policyType && <p className="text-xs text-red-500 mt-1">{errors.policyType}</p>}
             </div>
@@ -117,6 +119,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                         value={form.policyOrigin || 'fresh'}
                         onChange={(val) => handleChange('policyOrigin', val)}
                         placeholder="Select Origin"
+                        hasError={!!errors.policyOrigin}
                     />
                 </div>
             )}
@@ -138,6 +141,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                         value={form.ncbPercentage !== null && form.ncbPercentage !== undefined ? form.ncbPercentage.toString() : ''}
                         onChange={(val) => handleChange('ncbPercentage', val ? Number(val) : null)}
                         allLabel="Leave blank / N/A"
+                        hasError={!!errors.ncbPercentage}
                     />
                     {isRenewal && parentHadClaim && (
                         <p className="text-xs text-amber-600 mt-1 font-medium bg-amber-50 p-1.5 rounded border border-amber-200">
@@ -162,6 +166,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     value={form.companyId || ''}
                     onChange={(val) => handleChange('companyId', val)}
                     allLabel="None"
+                    hasError={!!errors.companyId}
                 />
                 {errors.companyId && <p className="text-xs text-red-500 mt-1">{errors.companyId}</p>}
             </div>
@@ -185,6 +190,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     value={form.dealerId || ''}
                     onChange={(val) => handleChange('dealerId', val)}
                     allLabel="No Dealer"
+                    hasError={!!errors.dealerId}
                 />
             </div>
 
@@ -230,6 +236,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                             value={form.vehicleClass || ''}
                             onChange={(val) => handleChange('vehicleClass', val)}
                             allLabel="Select Class"
+                            hasError={!!errors.vehicleClass}
                         />
                     </div>
                     <div><label className="label">IDV</label>
@@ -296,6 +303,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     value={form.paymentMethod || ''}
                     onChange={(val) => handleChange('paymentMethod', val)}
                     placeholder="Select Method"
+                    hasError={!!errors.paymentMethod}
                 />
             </div>
 

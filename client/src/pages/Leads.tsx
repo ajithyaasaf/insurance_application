@@ -304,6 +304,7 @@ const Leads: React.FC = () => {
                             value={form.status}
                             onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
+                            hasError={!!errors.status}
                         />
                         {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>

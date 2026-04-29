@@ -525,6 +525,7 @@ const Commissions: React.FC = () => {
                                     value={dealerId}
                                     onChange={(val) => { setDealerId(val); setCalcErrors(prev => ({ ...prev, dealerId: '' })); }}
                                     placeholder="Select Dealer"
+                                    hasError={!!calcErrors.dealerId}
                                 />
                                 {calcErrors.dealerId && <p className="text-xs text-red-500 mt-1">{calcErrors.dealerId}</p>}
                             </div>

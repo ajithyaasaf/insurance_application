@@ -285,6 +285,7 @@ const Payments: React.FC = () => {
                                         setErrors(prev => ({ ...prev, customerId: '', policyId: '' })); 
                                     }}
                                     placeholder="Select Customer"
+                                    hasError={!!errors.customerId}
                                 />
                                 {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                             </div>
@@ -308,6 +309,7 @@ const Payments: React.FC = () => {
                                         setErrors(prev => ({ ...prev, policyId: '', customerId: '', amount: '', dueDate: '' })); 
                                     }}
                                     placeholder="Search by Policy #, Vehicle # or Name"
+                                    hasError={!!errors.policyId}
                                 />
                                 {errors.policyId && <p className="text-xs text-red-500 mt-1">{errors.policyId}</p>}
                             </div>
@@ -346,6 +348,7 @@ const Payments: React.FC = () => {
                             value={form.status}
                             onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
+                            hasError={!!errors.status}
                         />
                         {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>

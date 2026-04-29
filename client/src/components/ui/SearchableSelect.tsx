@@ -15,6 +15,7 @@ interface SearchableSelectProps {
     className?: string;
     disabled?: boolean;
     required?: boolean;
+    hasError?: boolean;
 }
 
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -26,6 +27,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     className = '',
     disabled = false,
     required = false,
+    hasError = false,
 }) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
@@ -135,6 +137,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
             <button
                 type="button"
                 disabled={disabled}
+                data-error-field={hasError ? 'true' : undefined}
                 onClick={() => {
                     if (!disabled) setOpen(prev => !prev);
                 }}
@@ -146,7 +149,9 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                         ? 'bg-surface-100 text-surface-400 border-surface-200 cursor-not-allowed'
                         : open
                             ? 'bg-white border-primary-500 ring-2 ring-primary-100 text-surface-900'
-                            : 'bg-white border-surface-200 text-surface-700 hover:border-surface-300'
+                            : hasError
+                                ? 'bg-white border-red-500 focus:ring-red-400 text-surface-900'
+                                : 'bg-white border-surface-200 text-surface-700 hover:border-surface-300'
                     }
                 `}
                 aria-haspopup="listbox"
