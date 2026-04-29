@@ -19,6 +19,8 @@ import dealerRoutes from './modules/dealer/dealer.routes';
 import reportRoutes from './modules/report/report.routes';
 import commissionRoutes from './modules/commission/commission.routes';
 import { initCronJobs } from './utils/cron';
+import prisma from './utils/prisma';
+
 
 const app = express();
 app.set('trust proxy', 1);
@@ -48,10 +50,39 @@ app.use('/api/dealers', dealerRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/commissions', commissionRoutes);
 
-// Health check
-app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// ─── Health & Keep-Alive ────────────────────────────────
+/**
+ * @description Robust health check for monitoring systems
+ */
+app.get('/api/health', async (_req, res) => {
+    try {
+        // Perform a simple query to ensure DB is responsive
+        await prisma.$queryRaw`SELECT 1`;
+        
+        res.status(200).json({
+            status: 'ok',
+            database: 'connected',
+            timestamp: new Date().toISOString(),
+            uptime: Math.floor(process.uptime()),
+            version: process.env.npm_package_version || '1.0.0'
+        });
+    } catch (error) {
+        console.error('Health check failed:', error);
+        res.status(503).json({
+            status: 'degraded',
+            database: 'disconnected',
+            timestamp: new Date().toISOString(),
+        });
+    }
 });
+
+/**
+ * @description Lightweight ping endpoint for UptimeRobot (minimal latency)
+ */
+app.get('/ping', (_req, res) => {
+    res.status(200).send('pong');
+});
+
 
 // ─── Error Handler ──────────────────────────────────────
 app.use(errorHandler);
