@@ -14,6 +14,18 @@ export const initCronJobs = () => {
         })
         .catch(err => console.error('[STARTUP] Policy sweep error:', err));
 
+    // Payment Overdue Detection
+    prisma.user.findMany({ select: { id: true } })
+        .then(async (users) => {
+            let totalOverdue = 0;
+            for (const user of users) {
+                const { updated } = await paymentService.detectOverdue(user.id);
+                totalOverdue += updated;
+            }
+            if (totalOverdue > 0) console.log(`[STARTUP] Detected ${totalOverdue} overdue payments.`);
+        })
+        .catch(err => console.error('[STARTUP] Payment sweep error:', err));
+
     // SCHEDULED SWEEP: Run every day at exactly midnight (00:00)
     cron.schedule('0 0 * * *', async () => {
         console.log('[CRON] Starting midnight sweeps...');
