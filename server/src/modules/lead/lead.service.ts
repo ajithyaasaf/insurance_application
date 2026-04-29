@@ -245,6 +245,7 @@ export class LeadService {
                         premiumAmount: finalNet,
                         startDate: lead.startDate,
                         expiryDate: lead.expiryDate,
+                        noOfYears: Math.max(1, Math.round(Math.abs(lead.expiryDate.getTime() - lead.startDate.getTime()) / (1000 * 60 * 60 * 24 * 365))),
                         
                         // Motor fields
                         vehicleNumber: lead.vehicleNumber,

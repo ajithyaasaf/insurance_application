@@ -323,9 +323,6 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 </div>
             )}
 
-            <div><label className="label">No. of Years</label>
-                <input type="number" className="input" min="1" value={form.noOfYears || '1'} onChange={(e) => handleChange('noOfYears', e.target.value)} />
-            </div>
         </div>
     );
 };

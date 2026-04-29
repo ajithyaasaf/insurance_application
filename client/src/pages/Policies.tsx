@@ -32,7 +32,7 @@ const Policies: React.FC = () => {
     const [renewingPolicy, setRenewingPolicy] = useState<any>(null);
     const [form, setForm] = useState({
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
-        sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1',
+        sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '',
         make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '',
         registrationDate: '', policyOrigin: 'fresh', ncbPercentage: ''
     });
@@ -82,7 +82,7 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', noOfYears: '1', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '' });
         setEditStatus('active');
         setErrors({});
         setModalOpen(true);
@@ -94,7 +94,7 @@ const Policies: React.FC = () => {
             customerId: p.customerId, companyId: p.companyId, policyNumber: p.policyNumber || '', policyType: p.policyType,
             vehicleNumber: p.vehicleNumber || '', startDate: p.startDate.split('T')[0], expiryDate: p.expiryDate.split('T')[0],
             sumInsured: p.sumInsured?.toString() || '', premiumAmount: p.premiumAmount.toString(), premiumMode: p.premiumMode,
-            productName: p.productName || '', noOfYears: p.noOfYears.toString(),
+            productName: p.productName || '',
             make: p.make || '', model: p.model || '', vehicleClass: p.vehicleClass || '', idv: p.idv?.toString() || '',
             od: p.od?.toString() || '', tp: p.tp?.toString() || '', tax: p.tax?.toString() || '', totalPremium: p.totalPremium?.toString() || '',
             paymentMethod: p.paymentMethod || '', paidAmount: '', dealerId: p.dealerId || '',
@@ -139,7 +139,6 @@ const Policies: React.FC = () => {
                 ...form,
                 sumInsured: form.policyType === 'motor' ? undefined : (form.sumInsured ? parseFloat(form.sumInsured) : undefined),
                 premiumAmount: parseFloat(form.premiumAmount),
-                noOfYears: parseInt(form.noOfYears),
                 productName: form.policyType === 'motor' ? undefined : (form.productName || undefined),
                 idv: form.idv ? parseFloat(form.idv) : undefined,
                 od: form.od ? parseFloat(form.od) : undefined,
