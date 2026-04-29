@@ -14,8 +14,8 @@ export class CustomerService {
     async create(userId: string, role: string, data: CreateCustomerInput) {
         // Clean up empty strings from frontend
         if (data.dob === '') data.dob = null;
-        if (data.phone === '') data.phone = null;
-        if (data.email === '') data.email = null;
+        if (data.phone === '') data.phone = undefined;
+        if (data.email === '') data.email = undefined;
 
         // Transform dob to Date
         if (data.dob && typeof data.dob === 'string') {
@@ -96,8 +96,8 @@ export class CustomerService {
 
         // Clean up empty strings from frontend
         if (data.dob === '') data.dob = null;
-        if (data.phone === '') data.phone = null;
-        if (data.email === '') data.email = null;
+        if (data.phone === '') data.phone = undefined;
+        if (data.email === '') data.email = undefined;
 
         // Transform dob to Date
         if (data.dob && typeof data.dob === 'string') {
