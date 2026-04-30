@@ -54,6 +54,11 @@ const Login: React.FC = () => {
                     <p className="text-surface-400 mt-1">
                         {isRegister ? 'Create your account' : 'Sign in to your account'}
                     </p>
+                    {/* BETA_VERSION_NOTICE_START - Remove this block after beta */}
+                    <p className="text-primary-400 mt-2 font-bold text-sm">
+                        Note : this is a beta version
+                    </p>
+                    {/* BETA_VERSION_NOTICE_END */}
                 </div>
 
                 {/* Form Card */}
