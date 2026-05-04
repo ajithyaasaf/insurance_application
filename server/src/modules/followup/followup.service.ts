@@ -25,7 +25,7 @@ export class FollowUpService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 20, status?: string, date?: string, search?: string) {
+    async findAll(userId: string, page = 1, limit = 20, status?: string, date?: string, search?: string, vehicleClass?: string) {
         const where: any = {
             userId,
             ...(status && { status: status as any }),
@@ -38,6 +38,7 @@ export class FollowUpService {
             ...(search && {
                 customer: { name: { contains: search, mode: 'insensitive' } },
             }),
+            ...(vehicleClass && { policy: { vehicleClass: vehicleClass as any } }),
         };
 
         const [data, total] = await Promise.all([

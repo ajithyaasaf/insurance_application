@@ -1,6 +1,7 @@
 import React from 'react';
 import SearchableSelect from './SearchableSelect';
 import { POLICY_TYPES, VEHICLE_CLASSES, PREMIUM_MODES } from '../../utils/constants';
+import { formatDateInput, formatVehicleClass } from '../../utils/format';
 
 interface PolicyFormFieldsProps {
     form: any;
@@ -232,7 +233,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     </div>
                     <div><label className="label">Vehicle Class</label>
                         <SearchableSelect
-                            options={VEHICLE_CLASSES.map(c => ({ value: c, label: c.replace('_', ' ') }))}
+                            options={VEHICLE_CLASSES.map(c => ({ value: c, label: formatVehicleClass(c) }))}
                             value={form.vehicleClass || ''}
                             onChange={(val) => handleChange('vehicleClass', val)}
                             allLabel="Select Class"

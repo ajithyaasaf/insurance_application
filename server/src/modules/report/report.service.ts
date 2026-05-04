@@ -45,7 +45,10 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'customerPhone', label: 'Phone' },
         { key: 'companyName', label: 'Company' },
         { key: 'policyType', label: 'Type' },
+        { key: 'make', label: 'Make' },
+        { key: 'model', label: 'Model' },
         { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
         { key: 'tax', label: 'Tax (₹)' },
         { key: 'totalPremium', label: 'Total Premium (Gross) (₹)' },
@@ -58,6 +61,7 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy #' },
         { key: 'companyName', label: 'Company' },
+        { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'amount', label: 'Amount (₹)' },
         { key: 'paidAmount', label: 'Paid (₹)' },
         { key: 'dueDate', label: 'Due Date' },
@@ -69,6 +73,7 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy #' },
         { key: 'companyName', label: 'Company' },
+        { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'claimAmount', label: 'Amount (₹)' },
         { key: 'claimDate', label: 'Claim Date' },
         { key: 'status', label: 'Status' },
@@ -134,11 +139,12 @@ function buildPaymentWhere(userId: string, filters?: ReportFilters) {
         if (filters?.dateTo) where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     // Join-level filters (company, dealer) — we filter via the policy relation
-    if (filters?.companyId || filters?.dealerId || filters?.policyType) {
+    if (filters?.companyId || filters?.dealerId || filters?.policyType || filters?.vehicleClass) {
         where.policy = { deletedAt: null };
         if (filters?.companyId) where.policy.companyId = filters.companyId;
         if (filters?.dealerId) where.policy.dealerId = filters.dealerId;
         if (filters?.policyType) where.policy.policyType = filters.policyType;
+        if (filters?.vehicleClass) where.policy.vehicleClass = filters.vehicleClass;
     }
     return where;
 }
@@ -152,10 +158,11 @@ function buildClaimWhere(userId: string, filters?: ReportFilters) {
         if (filters?.dateFrom) where.claimDate.gte = new Date(filters.dateFrom);
         if (filters?.dateTo) where.claimDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
-    if (filters?.companyId || filters?.policyType) {
+    if (filters?.companyId || filters?.policyType || filters?.vehicleClass) {
         where.policy = { deletedAt: null };
         if (filters?.companyId) where.policy.companyId = filters.companyId;
         if (filters?.policyType) where.policy.policyType = filters.policyType;
+        if (filters?.vehicleClass) where.policy.vehicleClass = filters.vehicleClass;
     }
     return where;
 }
@@ -222,8 +229,10 @@ export class ReportService {
             dealerName: r.dealer?.name || '—',
             policyType: r.policyType,
             productName: r.policyType === 'motor' ? `${r.make || ''} ${r.model || ''}`.trim() || 'Motor' : r.productName || '—',
+            make: r.make || '—',
+            model: r.model || '—',
             vehicleNumber: r.vehicleNumber || '—',
-            vehicleClass: r.vehicleClass || '—',
+            vehicleClass: r.vehicleClass?.replace(/_/g, ' ') || '—',
             premiumAmount: r.premiumAmount,
             tax: r.tax || 0,
             totalPremium: r.totalPremium || r.premiumAmount,
@@ -256,10 +265,11 @@ export class ReportService {
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
             companyName: r.policy?.company?.name || '—',
+            vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
             amount: r.amount,
             paidAmount: r.paidAmount ?? 0,
             dueDate: fmtDate(r.dueDate),
-            paidDate: fmtDate(r.paidDate),
+            paidDate: r.paidDate ? fmtDate(r.paidDate) : '—',
             status: r.status,
         }));
 
@@ -284,6 +294,7 @@ export class ReportService {
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
             companyName: r.policy?.company?.name || '—',
+            vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
             claimAmount: r.claimAmount,
             claimDate: fmtDate(r.claimDate),
             status: r.status,
@@ -466,7 +477,7 @@ export class ReportService {
                     { key: 'totalPremiumSum', label: 'Total Premium (₹)' },
                 ],
                 data: groups.map((g: any) => ({
-                    name: g.vehicleClass || 'N/A',
+                    name: g.vehicleClass?.replace(/_/g, ' ') || 'N/A',
                     count: g._count._all,
                     premiumSum: g._sum.premiumAmount || 0,
                     totalPremiumSum: g._sum.totalPremium || 0,

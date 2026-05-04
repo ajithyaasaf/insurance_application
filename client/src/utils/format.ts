@@ -113,3 +113,8 @@ export const scrollToFirstError = () => {
         }
     }, 50);
 };
+
+export const formatVehicleClass = (v: string | null | undefined): string => {
+    if (!v) return '—';
+    return v.replace(/_/g, ' ');
+};

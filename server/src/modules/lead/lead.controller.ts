@@ -24,6 +24,7 @@ export class LeadController {
             const limit = parseInt(req.query.limit as string) || 20;
             const search = req.query.search as string | undefined;
             const status = req.query.status as string | undefined;
+            const vehicleClass = req.query.vehicleClass as string | undefined;
             const excludeConverted = req.query.excludeConverted === 'true';
 
             const result = await leadService.findAll(
@@ -32,7 +33,8 @@ export class LeadController {
                 limit,
                 search,
                 status,
-                excludeConverted
+                excludeConverted,
+                vehicleClass
             );
 
             sendSuccess({

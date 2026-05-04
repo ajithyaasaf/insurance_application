@@ -4,10 +4,10 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
-import { formatDate, formatCurrency, getStatusColor, scrollToFirstError } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
-import { CLAIM_STATUSES as claimStatusOptions } from '../utils/constants';
+import { CLAIM_STATUSES as claimStatusOptions, VEHICLE_CLASSES } from '../utils/constants';
 
 
 
@@ -22,6 +22,7 @@ const Claims: React.FC = () => {
     const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [vehicleClassFilter, setVehicleClassFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
@@ -34,12 +35,18 @@ const Claims: React.FC = () => {
         setLoading(true);
         try {
             const res = await api.get('/claims', {
-                params: { page, limit: 20, search: search || undefined, status: statusFilter || undefined },
+                params: { 
+                    page, 
+                    limit: 20, 
+                    search: search || undefined, 
+                    status: statusFilter || undefined,
+                    vehicleClass: vehicleClassFilter || undefined
+                },
             });
             setClaims(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch claims'); } finally { setLoading(false); }
-    }, [search, statusFilter]);
+    }, [search, statusFilter, vehicleClassFilter]);
 
     useEffect(() => { fetchClaims(); }, [fetchClaims]);
 
@@ -141,15 +148,23 @@ const Claims: React.FC = () => {
                     <input className="input pl-10" placeholder="Search by customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
                 <SearchableSelect
-                    className="w-full sm:w-44"
+                    className="w-48"
+                    options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
+                    value={vehicleClassFilter}
+                    onChange={setVehicleClassFilter}
+                    allLabel="All Classes"
+                    placeholder="Vehicle Class"
+                />
+                <SearchableSelect
+                    className="w-40"
                     options={claimStatusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                     value={statusFilter}
                     onChange={setStatusFilter}
                     allLabel="All Status"
-                    placeholder="Search status..."
+                    placeholder="Status"
                 />
-                {(search || statusFilter) && (
-                    <button onClick={() => { setSearch(''); setStatusFilter(''); }} className="btn-ghost btn-sm self-start sm:self-auto">
+                {(search || statusFilter || vehicleClassFilter) && (
+                    <button onClick={() => { setSearch(''); setStatusFilter(''); setVehicleClassFilter(''); }} className="btn-ghost btn-sm self-start sm:self-auto">
                         Clear
                     </button>
                 )}
@@ -169,10 +184,17 @@ const Claims: React.FC = () => {
                                     <tr key={c.id}>
                                         <td className="font-medium text-surface-900">{c.customer?.name}</td>
                                         <td className="text-xs">
-                                            {c.policy?.policyType === 'motor' 
-                                                ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
-                                                : c.policy?.productName || c.policy?.policyType} 
-                                            {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                {c.policy?.policyType === 'motor' 
+                                                    ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
+                                                    : c.policy?.productName || c.policy?.policyType} 
+                                                {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
+                                                {c.policy?.vehicleClass && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
+                                                        {formatVehicleClass(c.policy.vehicleClass)}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="text-xs">{c.claimNumber || '—'}</td>
                                         <td className="font-medium">{formatCurrency(c.claimAmount)}</td>
@@ -196,12 +218,19 @@ const Claims: React.FC = () => {
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
                                         <p className="font-semibold text-surface-900">{c.customer?.name}</p>
-                                        <p className="text-xs text-surface-500">
-                                            {c.policy?.policyType === 'motor' 
-                                                ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
-                                                : c.policy?.productName || c.policy?.policyType} 
-                                            {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
-                                        </p>
+                                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                            <p className="text-xs text-surface-500">
+                                                {c.policy?.policyType === 'motor' 
+                                                    ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
+                                                    : c.policy?.productName || c.policy?.policyType} 
+                                                {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
+                                            </p>
+                                            {c.policy?.vehicleClass && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-50 text-surface-500 border border-surface-100 uppercase">
+                                                    {formatVehicleClass(c.policy.vehicleClass)}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <span className={getStatusColor(c.status)}>{c.status}</span>
                                 </div>

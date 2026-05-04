@@ -12,8 +12,8 @@ export class ClaimController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { page, limit, search, status } = req.query as any;
-            const result = await claimService.findAll(req.user!.userId, +page || 1, +limit || 20, search, status);
+            const { page, limit, search, status, vehicleClass } = req.query as any;
+            const result = await claimService.findAll(req.user!.userId, +page || 1, +limit || 20, search, status, vehicleClass);
             sendSuccess({ res, statusCode: 200, message: 'Claims fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }

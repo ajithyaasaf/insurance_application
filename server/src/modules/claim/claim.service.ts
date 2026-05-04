@@ -45,13 +45,21 @@ export class ClaimService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 20, search?: string, status?: string) {
+    async findAll(userId: string, page = 1, limit = 20, search?: string, status?: string, vehicleClass?: string) {
+        const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
             userId,
             ...(search && {
-                customer: { name: { contains: search, mode: 'insensitive' } },
+                OR: [
+                    { customer: { name: { contains: search, mode: 'insensitive' } } },
+                    { claimNumber: { contains: search, mode: 'insensitive' } },
+                    { policy: { policyNumber: { contains: search, mode: 'insensitive' } } },
+                    { policy: { vehicleNumber: { contains: search, mode: 'insensitive' } } },
+                    { policy: { vehicleClass: { in: [search.toUpperCase(), normalizedSearch] as any } } }
+                ],
             }),
             ...(status && { status: status as any }),
+            ...(vehicleClass && { policy: { vehicleClass: vehicleClass as any } }),
         };
 
         const [data, total] = await Promise.all([

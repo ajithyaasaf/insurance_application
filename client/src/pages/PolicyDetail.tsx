@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { formatDate, formatCurrency, getStatusColor, daysUntil, scrollToFirstError } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, daysUntil, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
 import Modal from '../components/ui/Modal';
 import { 
@@ -200,7 +200,7 @@ const PolicyDetail: React.FC = () => {
                                 </div>}
                                 {policy.vehicleClass && <div>
                                     <p className="text-xs text-surface-500 mb-1">Class</p>
-                                    <p className="text-sm font-medium text-surface-900 uppercase">{policy.vehicleClass?.replace('_', ' ')}</p>
+                                    <p className="text-sm font-medium text-surface-900">{formatVehicleClass(policy.vehicleClass)}</p>
                                 </div>}
                                 {policy.paymentMethod && <div>
                                     <p className="text-xs text-surface-500 mb-1">Payment Method</p>

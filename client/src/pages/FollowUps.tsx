@@ -4,10 +4,10 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
-import { formatDate, getStatusColor, scrollToFirstError } from '../utils/format';
+import { formatDate, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlinePhone, HiOutlineSearch } from 'react-icons/hi';
-import { FOLLOWUP_STATUSES as statusOptions } from '../utils/constants';
+import { FOLLOWUP_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
 
 
 
@@ -19,6 +19,7 @@ const FollowUps: React.FC = () => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [dateFilter, setDateFilter] = useState('');
+    const [vehicleClassFilter, setVehicleClassFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
@@ -35,12 +36,13 @@ const FollowUps: React.FC = () => {
                     search: search || undefined,
                     status: statusFilter || undefined,
                     date: dateFilter || undefined,
+                    vehicleClass: vehicleClassFilter || undefined,
                 },
             });
             setFollowUps(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch follow-ups'); } finally { setLoading(false); }
-    }, [search, statusFilter, dateFilter]);
+    }, [search, statusFilter, dateFilter, vehicleClassFilter]);
 
     useEffect(() => { fetchFollowUps(); }, [fetchFollowUps]);
 
@@ -126,8 +128,16 @@ const FollowUps: React.FC = () => {
                     allLabel="All Status"
                     placeholder="Search status..."
                 />
-                {(search || dateFilter || statusFilter) && (
-                    <button onClick={() => { setSearch(''); setDateFilter(''); setStatusFilter(''); }} className="btn-ghost btn-sm self-start">Clear</button>
+                <SearchableSelect
+                    className="sm:w-48"
+                    options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
+                    value={vehicleClassFilter}
+                    onChange={setVehicleClassFilter}
+                    allLabel="All Classes"
+                    placeholder="Vehicle Class"
+                />
+                {(search || dateFilter || statusFilter || vehicleClassFilter) && (
+                    <button onClick={() => { setSearch(''); setDateFilter(''); setStatusFilter(''); setVehicleClassFilter(''); }} className="btn-ghost btn-sm self-start">Clear</button>
                 )}
             </div>
 
@@ -145,7 +155,16 @@ const FollowUps: React.FC = () => {
                                         <p className="font-semibold text-surface-900">{f.customer?.name}</p>
                                         <span className={getStatusColor(f.status)}>{f.status}</span>
                                     </div>
-                                    <p className="text-xs text-surface-500">{formatDate(f.nextFollowUpDate)} • {f.policy?.productName || f.policy?.policyType || 'No policy linked'}{f.policy?.vehicleNumber && ` (${f.policy.vehicleNumber})`}</p>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs text-surface-500">
+                                        <span>{formatDate(f.nextFollowUpDate)}</span>
+                                        <span>•</span>
+                                        <span>{f.policy?.productName || f.policy?.policyType || 'No policy linked'}{f.policy?.vehicleNumber && ` (${f.policy.vehicleNumber})`}</span>
+                                        {f.policy?.vehicleClass && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
+                                                {formatVehicleClass(f.policy.vehicleClass)}
+                                            </span>
+                                        )}
+                                    </div>
                                     {f.notes && <p className="text-sm text-surface-600 mt-1">{f.notes}</p>}
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">

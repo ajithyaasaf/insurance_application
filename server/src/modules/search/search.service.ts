@@ -8,6 +8,7 @@ export class SearchService {
             return { customers: [], leads: [], policies: [] };
         }
 
+        const normalizedQuery = query.toUpperCase().replace(/\s+/g, '_');
         const [customers, leads, policies] = await Promise.all([
             prisma.customer.findMany({
                 where: {
@@ -32,6 +33,7 @@ export class SearchService {
                         { vehicleNumber: { contains: query, mode: 'insensitive' } },
                         { make: { contains: query, mode: 'insensitive' } },
                         { model: { contains: query, mode: 'insensitive' } },
+                        { vehicleClass: { in: [query.toUpperCase(), normalizedQuery] as any } }
                     ],
                 },
                 take: 5,
@@ -46,6 +48,7 @@ export class SearchService {
                         { productName: { contains: query, mode: 'insensitive' } },
                         { make: { contains: query, mode: 'insensitive' } },
                         { model: { contains: query, mode: 'insensitive' } },
+                        { vehicleClass: { in: [query.toUpperCase(), normalizedQuery] as any } }
                     ],
                 },
                 include: { customer: true, company: true },

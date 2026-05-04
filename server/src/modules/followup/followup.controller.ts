@@ -12,8 +12,8 @@ export class FollowUpController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { page, limit, status, date, search } = req.query as any;
-            const result = await followUpService.findAll(req.user!.userId, +page || 1, +limit || 20, status, date, search);
+            const { page, limit, status, date, search, vehicleClass } = req.query as any;
+            const result = await followUpService.findAll(req.user!.userId, +page || 1, +limit || 20, status, date, search, vehicleClass);
             sendSuccess({ res, statusCode: 200, message: 'Follow-ups fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }

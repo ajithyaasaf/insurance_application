@@ -8,7 +8,292 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── Enums ──────────────────────────────────────────────
+model User {
+  id           String       @id @default(uuid())
+  email        String       @unique
+  passwordHash String
+  name         String
+  role         Role         @default(agent)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  claims       Claim[]
+  commissions  Commission[]
+  customers    Customer[]
+  dealers      Dealer[]
+  followUps    FollowUp[]
+  leads        Lead[]
+  payments     Payment[]
+  policies     Policy[]
+
+  @@index([email])
+}
+
+model Dealer {
+  id          String       @id @default(uuid())
+  userId      String
+  name        String
+  phone       String?
+  address     String?
+  createdBy   String
+  updatedBy   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  deletedAt   DateTime?
+  commissions Commission[]
+  user        User         @relation(fields: [userId], references: [id])
+  policies    Policy[]
+
+  @@index([userId])
+  @@index([name])
+}
+
+model Lead {
+  id                String              @id @default(uuid())
+  userId            String
+  name              String
+  phone             String?
+  interestedProduct String?
+  status            LeadStatus          @default(new)
+  nextFollowUpDate  DateTime?
+  notes             String?
+  createdBy         String
+  updatedBy         String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  deletedAt         DateTime?
+  companyId         String?
+  expiryDate        DateTime?
+  idv               Float?
+  make              String?
+  model             String?
+  od                Float?
+  policyType        PolicyType?
+  premiumAmount     Float?
+  startDate         DateTime?
+  tax               Float?
+  totalPremium      Float?
+  tp                Float?
+  vehicleClass      PolicyVehicleClass?
+  vehicleNumber     String?
+  dealerId          String?
+  registrationDate  DateTime?
+  ncbPercentage     Float?
+  policyOrigin      PolicyOrigin?
+  user              User                @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([phone])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model Customer {
+  id        String     @id @default(uuid())
+  userId    String
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdBy String
+  updatedBy String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  deletedAt DateTime?
+  dob       DateTime?
+  claims    Claim[]
+  user      User       @relation(fields: [userId], references: [id])
+  followUps FollowUp[]
+  payments  Payment[]
+  policies  Policy[]
+
+  @@index([userId])
+  @@index([phone])
+  @@index([createdAt])
+}
+
+model Company {
+  id          String       @id @default(uuid())
+  name        String
+  type        String?
+  category    String?
+  commissions Commission[]
+  policies    Policy[]
+
+  @@index([name])
+}
+
+model Policy {
+  id                 String              @id @default(uuid())
+  userId             String
+  customerId         String
+  companyId          String
+  policyNumber       String?
+  policyType         PolicyType
+  vehicleNumber      String?
+  startDate          DateTime
+  expiryDate         DateTime
+  sumInsured         Float?
+  premiumAmount      Float
+  premiumMode        PremiumMode         @default(yearly)
+  productName        String?
+  noOfYears          Int                 @default(1)
+  status             PolicyStatus        @default(active)
+  parentPolicyId     String?
+  createdBy          String
+  updatedBy          String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  deletedAt          DateTime?
+  dealerId           String?
+  idv                Float?
+  make               String?
+  model              String?
+  od                 Float?
+  paymentMethod      String?
+  tax                Float?
+  totalPremium       Float?
+  tp                 Float?
+  vehicleClass       PolicyVehicleClass?
+  cancelledAt        DateTime?
+  registrationDate   DateTime?
+  ncbPercentage      Float?
+  policyOrigin       PolicyOrigin        @default(fresh)
+  claims             Claim[]
+  commissionPolicies CommissionPolicy[]
+  followUps          FollowUp[]
+  payments           Payment[]
+  company            Company             @relation(fields: [companyId], references: [id])
+  customer           Customer            @relation(fields: [customerId], references: [id])
+  dealer             Dealer?             @relation(fields: [dealerId], references: [id])
+  parentPolicy       Policy?             @relation("PolicyRenewal", fields: [parentPolicyId], references: [id])
+  renewals           Policy[]            @relation("PolicyRenewal")
+  user               User                @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([companyId])
+  @@index([expiryDate])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model Claim {
+  id          String   @id @default(uuid())
+  userId      String
+  policyId    String
+  customerId  String
+  claimNumber String?
+  claimAmount Float
+  claimDate   DateTime
+  status      String   @default("filed")
+  reason      String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  customer    Customer @relation(fields: [customerId], references: [id])
+  policy      Policy   @relation(fields: [policyId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([policyId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model Payment {
+  id         String        @id @default(uuid())
+  userId     String
+  policyId   String
+  customerId String
+  amount     Float
+  dueDate    DateTime
+  paidDate   DateTime?
+  paidAmount Float?
+  status     PaymentStatus @default(pending)
+  notes      String?
+  createdBy  String
+  createdAt  DateTime      @default(now())
+  customer   Customer      @relation(fields: [customerId], references: [id])
+  policy     Policy        @relation(fields: [policyId], references: [id])
+  user       User          @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([policyId])
+  @@index([customerId])
+  @@index([dueDate])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model FollowUp {
+  id               String         @id @default(uuid())
+  userId           String
+  customerId       String
+  policyId         String?
+  nextFollowUpDate DateTime
+  notes            String?
+  status           FollowUpStatus @default(pending)
+  createdBy        String
+  createdAt        DateTime       @default(now())
+  customer         Customer       @relation(fields: [customerId], references: [id])
+  policy           Policy?        @relation(fields: [policyId], references: [id])
+  user             User           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([customerId])
+  @@index([nextFollowUpDate])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Commission {
+  id                 String             @id @default(uuid())
+  userId             String
+  dealerId           String
+  companyId          String?
+  periodStart        DateTime
+  periodEnd          DateTime
+  odPercentage       Float
+  tpPercentage       Float
+  totalOdCommission  Float              @default(0)
+  totalTpCommission  Float              @default(0)
+  totalCommission    Float              @default(0)
+  totalPremium       Float              @default(0)
+  notes              String?
+  status             String             @default("draft")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  company            Company?           @relation(fields: [companyId], references: [id])
+  dealer             Dealer             @relation(fields: [dealerId], references: [id])
+  user               User               @relation(fields: [userId], references: [id])
+  commissionPolicies CommissionPolicy[]
+
+  @@index([userId])
+  @@index([dealerId])
+  @@index([companyId])
+  @@index([createdAt])
+}
+
+model CommissionPolicy {
+  id            String     @id @default(uuid())
+  commissionId  String
+  policyId      String
+  vehicleNumber String?
+  make          String?
+  model         String?
+  vehicleClass  String?
+  od            Float      @default(0)
+  tp            Float      @default(0)
+  premiumAmount Float      @default(0)
+  startDate     DateTime
+  expiryDate    DateTime
+  odCommission  Float      @default(0)
+  tpCommission  Float      @default(0)
+  commission    Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
+  policy        Policy     @relation(fields: [policyId], references: [id])
+
+  @@index([commissionId])
+  @@index([policyId])
+}
 
 enum Role {
   agent
@@ -66,6 +351,9 @@ enum PolicyVehicleClass {
   CPM
   Fire
   Public_Liability
+  SAOD_TW
+  SAOD_PVT
+  CPA
   Others
 }
 
@@ -73,327 +361,4 @@ enum PolicyOrigin {
   fresh
   external_renewal
   in_system_renewal
-}
-
-// ─── User ───────────────────────────────────────────────
-
-model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         Role     @default(agent)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  leads       Lead[]
-  customers   Customer[]
-  policies    Policy[]
-  claims      Claim[]
-  payments    Payment[]
-  followUps   FollowUp[]
-  dealers     Dealer[]
-  commissions Commission[]
-
-  @@index([email])
-}
-
-// ─── Dealer ─────────────────────────────────────────────
-
-model Dealer {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String
-  phone     String?
-  address   String?
-  createdBy String
-  updatedBy String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  user        User         @relation(fields: [userId], references: [id])
-  policies    Policy[]
-  commissions Commission[]
-
-  @@index([userId])
-  @@index([name])
-}
-
-// ─── Lead ───────────────────────────────────────────────
-
-model Lead {
-  id               String     @id @default(uuid())
-  userId           String
-  name             String
-  phone            String?
-  interestedProduct String?
-  status           LeadStatus @default(new)
-  nextFollowUpDate DateTime?
-  notes            String?
-  createdBy        String     // "agent" | "staff"
-  updatedBy        String     // "agent" | "staff"
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  deletedAt        DateTime?
-
-  // Quote / Policy Draft Fields
-  policyType       PolicyType?
-  companyId        String?
-  vehicleNumber    String?
-  make             String?
-  model            String?
-  registrationDate DateTime?
-  vehicleClass     PolicyVehicleClass?
-  idv              Float?
-  od               Float?
-  tp               Float?
-  tax              Float?
-  totalPremium     Float?
-  premiumAmount    Float?
-  startDate        DateTime?
-  expiryDate       DateTime?
-  policyOrigin     PolicyOrigin?
-  ncbPercentage    Float?
-  dealerId         String?
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([phone])
-  @@index([createdAt])
-  @@index([status])
-}
-
-// ─── Customer ───────────────────────────────────────────
-
-model Customer {
-  id        String    @id @default(uuid())
-  userId    String
-  name      String
-  phone     String?
-  email     String?
-  address   String?
-  dob       DateTime?
-  createdBy String
-  updatedBy String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  user      User       @relation(fields: [userId], references: [id])
-  policies  Policy[]
-  claims    Claim[]
-  payments  Payment[]
-  followUps FollowUp[]
-
-  @@index([userId])
-  @@index([phone])
-  @@index([createdAt])
-}
-
-// ─── Company ────────────────────────────────────────────
-
-model Company {
-  id       String  @id @default(uuid())
-  name     String
-  type     String? // insurer, TPA, etc.
-  category String? // life, general, health
-
-  policies    Policy[]
-  commissions Commission[]
-
-  @@index([name])
-}
-
-// ─── Policy ─────────────────────────────────────────────
-
-model Policy {
-  id             String       @id @default(uuid())
-  userId         String
-  customerId     String
-  companyId      String
-  policyNumber   String?
-  policyType     PolicyType
-  vehicleNumber  String?
-  startDate      DateTime
-  expiryDate     DateTime
-  sumInsured     Float?
-  premiumAmount  Float
-  premiumMode    PremiumMode  @default(yearly)
-  productName    String?
-  noOfYears      Int          @default(1)
-  
-  // Motor Specific Fields
-  make             String?
-  model            String?
-  registrationDate DateTime?
-  vehicleClass     PolicyVehicleClass?
-  idv            Float?
-  od             Float?
-  tp             Float?
-  tax            Float?
-  totalPremium   Float?
-  paymentMethod  String?
-  policyOrigin   PolicyOrigin  @default(fresh)
-  ncbPercentage  Float?
-  dealerId       String?
-
-  status         PolicyStatus @default(active)
-  cancelledAt    DateTime?
-  parentPolicyId String?
-  createdBy      String
-  updatedBy      String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  deletedAt      DateTime?
-
-  user         User      @relation(fields: [userId], references: [id])
-  customer     Customer  @relation(fields: [customerId], references: [id])
-  company      Company   @relation(fields: [companyId], references: [id])
-  dealer       Dealer?   @relation(fields: [dealerId], references: [id])
-  parentPolicy Policy?   @relation("PolicyRenewal", fields: [parentPolicyId], references: [id])
-  renewals     Policy[]  @relation("PolicyRenewal")
-  claims       Claim[]
-  payments     Payment[]
-  followUps    FollowUp[]
-  commissionPolicies CommissionPolicy[]
-
-  @@index([userId])
-  @@index([customerId])
-  @@index([companyId])
-  @@index([expiryDate])
-  @@index([createdAt])
-  @@index([status])
-}
-
-// ─── Claim ──────────────────────────────────────────────
-
-model Claim {
-  id          String   @id @default(uuid())
-  userId      String
-  policyId    String
-  customerId  String
-  claimNumber String?
-  claimAmount Float
-  claimDate   DateTime
-  status      String   @default("filed") // filed, approved, rejected, settled
-  reason      String?
-  createdBy   String
-  createdAt   DateTime @default(now())
-
-  user     User     @relation(fields: [userId], references: [id])
-  policy   Policy   @relation(fields: [policyId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
-
-  @@index([userId])
-  @@index([policyId])
-  @@index([customerId])
-  @@index([createdAt])
-}
-
-// ─── Payment ────────────────────────────────────────────
-
-model Payment {
-  id         String        @id @default(uuid())
-  userId     String
-  policyId   String
-  customerId String
-  amount     Float
-  dueDate    DateTime
-  paidDate   DateTime?
-  paidAmount Float?
-  status     PaymentStatus @default(pending)
-  notes      String?
-  createdBy  String
-  createdAt  DateTime      @default(now())
-
-  user     User     @relation(fields: [userId], references: [id])
-  policy   Policy   @relation(fields: [policyId], references: [id])
-  customer Customer @relation(fields: [customerId], references: [id])
-
-  @@index([userId])
-  @@index([policyId])
-  @@index([customerId])
-  @@index([dueDate])
-  @@index([status])
-  @@index([createdAt])
-}
-
-// ─── FollowUp ───────────────────────────────────────────
-
-model FollowUp {
-  id               String         @id @default(uuid())
-  userId           String
-  customerId       String
-  policyId         String?
-  nextFollowUpDate DateTime
-  notes            String?
-  status           FollowUpStatus @default(pending)
-  createdBy        String
-  createdAt        DateTime       @default(now())
-
-  user     User      @relation(fields: [userId], references: [id])
-  customer Customer  @relation(fields: [customerId], references: [id])
-  policy   Policy?   @relation(fields: [policyId], references: [id])
-
-  @@index([userId])
-  @@index([customerId])
-  @@index([nextFollowUpDate])
-  @@index([status])
-  @@index([createdAt])
-}
-
-// ─── Commission ─────────────────────────────────────────
-
-model Commission {
-  id                String   @id @default(uuid())
-  userId            String
-  dealerId          String
-  companyId         String?
-  periodStart       DateTime
-  periodEnd         DateTime
-  odPercentage      Float
-  tpPercentage      Float
-  totalOdCommission Float    @default(0)
-  totalTpCommission Float    @default(0)
-  totalCommission   Float    @default(0)
-  totalPremium      Float    @default(0)
-  notes             String?
-  status            String   @default("draft")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user               User               @relation(fields: [userId], references: [id])
-  dealer             Dealer             @relation(fields: [dealerId], references: [id])
-  company            Company?           @relation(fields: [companyId], references: [id])
-  commissionPolicies CommissionPolicy[]
-
-  @@index([userId])
-  @@index([dealerId])
-  @@index([companyId])
-  @@index([createdAt])
-}
-
-model CommissionPolicy {
-  id             String   @id @default(uuid())
-  commissionId   String
-  policyId       String
-  vehicleNumber  String?
-  make           String?
-  model          String?
-  vehicleClass   String?
-  od             Float    @default(0)
-  tp             Float    @default(0)
-  premiumAmount  Float    @default(0)
-  startDate      DateTime
-  expiryDate     DateTime
-  odCommission   Float    @default(0)
-  tpCommission   Float    @default(0)
-
-  commission     Commission @relation(fields: [commissionId], references: [id], onDelete: Cascade)
-  policy         Policy     @relation(fields: [policyId], references: [id])
-
-  @@index([commissionId])
-  @@index([policyId])
 }

@@ -12,6 +12,7 @@ import api from '../../api/client';
 import SearchableSelect from '../ui/SearchableSelect';
 import Pagination from '../ui/Pagination';
 import ReportTable from './ReportTable';
+import { formatVehicleClass } from '../../utils/format';
 import { BarChartRow, PolicyPieChart, CompanyBarChart } from './ReportCharts';
 import { 
     POLICY_TYPES, VEHICLE_CLASSES, POLICY_STATUSES, 
@@ -297,7 +298,7 @@ const ReportBuilderTab: React.FC = () => {
                         <div>
                             <label className="label">Vehicle Class</label>
                             <SearchableSelect
-                                options={VEHICLE_CLASSES.map(t => ({ value: t, label: t.replace('_', ' ') }))}
+                                options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
                                 value={localFilters.vehicleClass || ''}
                                 onChange={val => updateLocalFilter('vehicleClass', val)}
                                 allLabel="All Classes"

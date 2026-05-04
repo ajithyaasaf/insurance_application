@@ -182,8 +182,10 @@ export class PolicyService {
         status?: string,
         policyType?: string,
         companyId?: string,
-        dealerId?: string
+        dealerId?: string,
+        vehicleClass?: string
     ) {
+        const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
             userId,
             deletedAt: null,
@@ -192,12 +194,14 @@ export class PolicyService {
                     { customer: { name: { contains: search, mode: 'insensitive' } } },
                     { policyNumber: { contains: search, mode: 'insensitive' } },
                     { vehicleNumber: { contains: search, mode: 'insensitive' } },
+                    { vehicleClass: { in: [search.toUpperCase(), normalizedSearch] as any } }
                 ],
             }),
             ...(status ? buildStatusFilter(status) : {}),
             ...(policyType && { policyType: policyType as any }),
             ...(companyId && { companyId }),
             ...(dealerId && { dealerId }),
+            ...(vehicleClass && { vehicleClass: vehicleClass as any }),
         };
 
         const total = await prisma.policy.count({ where });

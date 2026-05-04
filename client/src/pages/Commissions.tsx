@@ -3,7 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate, formatCurrency, getStatusColor, scrollToFirstError } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, formatVehicleClass, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlineCalculator, HiOutlineSave, HiOutlineDocumentDownload, HiOutlineEye, HiOutlineTrash, HiOutlineCheckCircle } from 'react-icons/hi';
 import jsPDF from 'jspdf';
@@ -317,11 +317,12 @@ const Commissions: React.FC = () => {
         const policies = data.commissionPolicies || data.policies || [];
         autoTable(doc, {
             startY: 75,
-            head: [['Vehicle No', 'Make', 'Model', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
+            head: [['Vehicle No', 'Make', 'Model', 'Class', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
             body: policies.map((p: any) => [
                 p.vehicleNumber || '-',
                 p.make || '-',
                 p.model || '-',
+                formatVehicleClass(p.vehicleClass),
                 `Rs. ${(p.od || 0).toLocaleString('en-IN')}`,
                 `Rs. ${(p.tp || 0).toLocaleString('en-IN')}`,
                 `Rs. ${(p.premiumAmount || 0).toLocaleString('en-IN')}`,
@@ -329,7 +330,7 @@ const Commissions: React.FC = () => {
                 `Rs. ${(p.tpCommission || 0).toLocaleString('en-IN')}`,
                 `Rs. ${((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN')}`,
             ]),
-            styles: { fontSize: 8 },
+            styles: { fontSize: 7 },
             headStyles: { fillColor: [59, 130, 246] },
         });
 
@@ -672,7 +673,7 @@ const Commissions: React.FC = () => {
                                                         <td className="font-medium">{p.vehicleNumber || '-'}</td>
                                                         <td>{p.make || '-'}</td>
                                                         <td>{p.model || '-'}</td>
-                                                        <td>{p.vehicleClass || '-'}</td>
+                                                        <td>{formatVehicleClass(p.vehicleClass)}</td>
                                                         <td className="text-right">{formatCurrency(p.od)}</td>
                                                         <td className="text-right">{formatCurrency(p.tp)}</td>
                                                         <td className="text-right font-medium">{formatCurrency(p.premiumAmount)}</td>
@@ -896,7 +897,7 @@ const Commissions: React.FC = () => {
                         <div className="table-container">
                             <table className="table">
                                 <thead>
-                                    <tr><th>Vehicle</th><th>Make</th><th>Model</th><th>OD</th><th>TP</th><th>Net Premium</th><th>OD Comm.</th><th>TP Comm.</th></tr>
+                                    <tr><th>Vehicle</th><th>Make</th><th>Model</th><th>Class</th><th>OD</th><th>TP</th><th>Net Premium</th><th>OD Comm.</th><th>TP Comm.</th></tr>
                                 </thead>
                                 <tbody>
                                     {detailModal.commissionPolicies?.map((p: any) => (
@@ -904,6 +905,7 @@ const Commissions: React.FC = () => {
                                             <td className="font-medium">{p.vehicleNumber || '-'}</td>
                                             <td>{p.make || '-'}</td>
                                             <td>{p.model || '-'}</td>
+                                            <td>{formatVehicleClass(p.vehicleClass)}</td>
                                             <td>{formatCurrency(p.od)}</td>
                                             <td>{formatCurrency(p.tp)}</td>
                                             <td>{formatCurrency(p.premiumAmount)}</td>
@@ -958,6 +960,7 @@ const Commissions: React.FC = () => {
                                     <th>Date</th>
                                     <th>Vehicle No</th>
                                     <th>Make / Model</th>
+                                    <th>Class</th>
                                     <th className="text-right">OD Premium</th>
                                     <th className="text-right">TP Premium</th>
                                 </tr>
@@ -968,6 +971,7 @@ const Commissions: React.FC = () => {
                                         <td>{formatDate(p.startDate)}</td>
                                         <td className="font-medium">{p.vehicleNumber || '-'}</td>
                                         <td>{p.make} {p.model}</td>
+                                        <td>{formatVehicleClass(p.vehicleClass)}</td>
                                         <td className="text-right font-semibold text-blue-600">{formatCurrency(p.od)}</td>
                                         <td className="text-right font-semibold text-purple-600">{formatCurrency(p.tp)}</td>
                                     </tr>

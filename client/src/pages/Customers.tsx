@@ -3,7 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate, scrollToFirstError } from '../utils/format';
+import { formatDate, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUsers, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
@@ -249,6 +249,11 @@ const Customers: React.FC = () => {
                                                         {p.vehicleNumber && (
                                                             <span className="px-1.5 py-0.5 rounded bg-white text-surface-600 text-[10px] font-semibold tracking-wider uppercase shadow-sm border border-surface-200">
                                                                 {p.vehicleNumber}
+                                                            </span>
+                                                        )}
+                                                        {p.vehicleClass && (
+                                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
+                                                                {formatVehicleClass(p.vehicleClass)}
                                                             </span>
                                                         )}
                                                     </div>

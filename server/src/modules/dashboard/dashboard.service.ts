@@ -132,6 +132,14 @@ export class DashboardService {
                 },
                 select: { id: true, name: true, phone: true, dob: true },
             }),
+
+            // 16: Vehicle Class stats (distribution)
+            prisma.policy.groupBy({
+                by: ['vehicleClass'],
+                where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any,
+                _count: { _all: true },
+                _sum: { premiumAmount: true, totalPremium: true },
+            }),
         ]);
 
         const expiringPolicies = results[0] as any[];
@@ -150,6 +158,7 @@ export class DashboardService {
         const todayLeadFollowUps = results[13] as any[];
         const todayLeadFollowUpsCount = results[14] as number;
         const allBirthdayCandidates = results[15] as any[];
+        const vehicleClassGrouping = results[16] as any[];
 
         // Filter birthdays in JS for compatibility across DB engines (sqlite/postgres)
         const todayMonth = now.getMonth();
@@ -187,6 +196,12 @@ export class DashboardService {
             };
         });
 
+        const vehicleClassStats = vehicleClassGrouping.map((s: any) => ({
+            vehicleClass: s.vehicleClass || 'UNSPECIFIED',
+            count: s._count._all,
+            totalPremium: s._sum.totalPremium || s._sum.premiumAmount || 0,
+        }));
+        
         return {
             stats: {
                 totalCustomers,
@@ -204,6 +219,7 @@ export class DashboardService {
             overduePayments,
             recentClaims,
             companyStats,
+            vehicleClassStats,
             todayBirthdays,
         };
     }

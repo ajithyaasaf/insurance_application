@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/client';
-import { formatCurrency, formatDate, formatRelativeDate, getStatusColor, daysUntil } from '../utils/format';
+import { formatCurrency, formatDate, formatRelativeDate, getStatusColor, daysUntil, formatVehicleClass } from '../utils/format';
 import { useNavigate } from 'react-router-dom';
 import {
     HiOutlineDocumentText,
@@ -33,6 +33,7 @@ interface DashboardData {
     overduePayments: any[];
     recentClaims: any[];
     companyStats: any[];
+    vehicleClassStats: any[];
     todayBirthdays?: any[];
 }
 
@@ -128,6 +129,29 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
+            {/* Vehicle Class Distribution */}
+            <div className="card overflow-hidden">
+                <div className="px-5 py-4 border-b border-surface-100 flex items-center gap-2">
+                    <HiOutlineDocumentText className="w-5 h-5 text-surface-400" />
+                    <h2 className="font-semibold text-surface-900">Vehicle Class Distribution</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-surface-100">
+                    {data.vehicleClassStats.length === 0 ? (
+                        <p className="col-span-full py-8 text-center text-sm text-surface-400">No vehicle class data available</p>
+                    ) : (
+                        data.vehicleClassStats.map((stat: any) => (
+                            <div key={stat.vehicleClass} className="px-5 py-4 hover:bg-surface-50 transition-colors">
+                                <p className="text-xs font-bold text-surface-400 uppercase tracking-wider mb-1 truncate">{formatVehicleClass(stat.vehicleClass)}</p>
+                                <div className="flex items-end justify-between">
+                                    <p className="text-xl font-bold text-surface-900">{stat.count} <span className="text-xs font-normal text-surface-500">Policies</span></p>
+                                    <p className="text-sm font-semibold text-primary-600">{formatCurrency(stat.totalPremium)}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Expiring Policies */}
                 <div className="card">
@@ -150,6 +174,11 @@ const Dashboard: React.FC = () => {
                                             {policy.vehicleNumber && (
                                                 <span className="px-1.5 py-0.5 rounded flex-shrink-0 bg-surface-100 text-surface-600 text-[10px] font-semibold tracking-wider uppercase border border-surface-200">
                                                     {policy.vehicleNumber}
+                                                </span>
+                                            )}
+                                            {policy.vehicleClass && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
+                                                    {formatVehicleClass(policy.vehicleClass)}
                                                 </span>
                                             )}
                                         </div>

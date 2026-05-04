@@ -5,10 +5,10 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import PolicyFormFields from '../components/ui/PolicyFormFields';
-import { formatDate, getStatusColor, scrollToFirstError } from '../utils/format';
+import { formatDate, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUserAdd, HiOutlineTrendingUp } from 'react-icons/hi';
-import { LEAD_STATUSES as statusOptions } from '../utils/constants';
+import { LEAD_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
 
 const Leads: React.FC = () => {
     const [leads, setLeads] = useState<any[]>([]);
@@ -17,6 +17,7 @@ const Leads: React.FC = () => {
     const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [vehicleClassFilter, setVehicleClassFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [convertModalOpen, setConvertModalOpen] = useState(false);
@@ -34,23 +35,22 @@ const Leads: React.FC = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [convertForm, setConvertForm] = useState({ address: '', email: '', policyOrigin: 'fresh', ncbPercentage: '' });
 
-    const fetchLeads = useCallback(async (page = 1) => {
+    const fetchLeads = useCallback(async (page = 1, status = statusFilter, vehicleClass = vehicleClassFilter) => {
         setLoading(true);
         try {
-            // Best Practice: If no specific status is selected, only show non-converted leads (the active pipeline)
             const res = await api.get('/leads', { 
                 params: { 
                     page, 
-                    limit: 20, 
+                    limit: meta.limit, 
                     search: search || undefined, 
-                    status: statusFilter === 'active' ? undefined : (statusFilter || undefined),
-                    excludeConverted: !statusFilter || statusFilter === 'active' ? true : undefined
+                    status: status || undefined,
+                    vehicleClass: vehicleClass || undefined
                 } 
             });
             setLeads(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch leads'); } finally { setLoading(false); }
-    }, [search, statusFilter]);
+    }, [search, statusFilter, vehicleClassFilter]);
 
     useEffect(() => { 
         fetchLeads(); 
@@ -199,6 +199,14 @@ const Leads: React.FC = () => {
                     allLabel="All Status"
                     placeholder="Search status..."
                 />
+                <SearchableSelect
+                    className="w-full sm:w-40"
+                    options={VEHICLE_CLASSES.map(v => ({ value: v, label: formatVehicleClass(v) }))}
+                    value={vehicleClassFilter}
+                    onChange={setVehicleClassFilter}
+                    allLabel="All Classes"
+                    placeholder="Search class..."
+                />
             </div>
 
             {/* Table */}
@@ -218,10 +226,17 @@ const Leads: React.FC = () => {
                                 {leads.map((lead) => (
                                     <tr key={lead.id}>
                                         <td className="font-medium text-surface-900">
-                                            {lead.name}
-                                            {lead.policyOrigin === 'external_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
-                                            {lead.policyOrigin === 'in_system_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
-                                            {lead.policyOrigin === 'fresh' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                {lead.name}
+                                                {lead.policyType === 'motor' && lead.vehicleClass && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
+                                                        {formatVehicleClass(lead.vehicleClass)}
+                                                    </span>
+                                                )}
+                                                {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
+                                                {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
+                                                {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
+                                            </div>
                                         </td>
                                         <td>{lead.phone || '—'}</td>
                                         <td>{lead.interestedProduct || '—'}</td>

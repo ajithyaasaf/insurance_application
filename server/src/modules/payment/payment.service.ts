@@ -80,6 +80,7 @@ export class PaymentService {
         dealerId?: string,
         policyNumber?: string,
         vehicleNumber?: string,
+        vehicleClass?: string,
     ) {
         const todayIST = getStartOfTodayIST();
 
@@ -110,6 +111,7 @@ export class PaymentService {
             ...(dealerId && { policy: { dealerId } }),
             ...(policyNumber && { policy: { policyNumber: { contains: policyNumber, mode: 'insensitive' } } }),
             ...(vehicleNumber && { policy: { vehicleNumber: { contains: vehicleNumber, mode: 'insensitive' } } }),
+            ...(vehicleClass && { policy: { vehicleClass: vehicleClass as any } }),
             ...(search && {
                 OR: [
                     { customer: { name: { contains: search, mode: 'insensitive' }, deletedAt: null } },

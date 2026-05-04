@@ -4,10 +4,10 @@ import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
-import { formatDate, formatCurrency, getStatusColor, scrollToFirstError } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineCreditCard } from 'react-icons/hi';
-import { PAYMENT_STATUSES as statusOptions } from '../utils/constants';
+import { PAYMENT_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
 
 
 
@@ -20,6 +20,7 @@ const Payments: React.FC = () => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [dealerFilter, setDealerFilter] = useState('');
+    const [vehicleClassFilter, setVehicleClassFilter] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [loading, setLoading] = useState(true);
@@ -42,12 +43,13 @@ const Payments: React.FC = () => {
                     dateFrom: dateFrom || undefined,
                     dateTo: dateTo || undefined,
                     dealerId: dealerFilter || undefined,
+                    vehicleClass: vehicleClassFilter || undefined,
                 },
             });
             setPayments(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch payments'); } finally { setLoading(false); }
-    }, [search, statusFilter, dateFrom, dateTo, dealerFilter]);
+    }, [search, statusFilter, dateFrom, dateTo, dealerFilter, vehicleClassFilter]);
 
     useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
@@ -108,13 +110,13 @@ const Payments: React.FC = () => {
                 ...form, amount: parseFloat(form.amount), paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
                 paidDate: form.paidDate || undefined, notes: form.notes || undefined,
             };
-            if (editing) { 
-                const res = await api.put(`/payments/${editing.id}`, payload); 
-                toast.success(res.data.message || 'Payment updated'); 
+            if (editing) {
+                const res = await api.put(`/payments/${editing.id}`, payload);
+                toast.success(res.data.message || 'Payment updated');
             }
-            else { 
-                const res = await api.post('/payments', payload); 
-                toast.success(res.data.message || 'Payment created'); 
+            else {
+                const res = await api.post('/payments', payload);
+                toast.success(res.data.message || 'Payment created');
             }
             setModalOpen(false); fetchPayments(meta.page);
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
@@ -162,6 +164,14 @@ const Payments: React.FC = () => {
                     allLabel="All Dealers"
                     placeholder="Search dealer..."
                 />
+                <SearchableSelect
+                    className="w-full sm:w-48"
+                    options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
+                    value={vehicleClassFilter}
+                    onChange={setVehicleClassFilter}
+                    allLabel="All Classes"
+                    placeholder="Vehicle Class"
+                />
                 <div className="flex items-center gap-2">
                     <label className="text-xs text-surface-500 whitespace-nowrap">Due From</label>
                     <input type="date" className="input sm:w-40" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
@@ -170,8 +180,8 @@ const Payments: React.FC = () => {
                     <label className="text-xs text-surface-500 whitespace-nowrap">To</label>
                     <input type="date" className="input sm:w-40" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
                 </div>
-                {(search || statusFilter || dealerFilter || dateFrom || dateTo) && (
-                    <button onClick={() => { setSearch(''); setStatusFilter(''); setDealerFilter(''); setDateFrom(''); setDateTo(''); }} className="btn-ghost btn-sm self-start sm:self-auto">
+                {(search || statusFilter || dealerFilter || dateFrom || dateTo || vehicleClassFilter) && (
+                    <button onClick={() => { setSearch(''); setStatusFilter(''); setDealerFilter(''); setDateFrom(''); setDateTo(''); setVehicleClassFilter(''); }} className="btn-ghost btn-sm self-start sm:self-auto">
                         Clear
                     </button>
                 )}
@@ -192,7 +202,16 @@ const Payments: React.FC = () => {
                                     return (
                                         <tr key={p.id}>
                                             <td className="font-medium text-surface-900">{p.customer?.name}</td>
-                                            <td className="text-xs">{p.policy?.productName || p.policy?.policyType || '—'} {p.policy?.vehicleNumber && `(${p.policy.vehicleNumber})`}</td>
+                                            <td className="text-xs">
+                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                    {p.policy?.productName || p.policy?.policyType || '—'} {p.policy?.vehicleNumber && `(${p.policy.vehicleNumber})`}
+                                                    {p.policy?.vehicleClass && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
+                                                            {formatVehicleClass(p.policy.vehicleClass)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
                                             <td className="font-medium">{formatCurrency(p.amount)}</td>
                                             <td className="text-xs">{formatDate(p.dueDate)}</td>
                                             <td className="text-xs">{p.paidAmount ? formatCurrency(p.paidAmount) : '—'}</td>
@@ -274,15 +293,15 @@ const Payments: React.FC = () => {
                                 <SearchableSelect
                                     options={customers.map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` }))}
                                     value={form.customerId}
-                                    onChange={(val) => { 
+                                    onChange={(val) => {
                                         const selectedPolicy = policies.find(p => p.id === form.policyId);
                                         const policyBelongsToNewCustomer = selectedPolicy && selectedPolicy.customerId === val;
-                                        setForm({ 
-                                            ...form, 
+                                        setForm({
+                                            ...form,
                                             customerId: val,
-                                            policyId: policyBelongsToNewCustomer ? form.policyId : '' 
-                                        }); 
-                                        setErrors(prev => ({ ...prev, customerId: '', policyId: '' })); 
+                                            policyId: policyBelongsToNewCustomer ? form.policyId : ''
+                                        });
+                                        setErrors(prev => ({ ...prev, customerId: '', policyId: '' }));
                                     }}
                                     placeholder="Select Customer"
                                     hasError={!!errors.customerId}
@@ -297,16 +316,16 @@ const Payments: React.FC = () => {
                                         label: `${p.policyNumber ? p.policyNumber + ' - ' : ''}${p.vehicleNumber ? p.vehicleNumber + ' - ' : ''}${p.customer?.name || ''}${p.customer?.phone ? ` (${p.customer.phone})` : ''} (${p.productName || p.policyType})`
                                     }))}
                                     value={form.policyId}
-                                    onChange={(val) => { 
+                                    onChange={(val) => {
                                         const selectedPolicy = policies.find(p => p.id === val);
-                                        setForm({ 
-                                            ...form, 
+                                        setForm({
+                                            ...form,
                                             policyId: val,
                                             customerId: selectedPolicy ? selectedPolicy.customerId : form.customerId,
                                             amount: selectedPolicy ? (selectedPolicy.totalPremium || selectedPolicy.premiumAmount).toString() : form.amount,
                                             dueDate: selectedPolicy ? selectedPolicy.startDate.split('T')[0] : form.dueDate
-                                        }); 
-                                        setErrors(prev => ({ ...prev, policyId: '', customerId: '', amount: '', dueDate: '' })); 
+                                        });
+                                        setErrors(prev => ({ ...prev, policyId: '', customerId: '', amount: '', dueDate: '' }));
                                     }}
                                     placeholder="Search by Policy #, Vehicle # or Name"
                                     hasError={!!errors.policyId}

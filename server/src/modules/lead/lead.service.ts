@@ -103,8 +103,10 @@ export class LeadService {
         limit: number = 20,
         search?: string,
         status?: string,
-        excludeConverted?: boolean
+        excludeConverted?: boolean,
+        vehicleClass?: string
     ) {
+        const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
             userId,
             deletedAt: null,
@@ -112,9 +114,12 @@ export class LeadService {
                 OR: [
                     { name: { contains: search, mode: 'insensitive' } },
                     { phone: { contains: search } },
+                    { vehicleNumber: { contains: search, mode: 'insensitive' } },
+                    { vehicleClass: { in: [search?.toUpperCase(), normalizedSearch] as any } }
                 ],
             }),
             ...(status ? { status: status as any } : (excludeConverted ? { status: { not: 'converted' } } : {})),
+            ...(vehicleClass && { vehicleClass: vehicleClass as any }),
         };
 
         const [data, total] = await Promise.all([

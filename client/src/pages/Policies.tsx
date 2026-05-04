@@ -25,6 +25,7 @@ const Policies: React.FC = () => {
     const [typeFilter, setTypeFilter] = useState('');
     const [companyFilter, setCompanyFilter] = useState('');
     const [dealerFilter, setDealerFilter] = useState('');
+    const [vehicleClassFilter, setVehicleClassFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [renewModalOpen, setRenewModalOpen] = useState(false);
@@ -58,13 +59,14 @@ const Policies: React.FC = () => {
                     status: statusFilter || undefined, 
                     policyType: typeFilter || undefined, 
                     companyId: companyFilter || undefined,
-                    dealerId: dealerFilter || undefined
+                    dealerId: dealerFilter || undefined,
+                    vehicleClass: vehicleClassFilter || undefined
                 } 
             });
             setPolicies(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch policies'); } finally { setLoading(false); }
-    }, [search, statusFilter, typeFilter, companyFilter, dealerFilter]);
+    }, [search, statusFilter, typeFilter, companyFilter, dealerFilter, vehicleClassFilter]);
 
     useEffect(() => { fetchPolicies(); }, [fetchPolicies]);
 
@@ -312,6 +314,14 @@ const Policies: React.FC = () => {
                     allLabel="All Dealers"
                     placeholder="Search dealer..."
                 />
+                <SearchableSelect
+                    className="w-full sm:w-40"
+                    options={VEHICLE_CLASSES.map(v => ({ value: v, label: formatVehicleClass(v) }))}
+                    value={vehicleClassFilter}
+                    onChange={setVehicleClassFilter}
+                    allLabel="All Classes"
+                    placeholder="Search class..."
+                />
             </div>
 
             {loading ? (
@@ -327,10 +337,18 @@ const Policies: React.FC = () => {
                                 {policies.map((p) => (
                                     <tr key={p.id}>
                                         <td><p className="font-medium text-surface-900">{p.customer?.name}</p><p className="text-xs text-surface-500">{p.productName || p.policyNumber || ''}</p></td>
-                                        <td className="capitalize">{p.policyType}
-                                            {p.policyOrigin === 'external_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
-                                            {p.policyOrigin === 'in_system_renewal' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
-                                            {p.policyOrigin === 'fresh' && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
+                                        <td className="capitalize">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                {p.policyType}
+                                                {p.policyType === 'motor' && p.vehicleClass && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
+                                                        {formatVehicleClass(p.vehicleClass)}
+                                                    </span>
+                                                )}
+                                                {p.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
+                                                {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
+                                                {p.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
+                                            </div>
                                         </td>
                                         <td className="text-xs">{p.company?.name}</td>
                                         <td className="font-medium">{formatCurrency(p.totalPremium || p.premiumAmount)}</td>
