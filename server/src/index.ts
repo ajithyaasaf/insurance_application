@@ -58,7 +58,7 @@ app.get('/api/health', async (_req, res) => {
     try {
         // Perform a simple query to ensure DB is responsive
         await prisma.$queryRaw`SELECT 1`;
-        
+
         res.status(200).json({
             status: 'ok',
             database: 'connected',
