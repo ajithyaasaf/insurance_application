@@ -16,6 +16,9 @@ import FollowUps from './pages/FollowUps';
 import Dealers from './pages/Dealers';
 import Reports from './pages/Reports';
 import Commissions from './pages/Commissions';
+import UnderConstruction from './pages/UnderConstruction';
+
+const IS_MAINTENANCE_MODE = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -67,36 +70,42 @@ const App: React.FC = () => {
         <QueryClientProvider client={queryClient}>
             <AuthProvider>
                 <BrowserRouter>
-                    <Routes>
-                        <Route
-                            path="/login"
-                            element={
-                                <PublicRoute>
-                                    <Login />
-                                </PublicRoute>
-                            }
-                        />
-                        <Route
-                            element={
-                                <ProtectedRoute>
-                                    <AppLayout />
-                                </ProtectedRoute>
-                            }
-                        >
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/leads" element={<Leads />} />
-                            <Route path="/customers" element={<Customers />} />
-                            <Route path="/policies" element={<Policies />} />
-                            <Route path="/policies/:id" element={<PolicyDetail />} />
-                            <Route path="/payments" element={<Payments />} />
-                            <Route path="/claims" element={<Claims />} />
-                            <Route path="/follow-ups" element={<FollowUps />} />
-                            <Route path="/dealers" element={<Dealers />} />
-                            <Route path="/reports" element={<Reports />} />
-                            <Route path="/commissions" element={<Commissions />} />
-                        </Route>
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
+                    {IS_MAINTENANCE_MODE ? (
+                        <Routes>
+                            <Route path="*" element={<UnderConstruction />} />
+                        </Routes>
+                    ) : (
+                        <Routes>
+                            <Route
+                                path="/login"
+                                element={
+                                    <PublicRoute>
+                                        <Login />
+                                    </PublicRoute>
+                                }
+                            />
+                            <Route
+                                element={
+                                    <ProtectedRoute>
+                                        <AppLayout />
+                                    </ProtectedRoute>
+                                }
+                            >
+                                <Route path="/" element={<Dashboard />} />
+                                <Route path="/leads" element={<Leads />} />
+                                <Route path="/customers" element={<Customers />} />
+                                <Route path="/policies" element={<Policies />} />
+                                <Route path="/policies/:id" element={<PolicyDetail />} />
+                                <Route path="/payments" element={<Payments />} />
+                                <Route path="/claims" element={<Claims />} />
+                                <Route path="/follow-ups" element={<FollowUps />} />
+                                <Route path="/dealers" element={<Dealers />} />
+                                <Route path="/reports" element={<Reports />} />
+                                <Route path="/commissions" element={<Commissions />} />
+                            </Route>
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    )}
                 </BrowserRouter>
                 <Toaster
                     position="top-right"
