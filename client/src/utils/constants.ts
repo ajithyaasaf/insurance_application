@@ -8,3 +8,4 @@ export const PAYMENT_STATUSES = ['pending', 'paid', 'partial'];
 export const CLAIM_STATUSES = ['filed', 'approved', 'rejected', 'settled'];
 export const FOLLOWUP_STATUSES = ['pending', 'completed', 'cancelled'];
 export const LEAD_STATUSES = ['new', 'contacted', 'interested', 'converted', 'lost'];
+// 
