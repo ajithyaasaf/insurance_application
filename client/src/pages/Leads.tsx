@@ -23,9 +23,9 @@ const Leads: React.FC = () => {
     const [convertModalOpen, setConvertModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [convertingLead, setConvertingLead] = useState<any>(null);
-    
+
     // Initial State including Quote Fields
-    const initialFormState = { 
+    const initialFormState = {
         name: '', phone: '', interestedProduct: '', status: 'new', nextFollowUpDate: '', notes: '',
         policyType: '', companyId: '', vehicleNumber: '', make: '', model: '', vehicleClass: '',
         idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: '', startDate: '', expiryDate: '',
@@ -38,22 +38,22 @@ const Leads: React.FC = () => {
     const fetchLeads = useCallback(async (page = 1, status = statusFilter, vehicleClass = vehicleClassFilter) => {
         setLoading(true);
         try {
-            const res = await api.get('/leads', { 
-                params: { 
-                    page, 
-                    limit: meta.limit, 
-                    search: search || undefined, 
+            const res = await api.get('/leads', {
+                params: {
+                    page,
+                    limit: meta.limit,
+                    search: search || undefined,
                     status: status || undefined,
                     vehicleClass: vehicleClass || undefined
-                } 
+                }
             });
             setLeads(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch leads'); } finally { setLoading(false); }
     }, [search, statusFilter, vehicleClassFilter]);
 
-    useEffect(() => { 
-        fetchLeads(); 
+    useEffect(() => {
+        fetchLeads();
         const loadInitialData = async () => {
             try {
                 const [compRes, dealerRes] = await Promise.all([
@@ -93,7 +93,7 @@ const Leads: React.FC = () => {
             policyType: lead.policyType || '', companyId: lead.companyId || '', vehicleNumber: lead.vehicleNumber || '',
             make: lead.make || '', model: lead.model || '', vehicleClass: lead.vehicleClass || '',
             idv: lead.idv?.toString() || '', od: lead.od?.toString() || '', tp: lead.tp?.toString() || '',
-            tax: lead.tax?.toString() || '', totalPremium: lead.totalPremium?.toString() || '', 
+            tax: lead.tax?.toString() || '', totalPremium: lead.totalPremium?.toString() || '',
             premiumAmount: lead.premiumAmount?.toString() || '',
             startDate: lead.startDate?.split('T')[0] || '', expiryDate: lead.expiryDate?.split('T')[0] || '',
             dealerId: lead.dealerId || '', registrationDate: lead.registrationDate?.split('T')[0] || '',
@@ -114,8 +114,8 @@ const Leads: React.FC = () => {
         setErrors({});
         try {
             // Parse numbers for payload
-            const payload = { 
-                ...form, 
+            const payload = {
+                ...form,
                 nextFollowUpDate: form.nextFollowUpDate || undefined,
                 policyType: form.policyType || undefined,
                 companyId: form.companyId || undefined,
@@ -160,10 +160,10 @@ const Leads: React.FC = () => {
 
     const openConvert = (lead: any) => {
         setConvertingLead(lead);
-        setConvertForm({ 
-            address: '', email: '', 
-            policyOrigin: lead.policyOrigin || 'fresh', 
-            ncbPercentage: lead.ncbPercentage !== null && lead.ncbPercentage !== undefined ? lead.ncbPercentage.toString() : '' 
+        setConvertForm({
+            address: '', email: '',
+            policyOrigin: lead.policyOrigin || 'fresh',
+            ncbPercentage: lead.ncbPercentage !== null && lead.ncbPercentage !== undefined ? lead.ncbPercentage.toString() : ''
         });
         setConvertModalOpen(true);
     };
@@ -325,7 +325,7 @@ const Leads: React.FC = () => {
                     </div>
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-                    
+
                     <PolicyFormFields form={form} setForm={setForm} companies={companies} dealers={dealers} showQuoteHeader />
 
                     <div className="flex gap-3 pt-2">
@@ -339,7 +339,7 @@ const Leads: React.FC = () => {
             <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)} title="Convert Lead to Customer">
                 <form onSubmit={handleConvert} className="space-y-4">
                     <p className="text-sm text-surface-500">Converting <strong>{convertingLead?.name}</strong> to a customer.</p>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-surface-200 pb-4 mb-4">
                         <div>
                             <label className="label">Policy Origin *</label>
