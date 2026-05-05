@@ -5,7 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import PolicyFormFields from '../components/ui/PolicyFormFields';
-import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate, scrollToFirstError } from '../utils/format';
+import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, EDITABLE_POLICY_STATUSES, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';

@@ -14,7 +14,7 @@ const Leads: React.FC = () => {
     const [leads, setLeads] = useState<any[]>([]);
     const [companies, setCompanies] = useState<any[]>([]);
     const [dealers, setDealers] = useState<any[]>([]);
-    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [vehicleClassFilter, setVehicleClassFilter] = useState('');

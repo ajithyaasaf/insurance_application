@@ -3,14 +3,14 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
-import { formatDate, formatVehicleClass } from '../utils/format';
+import { formatDate, formatVehicleClass, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUsers, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 
 const Customers: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
-    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 });
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
