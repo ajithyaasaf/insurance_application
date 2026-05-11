@@ -5,16 +5,19 @@ import {
 } from 'react-icons/hi';
 import DashboardTab from '../components/reports/DashboardTab';
 import ReportBuilderTab from '../components/reports/ReportBuilderTab';
+import { useAuth } from '../context/AuthContext';
 
 type TabId = 'dashboard' | 'builder';
 
-const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: HiOutlineChartBar },
-    { id: 'builder', label: 'Report Builder', icon: HiOutlineAdjustments },
-];
-
 const Reports: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+    const { user } = useAuth();
+    const isStaff = user?.role === 'staff';
+    const [activeTab, setActiveTab] = useState<TabId>(isStaff ? 'builder' : 'dashboard');
+
+    const tabs = [
+        ...(!isStaff ? [{ id: 'dashboard' as TabId, label: 'Dashboard', icon: HiOutlineChartBar }] : []),
+        { id: 'builder' as TabId, label: 'Report Builder', icon: HiOutlineAdjustments },
+    ];
 
     return (
         <div>
@@ -30,7 +33,7 @@ const Reports: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex items-center gap-1 mb-6 p-1 bg-surface-100 rounded-2xl w-full sm:w-fit overflow-x-auto hide-scrollbar">
-                {TABS.map(tab => (
+                {tabs.map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
@@ -49,7 +52,7 @@ const Reports: React.FC = () => {
 
             {/* Tab content */}
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                {activeTab === 'dashboard' && <DashboardTab />}
+                {activeTab === 'dashboard' && !isStaff && <DashboardTab />}
                 {activeTab === 'builder' && <ReportBuilderTab />}
             </div>
         </div>

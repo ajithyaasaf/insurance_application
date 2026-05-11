@@ -13,7 +13,7 @@ const Login: React.FC = () => {
         name: '',
         email: '',
         password: '',
-        role: 'agent',
+        role: 'staff',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -123,24 +123,6 @@ const Login: React.FC = () => {
                                 />
                             </div>
                         </div>
-
-                        {isRegister && (
-                            <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                                    Role
-                                </label>
-                                <select
-                                    value={form.role}
-                                    onChange={(e) => setForm({ ...form, role: e.target.value })}
-                                    className="w-full px-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 
-                    text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 
-                    focus:border-primary-500/50 transition-all text-sm"
-                                >
-                                    <option value="agent" className="bg-surface-800">Agent (Owner)</option>
-                                    <option value="staff" className="bg-surface-800">Staff</option>
-                                </select>
-                            </div>
-                        )}
 
                         <button
                             type="submit"

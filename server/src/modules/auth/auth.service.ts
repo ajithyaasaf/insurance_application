@@ -22,7 +22,7 @@ export class AuthService {
                 email: data.email,
                 passwordHash,
                 name: data.name,
-                role: data.role || 'agent',
+                role: 'staff', // Force to staff for public registration
             },
             select: {
                 id: true,

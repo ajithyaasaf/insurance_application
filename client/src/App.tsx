@@ -48,6 +48,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <>{children}</>;
 };
 
+const RoleProtectedRoute: React.FC<{ children: React.ReactNode; roles: string[] }> = ({ children, roles }) => {
+    const { user, isLoading } = useAuth();
+    if (isLoading) return null;
+    if (!user || !roles.includes(user.role)) return <Navigate to="/" replace />;
+    return <>{children}</>;
+};
+
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user, isLoading } = useAuth();
     if (isLoading) return null;
@@ -100,8 +107,22 @@ const App: React.FC = () => {
                                 <Route path="/claims" element={<Claims />} />
                                 <Route path="/follow-ups" element={<FollowUps />} />
                                 <Route path="/dealers" element={<Dealers />} />
-                                <Route path="/reports" element={<Reports />} />
-                                <Route path="/commissions" element={<Commissions />} />
+                                <Route
+                                    path="/reports"
+                                    element={
+                                        <RoleProtectedRoute roles={['agent', 'staff']}>
+                                            <Reports />
+                                        </RoleProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/commissions"
+                                    element={
+                                        <RoleProtectedRoute roles={['agent']}>
+                                            <Commissions />
+                                        </RoleProtectedRoute>
+                                    }
+                                />
                             </Route>
                             <Route path="*" element={<Navigate to="/" replace />} />
                         </Routes>

@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { commissionController } from './commission.controller';
-import { authenticate } from '../../middleware/auth';
+import { authenticate, authorize } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { commissionPreviewSchema, commissionCreateSchema, commissionUpdateSchema, commissionBulkUpdateSchema } from './commission.schema';
 
 const router = Router();
 router.use(authenticate);
+router.use(authorize(['agent']));
 
 // Preview commission (no save)
 router.post('/preview', validate(commissionPreviewSchema), (req, res, next) => commissionController.preview(req, res, next));

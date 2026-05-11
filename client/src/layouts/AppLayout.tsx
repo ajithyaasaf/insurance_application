@@ -80,24 +80,31 @@ const AppLayout: React.FC = () => {
 
                     {/* Navigation */}
                     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-                        {navItems.map((item) => (
-                            <NavLink
-                                key={item.to}
-                                to={item.to}
-                                end={item.to === '/'}
-                                onClick={() => setSidebarOpen(false)}
-                                className={({ isActive }) =>
-                                    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                  ${isActive
-                                        ? 'bg-primary-600 text-white shadow-md shadow-primary-600/30'
-                                        : 'text-surface-300 hover:bg-surface-800 hover:text-white'
-                                    }`
+                        {navItems
+                            .filter(item => {
+                                if (user?.role === 'staff') {
+                                    return !['/commissions'].includes(item.to);
                                 }
-                            >
-                                <item.icon className="w-5 h-5 flex-shrink-0" />
-                                {item.label}
-                            </NavLink>
-                        ))}
+                                return true;
+                            })
+                            .map((item) => (
+                                <NavLink
+                                    key={item.to}
+                                    to={item.to}
+                                    end={item.to === '/'}
+                                    onClick={() => setSidebarOpen(false)}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                  ${isActive
+                                            ? 'bg-primary-600 text-white shadow-md shadow-primary-600/30'
+                                            : 'text-surface-300 hover:bg-surface-800 hover:text-white'
+                                        }`
+                                    }
+                                >
+                                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                                    {item.label}
+                                </NavLink>
+                            ))}
                     </nav>
 
                     {/* User */}

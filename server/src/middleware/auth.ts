@@ -31,3 +31,19 @@ export const authenticate = (
         sendError({ res, statusCode: 401, message: 'Invalid or expired token' });
     }
 };
+
+export const authorize = (roles: string[]) => {
+    return (req: Request, res: Response, next: NextFunction) => {
+        if (!req.user) {
+            sendError({ res, statusCode: 401, message: 'Authentication required' });
+            return;
+        }
+
+        if (!roles.includes(req.user.role)) {
+            sendError({ res, statusCode: 403, message: 'Forbidden: Access denied' });
+            return;
+        }
+
+        next();
+    };
+};
