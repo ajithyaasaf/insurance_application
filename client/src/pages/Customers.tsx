@@ -3,6 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import TableSkeleton from '../components/ui/TableSkeleton';
 import { formatDate, formatVehicleClass, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUsers, HiOutlineEye } from 'react-icons/hi';
@@ -10,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Customers: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
-    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 });
+    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 });
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
@@ -24,7 +25,7 @@ const Customers: React.FC = () => {
     const fetchCustomers = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/customers', { params: { page, limit: 20, search: search || undefined } });
+            const res = await api.get('/customers', { params: { page, limit: 10, search: search || undefined } });
             setCustomers(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch customers'); } finally { setLoading(false); }
@@ -108,7 +109,7 @@ const Customers: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>
+                <TableSkeleton cols={7} rows={10} />
             ) : customers.length === 0 ? (
                 <EmptyState message="No customers found" icon={<HiOutlineUsers className="w-12 h-12" />} />
             ) : (

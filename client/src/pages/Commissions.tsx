@@ -455,7 +455,7 @@ const Commissions: React.FC = () => {
                                         <span className="text-xs font-semibold text-surface-600">Pending Policies</span>
                                     </div>
                                     <div className="flex items-center gap-2 pt-1">
-                                        {stats?.policyCount > 20 && (
+                                        {stats?.policyCount > 10 && (
                                             <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded uppercase flex items-center gap-1">
                                                 <HiOutlineCalculator className="w-2.5 h-2.5" /> High Volume
                                             </span>
@@ -469,7 +469,7 @@ const Commissions: React.FC = () => {
                                             </button>
                                         )}
                                     </div>
-                                    {stats?.topMakes?.length > 0 && stats.policyCount > 20 && (
+                                    {stats?.topMakes?.length > 0 && stats.policyCount > 10 && (
                                         <p className="text-[9px] text-surface-500 italic mt-1">
                                             Top Models: {stats.topMakes.map((m: any) => m.make).join(', ')}
                                         </p>

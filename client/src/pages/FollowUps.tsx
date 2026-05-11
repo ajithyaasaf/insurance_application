@@ -3,6 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import TableSkeleton from '../components/ui/TableSkeleton';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { formatDate, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
@@ -32,7 +33,7 @@ const FollowUps: React.FC = () => {
             const res = await api.get('/follow-ups', {
                 params: {
                     page,
-                    limit: 20,
+                    limit: 10,
                     search: search || undefined,
                     status: statusFilter || undefined,
                     date: dateFilter || undefined,
@@ -142,7 +143,7 @@ const FollowUps: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>
+                <TableSkeleton cols={5} rows={10} />
             ) : followUps.length === 0 ? (
                 <EmptyState message="No follow-ups found" icon={<HiOutlinePhone className="w-12 h-12" />} />
             ) : (

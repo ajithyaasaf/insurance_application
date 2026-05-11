@@ -5,6 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import PolicyFormFields from '../components/ui/PolicyFormFields';
+import TableSkeleton from '../components/ui/TableSkeleton';
 import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, EDITABLE_POLICY_STATUSES, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
@@ -54,7 +55,7 @@ const Policies: React.FC = () => {
             const res = await api.get('/policies', { 
                 params: { 
                     page, 
-                    limit: 20, 
+                    limit: 10, 
                     search: search || undefined, 
                     status: statusFilter || undefined, 
                     policyType: typeFilter || undefined, 
@@ -325,7 +326,7 @@ const Policies: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>
+                <TableSkeleton cols={7} rows={10} />
             ) : policies.length === 0 ? (
                 <EmptyState message="No policies found" icon={<HiOutlineDocumentText className="w-12 h-12" />} />
             ) : (

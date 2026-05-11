@@ -45,7 +45,7 @@ export class ClaimService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 20, search?: string, status?: string, vehicleClass?: string) {
+    async findAll(userId: string, page = 1, limit = 10, search?: string, status?: string, vehicleClass?: string) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
             userId,

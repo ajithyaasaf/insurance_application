@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import api from '../api/client';
 import Modal from '../components/ui/Modal';
+import TableSkeleton from '../components/ui/TableSkeleton';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import { formatDate, scrollToFirstError } from '../utils/format';
@@ -20,7 +21,7 @@ const Dealers: React.FC = () => {
     const fetchDealers = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/dealers', { params: { page, limit: 20, search: search || undefined } });
+            const res = await api.get('/dealers', { params: { page, limit: 10, search: search || undefined } });
             setDealers(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch dealers'); } finally { setLoading(false); }
@@ -93,7 +94,7 @@ const Dealers: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>
+                <TableSkeleton cols={7} rows={10} />
             ) : dealers.length === 0 ? (
                 <EmptyState message="No dealers found" icon={<HiOutlineUsers className="w-12 h-12" />} />
             ) : (

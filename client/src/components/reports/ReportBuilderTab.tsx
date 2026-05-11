@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import api from '../../api/client';
 import SearchableSelect from '../ui/SearchableSelect';
 import Pagination from '../ui/Pagination';
+import TableSkeleton from '../ui/TableSkeleton';
 import ReportTable from './ReportTable';
 import { formatVehicleClass } from '../../utils/format';
 import { BarChartRow, PolicyPieChart, CompanyBarChart } from './ReportCharts';
@@ -82,7 +83,7 @@ const ReportBuilderTab: React.FC = () => {
     const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
     const [showColumns, setShowColumns] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
-    const limit = 25;
+    const limit = 10;
 
     // --- Fetch companies & dealers for dropdown ---
     const { data: companiesData } = useQuery({
@@ -413,9 +414,7 @@ const ReportBuilderTab: React.FC = () => {
 
             {/* Results */}
             {reportLoading ? (
-                <div className="flex items-center justify-center py-16">
-                    <div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" />
-                </div>
+                <TableSkeleton cols={6} rows={10} />
             ) : report ? (
                 <div className="space-y-4">
                     {/* Summary info */}

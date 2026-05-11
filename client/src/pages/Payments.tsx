@@ -3,6 +3,7 @@ import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
+import TableSkeleton from '../components/ui/TableSkeleton';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { formatDate, formatCurrency, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
@@ -37,7 +38,7 @@ const Payments: React.FC = () => {
             const res = await api.get('/payments', {
                 params: {
                     page,
-                    limit: 20,
+                    limit: 10,
                     status: statusFilter || undefined,
                     search: search || undefined,
                     dateFrom: dateFrom || undefined,
@@ -188,7 +189,7 @@ const Payments: React.FC = () => {
             </div>
 
             {loading ? (
-                <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>
+                <TableSkeleton cols={6} rows={10} />
             ) : payments.length === 0 ? (
                 <EmptyState message="No payments found" icon={<HiOutlineCreditCard className="w-12 h-12" />} />
             ) : (

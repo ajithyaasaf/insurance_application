@@ -177,7 +177,7 @@ export class PolicyService {
     async findAll(
         userId: string,
         page = 1,
-        limit = 20,
+        limit = 10,
         search?: string,
         status?: string,
         policyType?: string,

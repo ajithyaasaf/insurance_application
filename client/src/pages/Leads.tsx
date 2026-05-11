@@ -5,6 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import EmptyState from '../components/ui/EmptyState';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import PolicyFormFields from '../components/ui/PolicyFormFields';
+import TableSkeleton from '../components/ui/TableSkeleton';
 import { formatDate, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUserAdd, HiOutlineTrendingUp } from 'react-icons/hi';
@@ -14,7 +15,7 @@ const Leads: React.FC = () => {
     const [leads, setLeads] = useState<any[]>([]);
     const [companies, setCompanies] = useState<any[]>([]);
     const [dealers, setDealers] = useState<any[]>([]);
-    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 });
+    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [vehicleClassFilter, setVehicleClassFilter] = useState('');
@@ -211,7 +212,7 @@ const Leads: React.FC = () => {
 
             {/* Table */}
             {loading ? (
-                <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" /></div>
+                <TableSkeleton cols={6} rows={10} />
             ) : leads.length === 0 ? (
                 <EmptyState message="No leads found" icon={<HiOutlineTrendingUp className="w-12 h-12" />} />
             ) : (

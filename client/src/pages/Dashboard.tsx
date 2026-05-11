@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/client';
+import DashboardSkeleton from '../components/ui/DashboardSkeleton';
 import { formatCurrency, formatDate, formatRelativeDate, getStatusColor, daysUntil, formatVehicleClass } from '../utils/format';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -63,13 +64,7 @@ const Dashboard: React.FC = () => {
         fetchDashboard();
     }, []);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full" />
-            </div>
-        );
-    }
+    if (loading) return <DashboardSkeleton />;
 
     if (!data) return <div className="text-center text-surface-500 py-20">Failed to load dashboard</div>;
 

@@ -100,7 +100,7 @@ export class LeadService {
     async findAll(
         userId: string,
         page: number = 1,
-        limit: number = 20,
+        limit: number = 10,
         search?: string,
         status?: string,
         excludeConverted?: boolean,

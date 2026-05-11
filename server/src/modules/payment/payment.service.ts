@@ -72,7 +72,7 @@ export class PaymentService {
     async findAll(
         userId: string,
         page = 1,
-        limit = 20,
+        limit = 10,
         status?: string,
         search?: string,
         dateFrom?: string,

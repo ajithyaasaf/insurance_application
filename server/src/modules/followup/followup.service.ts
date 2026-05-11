@@ -25,7 +25,7 @@ export class FollowUpService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 20, status?: string, date?: string, search?: string, vehicleClass?: string) {
+    async findAll(userId: string, page = 1, limit = 10, status?: string, date?: string, search?: string, vehicleClass?: string) {
         const where: any = {
             userId,
             ...(status && { status: status as any }),
