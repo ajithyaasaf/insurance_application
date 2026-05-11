@@ -329,19 +329,21 @@ const Commissions: React.FC = () => {
                 (p.tpCommission || 0).toLocaleString('en-IN'),
                 ((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN'),
             ]),
-            theme: 'striped',
+            theme: 'grid',
             styles: { 
                 fontSize: 7,
                 cellPadding: 3,
                 valign: 'middle',
-                lineWidth: 0.1,
-                lineColor: [241, 245, 249]
+                lineWidth: 0.2,
+                lineColor: [209, 213, 219] // Darker Gray (Gray 300)
             },
             headStyles: { 
                 fillColor: [30, 58, 138],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
-                halign: 'center'
+                halign: 'center',
+                lineWidth: 0.2,
+                lineColor: [255, 255, 255] // White borders for header
             },
             columnStyles: {
                 4: { halign: 'right' },

@@ -1032,7 +1032,7 @@ export class ReportService {
                 doc.rect(x, headerY, colWidth, 22).fill('#1e1b4b');
                 
                 // Header Border
-                doc.rect(x, headerY, colWidth, 22).stroke('#e5e7eb');
+                doc.lineWidth(0.2).rect(x, headerY, colWidth, 22).stroke('#ffffff');
                 
                 // Draw header text centered
                 doc.fillColor('#FFFFFF')
@@ -1066,8 +1066,8 @@ export class ReportService {
                     // Row background
                     doc.rect(x, rowY, colWidth, 18).fill(bgColor);
                     
-                    // Cell Border
-                    doc.rect(x, rowY, colWidth, 18).stroke('#f1f5f9');
+                    // Cell Border (Darker for visibility)
+                    doc.lineWidth(0.2).rect(x, rowY, colWidth, 18).stroke('#d1d5db');
                     
                     doc.font('Helvetica').fontSize(7).fillColor('#374151')
                         .text(val, x + 4, rowY + 5, { 
