@@ -24,7 +24,7 @@ also we have filed claim number in the label just add /policy number in that. al
 
 * in application in few places we have pdf in that pdf format need to redesign table format and rs word no needed and in commision page pdf no needed for mentioning od and tp percetanege we mentioned in pdf (completed)
 
-* in some pages for examble in filter out option in commission page we have company based filter in that i can filter based on specific company or all compaies but not specific 2 or 3 companies 
+* in some pages for examble in filter out option in commission page we have company based filter in that i can filter based on specific company or all compaies but not specific 2 or 3 companies (completed)
 
 * this is the biggest change reports builder tab in the reports page is have many tab and have so many filters first question what is group by field is for? next my client ask customer based filter based on selected customer it should be filtered out also from date to do date in this filters filtered based on what basis my client tells his customers who puts so many vehicle policy some times asks this year how many claims we maded? how much bill amount we give and how much we claimed ? this type of questions they ask to my client who is this insurar , also they asked this type of vehicle how much we policies we put on you company? so this kindd of quesitons will be asked to my client 
 

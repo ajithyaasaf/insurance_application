@@ -5,7 +5,8 @@ import {
     HiOutlineFilter, 
     HiOutlineRefresh, 
     HiOutlineAdjustments, 
-    HiOutlineDocumentDownload 
+    HiOutlineDocumentDownload,
+    HiOutlineUser
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import api from '../../api/client';
@@ -20,7 +21,7 @@ import {
     PAYMENT_STATUSES, CLAIM_STATUSES, FOLLOWUP_STATUSES 
 } from '../../utils/constants';
 
-type Source = 'policies' | 'payments' | 'claims' | 'customers' | 'followups';
+type Source = 'policies' | 'payments' | 'claims' | 'customers' | 'followups' | 'customer-snapshot';
 type GroupBy = 'company' | 'dealer' | 'policyType' | 'vehicleClass' | 'status' | 'month' | 'policyOrigin' | '';
 
 interface Column { key: string; label: string }
@@ -41,6 +42,7 @@ const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[
     { value: 'claims', label: 'Claims', icon: HiOutlineDocumentDownload },
     { value: 'customers', label: 'Customers', icon: HiOutlineTable },
     { value: 'followups', label: 'Follow-ups', icon: HiOutlineRefresh },
+    { value: 'customer-snapshot', label: 'Customer Statement', icon: HiOutlineUser },
 ];
 
 function getStatusOptions(source: Source): string[] {
@@ -112,6 +114,7 @@ const ReportBuilderTab: React.FC = () => {
             page,
             limit,
         }).then(r => r.data),
+        enabled: source !== 'customer-snapshot' || !!appliedFilters.customerId,
     });
     const report = reportData?.data;
 
@@ -121,11 +124,21 @@ const ReportBuilderTab: React.FC = () => {
     }, []);
 
     const generateReport = useCallback(() => {
+        if (source === 'customer-snapshot') {
+            if (!localFilters.customerId) {
+                toast.error('Please select a Customer for the statement.');
+                return;
+            }
+            if (!localFilters.dateFrom || !localFilters.dateTo) {
+                toast.error('Please select both Date From and Date To.');
+                return;
+            }
+        }
         setAppliedFilters(localFilters);
         setAppliedGroupBy(localGroupBy);
         setPage(1);
         setIsDirty(false);
-    }, [localFilters, localGroupBy]);
+    }, [localFilters, localGroupBy, source]);
 
     const clearFilters = useCallback(() => {
         setLocalFilters({});
@@ -166,9 +179,10 @@ const ReportBuilderTab: React.FC = () => {
     const groupOptions = getGroupOptions(source);
     const showCompanyFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
     const showDealerFilter = ['policies', 'payments'].includes(source);
-    const showCustomerFilter = ['policies', 'payments', 'claims', 'followups', 'leads'].includes(source);
+    const showCustomerFilter = ['policies', 'payments', 'claims', 'followups', 'leads', 'customer-snapshot'].includes(source);
     const showPolicyTypeFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
     const showVehicleClassFilter = source === 'policies' && localFilters.policyType === 'motor';
+    const isSnapshot = source === 'customer-snapshot';
 
     return (
         <div className="space-y-4">
@@ -227,7 +241,7 @@ const ReportBuilderTab: React.FC = () => {
 
                 <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 ${!showFilters ? 'hidden lg:grid' : ''}`}>
                     {/* Group By */}
-                    {groupOptions.length > 0 && (
+                    {groupOptions.length > 0 && !isSnapshot && (
                         <div>
                             <label className="label">Group By</label>
                             <SearchableSelect
@@ -449,7 +463,60 @@ const ReportBuilderTab: React.FC = () => {
                     </div>
 
                     {/* Dynamic Charts Section */}
-                    {report.grouped ? (
+                    {isSnapshot && report.data?.[0] ? (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="card p-4 bg-primary-50 border border-primary-100">
+                                    <p className="text-xs text-primary-600 font-bold uppercase">Total Policies</p>
+                                    <p className="text-2xl font-bold text-primary-900">{report.data[0].totalPolicies}</p>
+                                </div>
+                                <div className="card p-4 bg-emerald-50 border border-emerald-100">
+                                    <p className="text-xs text-emerald-600 font-bold uppercase">Total Premium Paid</p>
+                                    <p className="text-2xl font-bold text-emerald-900">₹{report.data[0].totalPremium.toLocaleString('en-IN')}</p>
+                                </div>
+                                <div className="card p-4 bg-rose-50 border border-rose-100">
+                                    <p className="text-xs text-rose-600 font-bold uppercase">Total Claims Made</p>
+                                    <p className="text-2xl font-bold text-rose-900">{report.data[0].totalClaims}</p>
+                                </div>
+                                <div className="card p-4 bg-purple-50 border border-purple-100">
+                                    <p className="text-xs text-purple-600 font-bold uppercase">Total Claimed Amount</p>
+                                    <p className="text-2xl font-bold text-purple-900">₹{report.data[0].totalClaimedAmount.toLocaleString('en-IN')}</p>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="card card-body">
+                                    <h3 className="text-sm font-bold text-surface-900 mb-4">Portfolio by Insurer</h3>
+                                    <table className="table">
+                                        <thead><tr><th>Insurer</th><th className="text-right">Policies</th><th className="text-right">Premium</th></tr></thead>
+                                        <tbody>
+                                            {report.data[0].insurers.map((ins: any, i: number) => (
+                                                <tr key={i}>
+                                                    <td className="font-medium text-surface-900">{ins.name}</td>
+                                                    <td className="text-right">{ins.count}</td>
+                                                    <td className="text-right font-medium text-emerald-600">₹{ins.premium.toLocaleString('en-IN')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="card card-body">
+                                    <h3 className="text-sm font-bold text-surface-900 mb-4">Portfolio by Vehicle</h3>
+                                    <table className="table">
+                                        <thead><tr><th>Vehicle Type</th><th className="text-right">Policies</th><th className="text-right">Premium</th></tr></thead>
+                                        <tbody>
+                                            {report.data[0].vehicles.map((veh: any, i: number) => (
+                                                <tr key={i}>
+                                                    <td className="font-medium text-surface-900">{formatVehicleClass(veh.name)}</td>
+                                                    <td className="text-right">{veh.count}</td>
+                                                    <td className="text-right font-medium text-emerald-600">₹{veh.premium.toLocaleString('en-IN')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    ) : report.grouped ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div className="card card-body">
                                 <p className="text-sm font-bold text-surface-900 mb-4">Volume by {report.groupLabel}</p>

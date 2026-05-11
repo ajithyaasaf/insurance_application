@@ -7,6 +7,7 @@ export const ReportSource = z.enum([
     'claims',
     'customers',
     'followups',
+    'customer-snapshot',
 ]);
 export type ReportSource = z.infer<typeof ReportSource>;
 
@@ -18,6 +19,7 @@ export const ReportGroupBy = z.enum([
     'status',
     'month',
     'policyOrigin',
+    'customer',
 ]);
 export type ReportGroupBy = z.infer<typeof ReportGroupBy>;
 
@@ -27,6 +29,7 @@ export type ExportFormat = z.infer<typeof ExportFormat>;
 // ─── Shared filter object ────────────────────────────────
 const filtersSchema = z.object({
     companyId:    z.string().uuid().optional(),
+    companyIds:   z.union([z.string(), z.array(z.string())]).optional(),
     dealerId:     z.string().uuid().optional(),
     customerId:   z.string().uuid().optional(),
     policyType:   z.string().optional(),

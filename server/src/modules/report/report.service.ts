@@ -9,6 +9,7 @@ import type { ReportSource, ReportGroupBy } from './report.schema';
 
 interface ReportFilters {
     companyId?: string;
+    companyIds?: string | string[];
     dealerId?: string;
     customerId?: string;
     policyType?: string;
@@ -219,6 +220,83 @@ function fmtDate(d: Date | null | undefined): string {
 export class ReportService {
 
     // ── Flat data queries (no grouping) ──────────────────
+
+    private async queryCustomerSnapshot(userId: string, filters?: ReportFilters) {
+        if (!filters?.customerId) {
+            throw Object.assign(new Error('Customer ID is required for Customer Snapshot'), { statusCode: 400 });
+        }
+
+        const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
+        const dateTo = filters.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
+
+        const policyWhere: any = { userId, customerId: filters.customerId, deletedAt: null };
+        if (dateFrom || dateTo) {
+            policyWhere.startDate = {};
+            if (dateFrom) policyWhere.startDate.gte = dateFrom;
+            if (dateTo) policyWhere.startDate.lte = dateTo;
+        }
+
+        const claimWhere: any = { userId, customerId: filters.customerId };
+        if (dateFrom || dateTo) {
+            claimWhere.claimDate = {};
+            if (dateFrom) claimWhere.claimDate.gte = dateFrom;
+            if (dateTo) claimWhere.claimDate.lte = dateTo;
+        }
+
+        const [customer, policies, claims] = await Promise.all([
+            prisma.customer.findFirst({ where: { id: filters.customerId, userId } }),
+            prisma.policy.findMany({ where: policyWhere, include: { company: true } }),
+            prisma.claim.findMany({ where: claimWhere })
+        ]);
+
+        if (!customer) throw new Error("Customer not found");
+
+        const totalPremium = policies.reduce((sum, p) => sum + (p.totalPremium || p.premiumAmount || 0), 0);
+        const totalClaimed = claims.reduce((sum, c) => sum + (c.claimAmount || 0), 0);
+
+        // Group by Insurer
+        const byInsurer = policies.reduce((acc: any, p) => {
+            const name = p.company?.name || 'Unknown';
+            if (!acc[name]) acc[name] = { name, count: 0, premium: 0 };
+            acc[name].count += 1;
+            acc[name].premium += (p.totalPremium || p.premiumAmount || 0);
+            return acc;
+        }, {});
+
+        // Group by Vehicle Class
+        const byVehicle = policies.reduce((acc: any, p) => {
+            const name = p.vehicleClass || 'Other';
+            if (!acc[name]) acc[name] = { name, count: 0, premium: 0 };
+            acc[name].count += 1;
+            acc[name].premium += (p.totalPremium || p.premiumAmount || 0);
+            return acc;
+        }, {});
+
+        const data = [
+            {
+                customerName: customer.name,
+                phone: customer.phone,
+                totalPolicies: policies.length,
+                totalPremium,
+                totalClaims: claims.length,
+                totalClaimedAmount: totalClaimed,
+                insurers: Object.values(byInsurer),
+                vehicles: Object.values(byVehicle)
+            }
+        ];
+
+        return {
+            columns: [
+                { key: 'customerName', label: 'Customer Name' },
+                { key: 'totalPolicies', label: 'Total Policies' },
+                { key: 'totalPremium', label: 'Total Premium (₹)' },
+                { key: 'totalClaims', label: 'Total Claims' },
+                { key: 'totalClaimedAmount', label: 'Claimed Amount (₹)' }
+            ],
+            data,
+            total: 1
+        };
+    }
 
     private async queryPolicies(userId: string, filters?: ReportFilters, page = 1, limit = 50) {
         const where = buildPolicyWhere(userId, filters);
@@ -668,34 +746,6 @@ export class ReportService {
         return null;
     }
 
-    private async groupClaims(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
-        const where = buildClaimWhere(userId, filters);
-        if (groupBy === 'status') {
-            const groups = await prisma.claim.groupBy({
-                by: ['status'],
-                where,
-                _count: { _all: true },
-                _sum: { claimAmount: true },
-            });
-            return {
-                grouped: true,
-                groupLabel: 'Claim Status',
-                columns: [
-                    { key: 'name', label: 'Status' },
-                    { key: 'count', label: 'Total Claims' },
-                    { key: 'claimSum', label: 'Total Amount (₹)' },
-                ],
-                data: groups.map((g: any) => ({
-                    name: g.status,
-                    count: g._count._all,
-                    claimSum: g._sum.claimAmount || 0,
-                })).sort((a: any, b: any) => b.count - a.count),
-                total: groups.length,
-            };
-        }
-        return null;
-    }
-
     private async groupFollowUps(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
         const where = buildFollowUpWhere(userId, filters);
         if (groupBy === 'status') {
@@ -802,6 +852,7 @@ export class ReportService {
             claims: () => this.queryClaims(userId, filters, page, limit),
             customers: () => this.queryCustomers(userId, filters, page, limit),
             followups: () => this.queryFollowUps(userId, filters, page, limit),
+            'customer-snapshot': () => this.queryCustomerSnapshot(userId, filters),
         };
 
         const result = await queryMap[source]();
