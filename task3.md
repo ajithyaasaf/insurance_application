@@ -7,7 +7,7 @@
 
 * in vehicle class need to add SAOD TW, SAOD PVT, CPA
 
-* and one more issue which is currenlty commision page is work perferclty excep one issue for all policy we need OD and TP to caluclate but selecting if i select fire the TP should not mandatory to enter but this is  not issue becuase it is already working perfectly but in policy type if i select others the field OD and TP is not coming so we can not enter value so we cannot give commision for this did you understand this imple issue?
+* and one more issue which is currenlty commision page is work perferclty excep one issue for all policy we need OD and TP to caluclate but selecting if i select fire the TP should not mandatory to enter but this is  not issue becuase it is already working perfectly but in policy type if i select others the field OD and TP is not coming so we can not enter value so we cannot give commision for this did you understand this imple issue?(completed)(completed)
 
 * also we currnetly have Dealers selcting option in policy form it is working but do we have Direct choosing option? because some policy we can create direct right?
 
