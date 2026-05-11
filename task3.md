@@ -22,7 +22,7 @@ also we have filed claim number in the label just add /policy number in that. al
 
 * i need to confirm one thing in commison if one person have 5 policy during calualtion there is option to diselect certain policy i need to check is they really diselect if i diselect 
 
-* in application in few places we have pdf in that pdf format need to redesign table format and rs word no needed and in commision page pdf no needed for mentioning od and tp percetanege we mentioned in pdf 
+* in application in few places we have pdf in that pdf format need to redesign table format and rs word no needed and in commision page pdf no needed for mentioning od and tp percetanege we mentioned in pdf (completed)
 
 * in some pages for examble in filter out option in commission page we have company based filter in that i can filter based on specific company or all compaies but not specific 2 or 3 companies 
 

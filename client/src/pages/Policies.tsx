@@ -24,7 +24,7 @@ const Policies: React.FC = () => {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
-    const [companyFilter, setCompanyFilter] = useState('');
+    const [companyFilter, setCompanyFilter] = useState<string[]>([]);
     const [dealerFilter, setDealerFilter] = useState('');
     const [vehicleClassFilter, setVehicleClassFilter] = useState('');
     const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ const Policies: React.FC = () => {
                     search: search || undefined, 
                     status: statusFilter || undefined, 
                     policyType: typeFilter || undefined, 
-                    companyId: companyFilter || undefined,
+                    companyIds: companyFilter.length > 0 ? companyFilter.join(',') : undefined,
                     dealerId: dealerFilter || undefined,
                     vehicleClass: vehicleClassFilter || undefined
                 } 
@@ -304,8 +304,8 @@ const Policies: React.FC = () => {
                     }
                     value={companyFilter}
                     onChange={setCompanyFilter}
-                    allLabel="All Companies"
-                    placeholder="Search company..."
+                    multiple={true}
+                    placeholder="Search insurers..."
                 />
                 <SearchableSelect
                     className="w-full sm:w-48"
@@ -323,12 +323,22 @@ const Policies: React.FC = () => {
                     allLabel="All Classes"
                     placeholder="Search class..."
                 />
+                {(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter) && (
+                    <button onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setCompanyFilter([]); setDealerFilter(''); setVehicleClassFilter(''); }} className="btn-ghost btn-sm self-start sm:self-auto text-red-500 font-bold uppercase tracking-wider text-[10px]">
+                        Clear All
+                    </button>
+                )}
             </div>
 
             {loading ? (
                 <TableSkeleton cols={7} rows={10} />
             ) : policies.length === 0 ? (
-                <EmptyState message="No policies found" icon={<HiOutlineDocumentText className="w-12 h-12" />} />
+                <EmptyState 
+                    message={(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter) 
+                        ? "No policies match your search filters." 
+                        : "No policies found. Click 'New Policy' to create one."} 
+                    icon={<HiOutlineDocumentText className="w-12 h-12" />} 
+                />
             ) : (
                 <>
                     <div className="table-container hidden md:block">

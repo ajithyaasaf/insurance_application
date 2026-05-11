@@ -107,6 +107,10 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
 function buildPolicyWhere(userId: string, filters?: ReportFilters) {
     const where: any = { userId, deletedAt: null };
     if (filters?.companyId) where.companyId = filters.companyId;
+    if (filters?.companyIds) {
+        const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
+        where.companyId = { in: ids };
+    }
     if (filters?.dealerId) where.dealerId = filters.dealerId;
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.policyType) where.policyType = filters.policyType;
@@ -143,9 +147,13 @@ function buildPaymentWhere(userId: string, filters?: ReportFilters) {
         if (filters?.dateTo) where.dueDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     // Join-level filters (company, dealer) — we filter via the policy relation
-    if (filters?.companyId || filters?.dealerId || filters?.policyType || filters?.vehicleClass) {
+    if (filters?.companyId || filters?.companyIds || filters?.dealerId || filters?.policyType || filters?.vehicleClass) {
         where.policy = { deletedAt: null };
         if (filters?.companyId) where.policy.companyId = filters.companyId;
+        if (filters?.companyIds) {
+            const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
+            where.policy.companyId = { in: ids };
+        }
         if (filters?.dealerId) where.policy.dealerId = filters.dealerId;
         if (filters?.policyType) where.policy.policyType = filters.policyType;
         if (filters?.vehicleClass) where.policy.vehicleClass = filters.vehicleClass;

@@ -183,7 +183,8 @@ export class PolicyService {
         policyType?: string,
         companyId?: string,
         dealerId?: string,
-        vehicleClass?: string
+        vehicleClass?: string,
+        companyIds?: string | string[]
     ) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
@@ -200,6 +201,9 @@ export class PolicyService {
             ...(status ? buildStatusFilter(status) : {}),
             ...(policyType && { policyType: policyType as any }),
             ...(companyId && { companyId }),
+            ...(companyIds && { 
+                companyId: { in: typeof companyIds === 'string' ? companyIds.split(',') : companyIds } 
+            }),
             ...(dealerId && { dealerId }),
             ...(vehicleClass && { vehicleClass: vehicleClass as any }),
         };

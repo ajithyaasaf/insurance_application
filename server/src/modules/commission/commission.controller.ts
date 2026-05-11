@@ -13,7 +13,7 @@ export class CommissionController {
 
     async getStats(req: Request, res: Response, next: NextFunction) {
         try {
-            const { dealerId, periodStart, periodEnd, companyId } = req.query;
+            const { dealerId, periodStart, periodEnd, companyId, companyIds } = req.query;
             if (!dealerId || !periodStart || !periodEnd) {
                 return next(Object.assign(new Error('Missing query params'), { statusCode: 400 }));
             }
@@ -21,7 +21,8 @@ export class CommissionController {
                 dealerId: dealerId as string,
                 periodStart: periodStart as string,
                 periodEnd: periodEnd as string,
-                companyId: companyId as string | undefined
+                companyId: companyId as string | undefined,
+                companyIds: (companyIds as string | string[] | undefined)
             });
             sendSuccess({ res, statusCode: 200, message: 'Commission stats fetched', data: result });
         } catch (err) { next(err); }
@@ -43,14 +44,15 @@ export class CommissionController {
 
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { dealerId, status, dateFrom, dateTo, companyId } = req.query;
+            const { dealerId, status, dateFrom, dateTo, companyId, companyIds } = req.query;
             const result = await commissionService.findAll(
                 (req as any).user.userId,
                 dealerId as string | undefined,
                 status as string | undefined,
                 dateFrom as string | undefined,
                 dateTo as string | undefined,
-                companyId as string | undefined
+                companyId as string | undefined,
+                (companyIds as string | string[] | undefined)
             );
             sendSuccess({ res, statusCode: 200, message: 'Commission records fetched', data: result });
         } catch (err) { next(err); }
@@ -58,14 +60,15 @@ export class CommissionController {
 
     async exportExcel(req: Request, res: Response, next: NextFunction) {
         try {
-            const { dealerId, status, dateFrom, dateTo, companyId } = req.body;
+            const { dealerId, status, dateFrom, dateTo, companyId, companyIds } = req.body;
             const history = await commissionService.findAll(
                 (req as any).user.userId,
                 dealerId as string | undefined,
                 status as string | undefined,
                 dateFrom as string | undefined,
                 dateTo as string | undefined,
-                companyId as string | undefined
+                companyId as string | undefined,
+                companyIds as string | string[] | undefined
             );
 
             if (!history.length) {

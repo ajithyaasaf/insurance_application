@@ -243,13 +243,13 @@ const ReportBuilderTab: React.FC = () => {
                     {/* Company */}
                     {showCompanyFilter && (
                         <div>
-                            <label className="label">Company</label>
+                            <label className="label">Insurers</label>
                             <SearchableSelect
                                 options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
-                                value={localFilters.companyId || ''}
-                                onChange={val => updateLocalFilter('companyId', val)}
-                                allLabel="All Companies"
-                                placeholder="Search company..."
+                                value={localFilters.companyIds || []}
+                                onChange={val => updateLocalFilter('companyIds', val)}
+                                multiple={true}
+                                placeholder="Select Insurers"
                             />
                         </div>
                     )}
@@ -442,7 +442,9 @@ const ReportBuilderTab: React.FC = () => {
                         <p className="text-xs text-surface-500 font-medium">
                             {report.grouped
                                 ? `Grouped by ${report.groupLabel} • ${report.total} groups`
-                                : `${report.total} records found`}
+                                : report.total === 0
+                                    ? "No results matching your filters."
+                                    : `${report.total} records found`}
                         </p>
                     </div>
 

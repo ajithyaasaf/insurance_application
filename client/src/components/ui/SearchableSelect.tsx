@@ -8,10 +8,11 @@ export interface SelectOption {
 
 interface SearchableSelectProps {
     options: SelectOption[];
-    value: string;
-    onChange: (value: string) => void;
+    value: string | string[]; // Support single or multiple
+    onChange: (value: any) => void; // Any to allow string or string[]
+    multiple?: boolean;
     placeholder?: string;
-    allLabel?: string; // If provided, shows an "All" or "Empty" option at the top
+    allLabel?: string;
     className?: string;
     disabled?: boolean;
     required?: boolean;
@@ -22,6 +23,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     options,
     value,
     onChange,
+    multiple = false,
     placeholder = 'Select...',
     allLabel,
     className = '',
@@ -36,9 +38,18 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
     const searchRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
 
-    const selectedLabel = value
-        ? options.find(o => o.value === value)?.label ?? placeholder
-        : (allLabel || placeholder);
+    // Normalize value to array if multiple
+    const values = multiple ? (Array.isArray(value) ? value : value ? [value] : []) : [value as string];
+
+    const selectedLabels = values
+        .map(v => options.find(o => o.value === v)?.label)
+        .filter(Boolean) as string[];
+
+    const displayValue = multiple 
+        ? selectedLabels.length > 0 
+            ? selectedLabels.join(', ') 
+            : (allLabel || placeholder)
+        : (options.find(o => o.value === value)?.label || allLabel || placeholder);
 
     const filtered = search.trim()
         ? options.filter(o => {
@@ -48,23 +59,20 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         })
         : options;
 
-    const displayList = allLabel 
+    const displayList = allLabel && !multiple
         ? [{ value: '', label: allLabel } as SelectOption, ...filtered]
         : filtered;
 
-    // Reset highlight when filter changes
     useEffect(() => {
         setHighlightedIndex(0);
     }, [search]);
 
-    // Focus search input when open
     useEffect(() => {
         if (open && searchRef.current) {
             searchRef.current.focus();
         }
     }, [open]);
 
-    // Close on outside click
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -82,6 +90,20 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
             item?.scrollIntoView({ block: 'nearest' });
         }
     }, []);
+
+    const handleSelect = (opt: SelectOption) => {
+        if (multiple) {
+            const newValues = values.includes(opt.value)
+                ? values.filter(v => v !== opt.value)
+                : [...values, opt.value];
+            onChange(newValues);
+            // Don't close on multi-select
+        } else {
+            onChange(opt.value);
+            setOpen(false);
+            setSearch('');
+        }
+    };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (!open) {
@@ -108,9 +130,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
             case 'Enter': {
                 const selected = displayList[highlightedIndex];
                 if (selected) {
-                    onChange(selected.value);
-                    setOpen(false);
-                    setSearch('');
+                    handleSelect(selected);
                 }
                 e.preventDefault();
                 break;
@@ -123,17 +143,15 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         }
     };
 
-    const handleSelect = (opt: SelectOption) => {
-        onChange(opt.value);
-        setOpen(false);
-        setSearch('');
-    };
+    const isAllSelected = multiple && values.length === options.length;
 
-    const showCount = options.length > 0;
+    const toggleAll = () => {
+        if (isAllSelected) onChange([]);
+        else onChange(options.map(o => o.value));
+    };
 
     return (
         <div ref={containerRef} className={`relative ${className}`} onKeyDown={handleKeyDown}>
-            {/* Trigger button */}
             <button
                 type="button"
                 disabled={disabled}
@@ -158,18 +176,30 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 aria-expanded={open}
             >
                 <div className="flex items-center gap-2 truncate">
-                    <HiSearch className="w-3.5 h-3.5 text-surface-400 flex-shrink-0" />
-                    <span className={`truncate ${!value && !allLabel ? 'text-surface-400' : ''}`}>
-                        {selectedLabel}
-                    </span>
+                    {multiple ? (
+                        <div className="flex items-center gap-1.5 truncate">
+                            <div className="flex-shrink-0 w-4 h-4 rounded bg-primary-100 text-primary-700 flex items-center justify-center text-[10px] font-bold">
+                                {values.length}
+                            </div>
+                            <span className={`truncate ${values.length === 0 ? 'text-surface-400' : 'text-surface-900'}`}>
+                                {displayValue}
+                            </span>
+                        </div>
+                    ) : (
+                        <>
+                            <HiSearch className="w-3.5 h-3.5 text-surface-400 flex-shrink-0" />
+                            <span className={`truncate ${!value && !allLabel ? 'text-surface-400' : 'text-surface-900'}`}>
+                                {displayValue}
+                            </span>
+                        </>
+                    )}
                 </div>
 
-                {/* Hidden input for native form validation */}
                 <input
                     type="text"
                     required={required}
-                    value={value}
-                    onChange={() => {}} // Read-only but keeps React happy
+                    value={multiple ? (values.length > 0 ? 'selected' : '') : (value as string)}
+                    onChange={() => {}}
                     className="absolute opacity-0 w-0 h-0 pointer-events-none"
                     tabIndex={-1}
                 />
@@ -181,7 +211,6 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 </span>
             </button>
 
-            {/* Dropdown */}
             {open && (
                 <div className="
                     absolute z-50 top-full left-0 right-0 mt-1
@@ -189,7 +218,6 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     animate-in fade-in slide-in-from-top-1 duration-150
                     overflow-hidden
                 ">
-                    {/* Search box — Always shown for searchable fields */}
                     <div className="p-2 border-b border-surface-100">
                         <div className="flex items-center gap-2 px-2 py-1.5 bg-surface-50 rounded-lg">
                             <HiSearch className="w-3.5 h-3.5 text-surface-400 flex-shrink-0" />
@@ -198,7 +226,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                                 type="text"
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                placeholder="Start typing to search..."
+                                placeholder={multiple ? "Search companies..." : "Start typing to search..."}
                                 className="flex-1 bg-transparent text-sm text-surface-700 placeholder-surface-400 outline-none min-w-0"
                             />
                             {search && (
@@ -207,9 +235,19 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                                 </button>
                             )}
                         </div>
+                        {multiple && !search && (
+                            <div className="mt-2 px-2 flex justify-between items-center">
+                                <button 
+                                    onClick={toggleAll}
+                                    className="text-[10px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-wider"
+                                >
+                                    {isAllSelected ? 'Deselect All' : 'Select All'}
+                                </button>
+                                <span className="text-[10px] text-surface-400">{values.length} selected</span>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Options list */}
                     <ul
                         ref={listRef}
                         role="listbox"
@@ -221,7 +259,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                             </li>
                         ) : (
                             displayList.map((opt, idx) => {
-                                const isSelected = opt.value === value || (opt.value === '' && !value);
+                                const isSelected = values.includes(opt.value) || (opt.value === '' && values.length === 0);
                                 const isHighlighted = idx === highlightedIndex;
                                 return (
                                     <li
@@ -234,7 +272,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                                             flex items-center justify-between
                                             px-3 py-2 text-sm cursor-pointer select-none
                                             transition-colors duration-100
-                                            ${isSelected
+                                            ${isSelected && !multiple
                                                 ? 'bg-primary-50 text-primary-700 font-medium'
                                                 : isHighlighted
                                                     ? 'bg-surface-50 text-surface-800'
@@ -242,8 +280,20 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                                             }
                                         `}
                                     >
-                                        <span className="truncate">{opt.label}</span>
-                                        {isSelected && (
+                                        <div className="flex items-center gap-2 truncate">
+                                            {multiple && (
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={values.includes(opt.value)} 
+                                                    readOnly 
+                                                    className="rounded border-surface-300 text-primary-600 focus:ring-primary-500 w-3.5 h-3.5" 
+                                                />
+                                            )}
+                                            <span className={`truncate ${isSelected && multiple ? 'font-semibold text-surface-900' : ''}`}>
+                                                {opt.label}
+                                            </span>
+                                        </div>
+                                        {isSelected && !multiple && (
                                             <svg className="w-4 h-4 text-primary-600 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                             </svg>
@@ -254,8 +304,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                         )}
                     </ul>
 
-                    {/* Footer count badge when many options */}
-                    {showCount && filtered.length < options.length && (
+                    {options.length > 0 && filtered.length < options.length && (
                         <div className="px-3 py-1.5 border-t border-surface-100 bg-surface-50">
                             <p className="text-xs text-surface-400">
                                 Showing {filtered.length} of {options.length}

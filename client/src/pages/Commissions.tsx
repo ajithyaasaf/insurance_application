@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import SearchableSelect from '../components/ui/SearchableSelect';
@@ -19,11 +19,11 @@ const Commissions: React.FC = () => {
 
     // Pending filters
     const [pendingSearch, setPendingSearch] = useState('');
-    const [pendingCompanyFilter, setPendingCompanyFilter] = useState('');
+    const [pendingCompanyFilter, setPendingCompanyFilter] = useState<string[]>([]);
 
     // History filters
     const [historyDealerFilter, setHistoryDealerFilter] = useState('');
-    const [historyCompanyFilter, setHistoryCompanyFilter] = useState('');
+    const [historyCompanyFilter, setHistoryCompanyFilter] = useState<string[]>([]);
     const [historyStatusFilter, setHistoryStatusFilter] = useState('');
     const [historyDateFrom, setHistoryDateFrom] = useState('');
     const [historyDateTo, setHistoryDateTo] = useState('');
@@ -31,7 +31,7 @@ const Commissions: React.FC = () => {
 
     // Calculator state
     const [dealerId, setDealerId] = useState('');
-    const [companyId, setCompanyId] = useState('');
+    const [companyIds, setCompanyIds] = useState<string[]>([]);
     const [periodStart, setPeriodStart] = useState('');
     const [periodEnd, setPeriodEnd] = useState('');
     const [odPercentage, setOdPercentage] = useState('');
@@ -65,7 +65,7 @@ const Commissions: React.FC = () => {
         try {
             const params: any = {};
             if (historyDealerFilter) params.dealerId = historyDealerFilter;
-            if (historyCompanyFilter) params.companyId = historyCompanyFilter;
+            if (historyCompanyFilter.length > 0) params.companyIds = historyCompanyFilter.join(',');
             if (historyStatusFilter) params.status = historyStatusFilter;
             if (historyDateFrom) params.dateFrom = historyDateFrom;
             if (historyDateTo) params.dateTo = historyDateTo;
@@ -98,14 +98,14 @@ const Commissions: React.FC = () => {
             setStats(null);
             setVolumePolicies([]);
         }
-    }, [dealerId, companyId, periodStart, periodEnd, activeTab]);
+    }, [dealerId, companyIds, periodStart, periodEnd, activeTab]);
 
     const handlePeekVolume = async () => {
         setLoading(true);
         try {
             const res = await api.post('/commissions/preview', {
                 dealerId,
-                companyId: companyId || undefined,
+                companyIds: companyIds.length > 0 ? companyIds : undefined,
                 periodStart,
                 periodEnd,
                 odPercentage: 0,
@@ -139,7 +139,7 @@ const Commissions: React.FC = () => {
         try {
             const res = await api.post('/commissions/preview', {
                 dealerId,
-                companyId: companyId || undefined,
+                companyIds: companyIds.length > 0 ? companyIds : undefined,
                 periodStart,
                 periodEnd,
                 odPercentage: parseFloat(odPercentage),
@@ -156,7 +156,7 @@ const Commissions: React.FC = () => {
 
     const handleProcessPending = (pd: any) => {
         setDealerId(pd.dealerId);
-        setCompanyId(pd.companyId);
+        setCompanyIds([pd.companyId]);
         setPeriodStart(pd.oldestPolicyDate.split('T')[0]);
         // Use newestPolicyDate or Today, whichever is LATER
         const latestDate = new Date(pd.newestPolicyDate);
@@ -173,7 +173,7 @@ const Commissions: React.FC = () => {
         try {
             await api.post('/commissions', {
                 dealerId,
-                companyId: companyId || undefined,
+                companyIds: companyIds.length > 0 ? companyIds : undefined,
                 periodStart,
                 periodEnd,
                 odPercentage: parseFloat(odPercentage),
@@ -229,23 +229,30 @@ const Commissions: React.FC = () => {
         } catch { toast.error('Failed to load details'); }
     };
 
-    const filteredHistory = history.filter(c => {
-        if (historyDealerFilter && c.dealerId !== historyDealerFilter) return false;
-        if (historyStatusFilter && c.status !== historyStatusFilter) return false;
-        if (historyDateFrom && new Date(c.periodStart) < new Date(historyDateFrom)) return false;
-        if (historyDateTo) {
-            const to = new Date(historyDateTo);
-            to.setUTCHours(23, 59, 59, 999);
-            if (new Date(c.periodStart) > to) return false;
-        }
-        return true;
-    });
+    const filteredHistory = useMemo(() => {
+        return history.filter(c => {
+            if (historyDealerFilter && c.dealerId !== historyDealerFilter) return false;
+            if (historyCompanyFilter.length > 0 && !historyCompanyFilter.includes(c.companyId)) return false;
+            if (historyStatusFilter && c.status !== historyStatusFilter) return false;
+            if (historyDateFrom && new Date(c.periodStart) < new Date(historyDateFrom)) return false;
+            if (historyDateTo) {
+                const to = new Date(historyDateTo);
+                to.setUTCHours(23, 59, 59, 999);
+                if (new Date(c.periodStart) > to) return false;
+            }
+            return true;
+        });
+    }, [history, historyDealerFilter, historyCompanyFilter, historyStatusFilter, historyDateFrom, historyDateTo]);
 
-    const filteredPending = pendingDealers.filter(pd => {
-        if (pendingCompanyFilter && pd.companyId !== pendingCompanyFilter) return false;
-        return pd.dealerName.toLowerCase().includes(pendingSearch.toLowerCase()) || 
-               pd.companyName.toLowerCase().includes(pendingSearch.toLowerCase());
-    });
+    const filteredPending = useMemo(() => {
+        return pendingDealers.filter(pd => {
+            if (pendingCompanyFilter.length > 0 && !pendingCompanyFilter.includes(pd.companyId)) return false;
+            const search = pendingSearch.toLowerCase().trim();
+            if (!search) return true;
+            return pd.dealerName.toLowerCase().includes(search) || 
+                   pd.companyName.toLowerCase().includes(search);
+        });
+    }, [pendingDealers, pendingCompanyFilter, pendingSearch]);
 
     const exportToExcel = async () => {
         if (filteredHistory.length === 0) {
@@ -405,8 +412,8 @@ const Commissions: React.FC = () => {
                                 options={companies.map(c => ({ value: c.id, label: c.name }))}
                                 value={pendingCompanyFilter}
                                 onChange={setPendingCompanyFilter}
-                                allLabel="All Companies"
-                                placeholder="Filter by Insurer"
+                                multiple={true}
+                                placeholder="Filter Insurers"
                             />
                             <input 
                                 type="text" 
@@ -419,7 +426,12 @@ const Commissions: React.FC = () => {
                     </div>
 
                     {filteredPending.length === 0 ? (
-                        <EmptyState message="All caught up! No pending commissions found." icon={<HiOutlineCheckCircle className="w-12 h-12 text-emerald-500" />} />
+                        <EmptyState 
+                            message={pendingSearch || pendingCompanyFilter.length > 0 
+                                ? "No pending commissions match your filters." 
+                                : "All caught up! No pending commissions found."} 
+                            icon={<HiOutlineCheckCircle className="w-12 h-12 text-emerald-500" />} 
+                        />
                     ) : (
                         <div className="table-container">
                             <table className="table">
@@ -603,13 +615,13 @@ const Commissions: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                             <div className="lg:col-span-2">
-                                <label className="label">Insurance Company (Optional)</label>
+                                <label className="label">Insurance Companies (Optional)</label>
                                 <SearchableSelect
                                     options={companies.map(c => ({ value: c.id, label: c.name }))}
-                                    value={companyId}
-                                    onChange={setCompanyId}
-                                    allLabel="All Companies"
-                                    placeholder="Filter by Insurer"
+                                    value={companyIds}
+                                    onChange={setCompanyIds}
+                                    multiple={true}
+                                    placeholder="Select Insurers"
                                 />
                             </div>
                         </div>
@@ -810,7 +822,12 @@ const Commissions: React.FC = () => {
                     </div>
 
                     {filteredHistory.length === 0 ? (
-                        <EmptyState message="No commission records yet" icon={<HiOutlineCalculator className="w-12 h-12" />} />
+                        <EmptyState 
+                            message={(historyDealerFilter || historyCompanyFilter || historyStatusFilter || historyDateFrom || historyDateTo)
+                                ? "No history records match your filters."
+                                : "No commission history found."} 
+                            icon={<HiOutlineCalculator className="w-12 h-12" />} 
+                        />
                     ) : (
                         <div className="table-container">
                             <table className="table">

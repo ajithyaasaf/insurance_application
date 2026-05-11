@@ -69,8 +69,8 @@ export class CommissionService {
      * Get aggregated business volume (OD/TP totals) for a dealer/period.
      * Used by the calculator to show context before percentages are entered.
      */
-    async getStats(userId: string, query: { dealerId: string; periodStart: string; periodEnd: string; companyId?: string }) {
-        const { dealerId, periodStart, periodEnd, companyId } = query;
+    async getStats(userId: string, query: { dealerId: string; periodStart: string; periodEnd: string; companyId?: string; companyIds?: string | string[] }) {
+        const { dealerId, periodStart, periodEnd, companyId, companyIds } = query;
         const parsedStartDate = getStartOfDayIST(periodStart);
         const parsedEndDate = getEndOfDayIST(periodEnd);
 
@@ -79,6 +79,9 @@ export class CommissionService {
                 userId,
                 dealerId,
                 ...(companyId && { companyId }),
+                ...(companyIds && { 
+                    companyId: { in: Array.isArray(companyIds) ? companyIds : companyIds.split(',') } 
+                }),
                 deletedAt: null,
                 status: { in: ['active', 'expired'] }, // EXCLUDE CANCELLED
                 startDate: {
@@ -296,11 +299,14 @@ export class CommissionService {
     /**
      * List all commissions for the user, with filters.
      */
-    async findAll(userId: string, dealerId?: string, status?: string, dateFrom?: string, dateTo?: string, companyId?: string) {
+    async findAll(userId: string, dealerId?: string, status?: string, dateFrom?: string, dateTo?: string, companyId?: string, companyIds?: string | string[]) {
         const where: any = { userId };
         if (dealerId) where.dealerId = dealerId;
         if (status) where.status = status;
         if (companyId) where.companyId = companyId;
+        if (companyIds) {
+            where.companyId = { in: typeof companyIds === 'string' ? companyIds.split(',') : companyIds };
+        }
         
         if (dateFrom || dateTo) {
             where.periodStart = {};
