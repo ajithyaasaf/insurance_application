@@ -436,14 +436,22 @@ const PolicyDetail: React.FC = () => {
                             ) : (
                                 <div className="space-y-3">
                                     {policy.claims.map((claim: any) => (
-                                        <div key={claim.id} className="text-xs flex justify-between items-center border-b border-surface-50 pb-2 last:border-0 last:pb-0">
-                                            <div>
+                                        <div key={claim.id} className="text-xs border-b border-surface-50 pb-2 last:border-0 last:pb-0">
+                                            <div className="flex justify-between items-center mb-1">
                                                 <p className="font-medium text-surface-900">{formatCurrency(claim.claimAmount)}</p>
-                                                <p className="text-[10px] text-surface-500">{formatDate(claim.claimDate)}</p>
+                                                <span className={`text-[10px] uppercase font-bold ${getStatusColor(claim.status)}`}>
+                                                    {claim.status}
+                                                </span>
                                             </div>
-                                            <span className={`text-[10px] uppercase font-bold ${getStatusColor(claim.status)}`}>
-                                                {claim.status}
-                                            </span>
+                                            <div className="flex gap-3 text-[10px] text-surface-500">
+                                                {claim.estimatedAmount != null && (
+                                                    <span className="text-amber-600">Est: {formatCurrency(claim.estimatedAmount)}</span>
+                                                )}
+                                                {claim.billAmount != null && (
+                                                    <span className="text-emerald-600">Bill: {formatCurrency(claim.billAmount)}</span>
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-surface-400 mt-0.5">{formatDate(claim.claimDate)}</p>
                                         </div>
                                     ))}
                                 </div>

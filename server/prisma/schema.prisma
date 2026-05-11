@@ -178,20 +178,22 @@ model Policy {
 }
 
 model Claim {
-  id          String   @id @default(uuid())
-  userId      String
-  policyId    String
-  customerId  String
-  claimNumber String?
-  claimAmount Float
-  claimDate   DateTime
-  status      String   @default("filed")
-  reason      String?
-  createdBy   String
-  createdAt   DateTime @default(now())
-  customer    Customer @relation(fields: [customerId], references: [id])
-  policy      Policy   @relation(fields: [policyId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  id              String   @id @default(uuid())
+  userId          String
+  policyId        String
+  customerId      String
+  claimNumber     String?
+  claimAmount     Float
+  estimatedAmount Float?
+  billAmount      Float?
+  claimDate       DateTime
+  status          String   @default("filed")
+  reason          String?
+  createdBy       String
+  createdAt       DateTime @default(now())
+  customer        Customer @relation(fields: [customerId], references: [id])
+  policy          Policy   @relation(fields: [policyId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([policyId])

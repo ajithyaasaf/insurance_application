@@ -92,10 +92,15 @@ const ReportBuilderTab: React.FC = () => {
     });
     const { data: dealersData } = useQuery({
         queryKey: ['dealers'],
-        queryFn: () => api.get('/dealers').then(r => r.data),
+        queryFn: () => api.get('/dealers?limit=100').then(r => r.data),
+    });
+    const { data: customersData } = useQuery({
+        queryKey: ['customers'],
+        queryFn: () => api.get('/customers?limit=100').then(r => r.data),
     });
     const companies = companiesData?.data || [];
     const dealers = dealersData?.data || [];
+    const customers = customersData?.data || [];
 
     // --- Report builder data ---
     const { data: reportData, isLoading: reportLoading } = useQuery({
@@ -161,6 +166,7 @@ const ReportBuilderTab: React.FC = () => {
     const groupOptions = getGroupOptions(source);
     const showCompanyFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
     const showDealerFilter = ['policies', 'payments'].includes(source);
+    const showCustomerFilter = ['policies', 'payments', 'claims', 'followups', 'leads'].includes(source);
     const showPolicyTypeFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
     const showVehicleClassFilter = source === 'policies' && localFilters.policyType === 'motor';
 
@@ -244,6 +250,20 @@ const ReportBuilderTab: React.FC = () => {
                                 onChange={val => updateLocalFilter('companyId', val)}
                                 allLabel="All Companies"
                                 placeholder="Search company..."
+                            />
+                        </div>
+                    )}
+
+                    {/* Customer */}
+                    {showCustomerFilter && (
+                        <div>
+                            <label className="label">Customer</label>
+                            <SearchableSelect
+                                options={customers.map((c: any) => ({ value: c.id, label: c.name }))}
+                                value={localFilters.customerId || ''}
+                                onChange={val => updateLocalFilter('customerId', val)}
+                                allLabel="All Customers"
+                                placeholder="Search customer..."
                             />
                         </div>
                     )}

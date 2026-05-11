@@ -310,7 +310,6 @@ const Commissions: React.FC = () => {
         
         // Align these to the right side
         const rightX = doc.internal.pageSize.width - 14;
-        doc.text(`OD%: ${data.odPercentage}%  |  TP%: ${data.tpPercentage}%`, rightX, 56, { align: 'right' });
         doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, rightX, 62, { align: 'right' });
 
         // Policy table
@@ -323,24 +322,47 @@ const Commissions: React.FC = () => {
                 p.make || '-',
                 p.model || '-',
                 formatVehicleClass(p.vehicleClass),
-                `Rs. ${(p.od || 0).toLocaleString('en-IN')}`,
-                `Rs. ${(p.tp || 0).toLocaleString('en-IN')}`,
-                `Rs. ${(p.premiumAmount || 0).toLocaleString('en-IN')}`,
-                `Rs. ${(p.odCommission || 0).toLocaleString('en-IN')}`,
-                `Rs. ${(p.tpCommission || 0).toLocaleString('en-IN')}`,
-                `Rs. ${((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN')}`,
+                (p.od || 0).toLocaleString('en-IN'),
+                (p.tp || 0).toLocaleString('en-IN'),
+                (p.premiumAmount || 0).toLocaleString('en-IN'),
+                (p.odCommission || 0).toLocaleString('en-IN'),
+                (p.tpCommission || 0).toLocaleString('en-IN'),
+                ((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN'),
             ]),
-            styles: { fontSize: 7 },
-            headStyles: { fillColor: [59, 130, 246] },
+            theme: 'striped',
+            styles: { 
+                fontSize: 7,
+                cellPadding: 3,
+                valign: 'middle',
+                lineWidth: 0.1,
+                lineColor: [241, 245, 249]
+            },
+            headStyles: { 
+                fillColor: [30, 58, 138],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            columnStyles: {
+                4: { halign: 'right' },
+                5: { halign: 'right' },
+                6: { halign: 'right' },
+                7: { halign: 'right', textColor: [22, 163, 74] },
+                8: { halign: 'right', textColor: [22, 163, 74] },
+                9: { halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
+            }
         });
 
         // Summary
         const finalY = (doc as any).lastAutoTable?.finalY || 120;
         doc.setFontSize(11);
-        doc.text(`Total OD Commission: Rs. ${(data.totalOdCommission || data.summary?.totalOdCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 10);
-        doc.text(`Total TP Commission: Rs. ${(data.totalTpCommission || data.summary?.totalTpCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 17);
-        doc.setFontSize(13);
-        doc.text(`Grand Total: Rs. ${(data.totalCommission || data.summary?.totalCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 27);
+        doc.setTextColor(107, 114, 128);
+        doc.text(`Total OD Commission: ${(data.totalOdCommission || data.summary?.totalOdCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 12);
+        doc.text(`Total TP Commission: ${(data.totalTpCommission || data.summary?.totalTpCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 19);
+        
+        doc.setFontSize(14);
+        doc.setTextColor(21, 128, 61); // Emerald 700
+        doc.text(`Grand Total: ${(data.totalCommission || data.summary?.totalCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 30);
 
         doc.save(`commission_${dealerName}_${data.periodStart?.split('T')[0] || 'report'}.pdf`);
     };

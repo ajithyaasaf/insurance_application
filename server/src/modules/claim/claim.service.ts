@@ -5,6 +5,8 @@ interface CreateClaimInput {
     customerId: string;
     claimNumber?: string;
     claimAmount: number;
+    estimatedAmount?: number | null;
+    billAmount?: number | null;
     claimDate: string;
     status?: string;
     reason?: string;
@@ -36,6 +38,8 @@ export class ClaimService {
                 customerId: data.customerId,
                 claimNumber: data.claimNumber,
                 claimAmount: data.claimAmount,
+                estimatedAmount: data.estimatedAmount ?? null,
+                billAmount: data.billAmount ?? null,
                 claimDate: new Date(data.claimDate),
                 status: data.status || 'filed',
                 reason: data.reason,
@@ -86,12 +90,14 @@ export class ClaimService {
     }
 
     async update(userId: string, id: string, data: Partial<CreateClaimInput>) {
-        await this.findById(userId, id); // ownership check — ensures the claim belongs to this user
+        await this.findById(userId, id); // ownership check
         return prisma.claim.update({
             where: { id },
             data: {
                 ...(data.claimNumber !== undefined && { claimNumber: data.claimNumber }),
                 ...(data.claimAmount !== undefined && { claimAmount: data.claimAmount }),
+                ...(data.estimatedAmount !== undefined && { estimatedAmount: data.estimatedAmount }),
+                ...(data.billAmount !== undefined && { billAmount: data.billAmount }),
                 ...(data.claimDate !== undefined && { claimDate: new Date(data.claimDate) }),
                 ...(data.status !== undefined && { status: data.status }),
                 ...(data.reason !== undefined && { reason: data.reason }),

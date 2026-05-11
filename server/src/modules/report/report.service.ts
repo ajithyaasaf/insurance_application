@@ -49,11 +49,11 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'model', label: 'Model' },
         { key: 'vehicleNumber', label: 'Vehicle #' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
-        { key: 'od', label: 'OD Premium (₹)' },
-        { key: 'tp', label: 'TP Premium (₹)' },
-        { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
-        { key: 'tax', label: 'Tax (₹)' },
-        { key: 'totalPremium', label: 'Total Premium (Gross) (₹)' },
+        { key: 'od', label: 'OD Premium' },
+        { key: 'tp', label: 'TP Premium' },
+        { key: 'premiumAmount', label: 'Premium (Net)' },
+        { key: 'tax', label: 'Tax' },
+        { key: 'totalPremium', label: 'Total Premium (Gross)' },
         { key: 'startDate', label: 'Start Date' },
         { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'status', label: 'Status' },
@@ -64,19 +64,21 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'policyNumber', label: 'Policy #' },
         { key: 'companyName', label: 'Company' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
-        { key: 'amount', label: 'Amount (₹)' },
-        { key: 'paidAmount', label: 'Paid (₹)' },
+        { key: 'amount', label: 'Amount' },
+        { key: 'paidAmount', label: 'Paid' },
         { key: 'dueDate', label: 'Due Date' },
         { key: 'paidDate', label: 'Paid Date' },
         { key: 'status', label: 'Status' },
     ],
     claims: [
-        { key: 'claimNumber', label: 'Claim #' },
+        { key: 'claimNumber', label: 'Claim # / Policy #' },
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy #' },
         { key: 'companyName', label: 'Company' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
-        { key: 'claimAmount', label: 'Amount (₹)' },
+        { key: 'claimAmount', label: 'Claim Amount' },
+        { key: 'estimatedAmount', label: 'Estimated Amount' },
+        { key: 'billAmount', label: 'Bill Amount' },
         { key: 'claimDate', label: 'Claim Date' },
         { key: 'status', label: 'Status' },
         { key: 'reason', label: 'Reason' },
@@ -87,7 +89,7 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'email', label: 'Email' },
         { key: 'address', label: 'Address' },
         { key: 'totalPolicies', label: 'Total Policies' },
-        { key: 'totalPremium', label: 'Total Premium (₹)' },
+        { key: 'totalPremium', label: 'Total Premium' },
         { key: 'createdAt', label: 'Added On' },
     ],
     followups: [
@@ -114,9 +116,9 @@ function buildPolicyWhere(userId: string, filters?: ReportFilters) {
         Object.assign(where, buildStatusFilter(filters.status));
     }
     if (filters?.dateFrom || filters?.dateTo) {
-        where.createdAt = {};
-        if (filters?.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo) where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        where.startDate = {};
+        if (filters?.dateFrom) where.startDate.gte = new Date(filters.dateFrom);
+        if (filters?.dateTo) where.startDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     return where;
 }
@@ -136,9 +138,9 @@ function buildPaymentWhere(userId: string, filters?: ReportFilters) {
 
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
-        where.createdAt = {};
-        if (filters?.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo) where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        where.dueDate = {};
+        if (filters?.dateFrom) where.dueDate.gte = new Date(filters.dateFrom);
+        if (filters?.dateTo) where.dueDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
     }
     // Join-level filters (company, dealer) — we filter via the policy relation
     if (filters?.companyId || filters?.dealerId || filters?.policyType || filters?.vehicleClass) {
@@ -300,6 +302,8 @@ export class ReportService {
             companyName: r.policy?.company?.name || '—',
             vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
             claimAmount: r.claimAmount,
+            estimatedAmount: r.estimatedAmount ?? '—',
+            billAmount: r.billAmount ?? '—',
             claimDate: fmtDate(r.claimDate),
             status: r.status,
             reason: r.reason || '—',
@@ -374,6 +378,9 @@ export class ReportService {
         }
         if (source === 'payments') {
             return this.groupPayments(userId, filters, groupBy);
+        }
+        if (source === 'claims') {
+            return this.groupClaims(userId, filters, groupBy);
         }
         // For unsupported combos, fall back to flat data
         return null;
@@ -706,6 +713,69 @@ export class ReportService {
         return null;
     }
 
+    private async groupClaims(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildClaimWhere(userId, filters);
+
+        if (groupBy === 'status') {
+            const groups = await prisma.claim.groupBy({
+                by: ['status'],
+                where,
+                _count: { _all: true },
+                _sum: { claimAmount: true, estimatedAmount: true, billAmount: true },
+            });
+            return {
+                grouped: true,
+                groupLabel: 'Status',
+                columns: [
+                    { key: 'name', label: 'Status' },
+                    { key: 'count', label: 'Count' },
+                    { key: 'claimSum', label: 'Claim Total (₹)' },
+                    { key: 'estimatedSum', label: 'Estimated Total (₹)' },
+                    { key: 'billSum', label: 'Bill Total (₹)' },
+                ],
+                data: groups.map((g: any) => ({
+                    name: g.status,
+                    count: g._count._all,
+                    claimSum: g._sum.claimAmount || 0,
+                    estimatedSum: g._sum.estimatedAmount || 0,
+                    billSum: g._sum.billAmount || 0,
+                })),
+                total: groups.length,
+            };
+        }
+
+        if (groupBy === 'customer') {
+            const groups = await prisma.claim.groupBy({
+                by: ['customerId'],
+                where,
+                _count: { _all: true },
+                _sum: { claimAmount: true, estimatedAmount: true, billAmount: true },
+            });
+            const customerIds = groups.map((g: any) => g.customerId);
+            const customers = await prisma.customer.findMany({ where: { id: { in: customerIds } }, select: { id: true, name: true } });
+            return {
+                grouped: true,
+                groupLabel: 'Customer',
+                columns: [
+                    { key: 'name', label: 'Customer' },
+                    { key: 'count', label: 'Total Claims' },
+                    { key: 'claimSum', label: 'Claim Total (₹)' },
+                    { key: 'estimatedSum', label: 'Estimated Total (₹)' },
+                    { key: 'billSum', label: 'Bill Total (₹)' },
+                ],
+                data: groups.map((g: any) => ({
+                    name: customers.find((c) => c.id === g.customerId)?.name || 'Unknown',
+                    count: g._count._all,
+                    claimSum: g._sum.claimAmount || 0,
+                    estimatedSum: g._sum.estimatedAmount || 0,
+                    billSum: g._sum.billAmount || 0,
+                })).sort((a: any, b: any) => b.claimSum - a.claimSum),
+                total: groups.length,
+            };
+        }
+        return null;
+    }
+
     // ── Public API ───────────────────────────────────────
 
     async generateReport(userId: string, params: GenerateParams) {
@@ -958,19 +1028,25 @@ export class ReportService {
             const headerY = doc.y; // Fix: lock Y coordinate for the entire row
             
             for (const col of visibleCols) {
-                // Background color resets fill color, so do it first
-                doc.rect(x, headerY, colWidth, 22).fill('#4338CA');
+                // Background color for header
+                doc.rect(x, headerY, colWidth, 22).fill('#1e1b4b');
                 
-                // Draw text
+                // Header Border
+                doc.rect(x, headerY, colWidth, 22).stroke('#e5e7eb');
+                
+                // Draw header text centered
                 doc.fillColor('#FFFFFF')
-                    .text(col.label, x + 4, headerY + 6, { width: colWidth - 8, align: 'left', lineBreak: false });
+                    .text(col.label, x, headerY + 7, { 
+                        width: colWidth, 
+                        align: 'center', 
+                        lineBreak: false 
+                    });
                 
                 x += colWidth;
             }
             
             // Step cursor past header
             doc.y = headerY + 22;
-            doc.moveDown(0.2);
 
             // Data rows
             let rowIdx = 0;
@@ -987,9 +1063,14 @@ export class ReportService {
                 for (const col of visibleCols) {
                     const val = String(row[col.key] ?? '—');
                     
+                    // Row background
                     doc.rect(x, rowY, colWidth, 18).fill(bgColor);
-                    doc.font('Helvetica').fontSize(7).fillColor('#1f2937')
-                        .text(val, x + 4, rowY + 4, { 
+                    
+                    // Cell Border
+                    doc.rect(x, rowY, colWidth, 18).stroke('#f1f5f9');
+                    
+                    doc.font('Helvetica').fontSize(7).fillColor('#374151')
+                        .text(val, x + 4, rowY + 5, { 
                             width: colWidth - 8, 
                             align: 'left', 
                             height: 10,

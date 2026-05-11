@@ -10,10 +10,16 @@ import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 import { CLAIM_STATUSES as claimStatusOptions, VEHICLE_CLASSES } from '../utils/constants';
 
-
-
 const initialForm = {
-    customerId: '', policyId: '', claimNumber: '', claimAmount: '', claimDate: '', status: 'filed', reason: '',
+    customerId: '',
+    policyId: '',
+    claimNumber: '',
+    claimAmount: '',
+    estimatedAmount: '',
+    billAmount: '',
+    claimDate: '',
+    status: 'filed',
+    reason: '',
 };
 
 const Claims: React.FC = () => {
@@ -36,12 +42,12 @@ const Claims: React.FC = () => {
         setLoading(true);
         try {
             const res = await api.get('/claims', {
-                params: { 
-                    page, 
-                    limit: 10, 
-                    search: search || undefined, 
+                params: {
+                    page,
+                    limit: 10,
+                    search: search || undefined,
                     status: statusFilter || undefined,
-                    vehicleClass: vehicleClassFilter || undefined
+                    vehicleClass: vehicleClassFilter || undefined,
                 },
             });
             setClaims(res.data.data);
@@ -54,7 +60,10 @@ const Claims: React.FC = () => {
     useEffect(() => {
         const loadDropdowns = async () => {
             try {
-                const [custRes, polRes] = await Promise.all([api.get('/customers?limit=100'), api.get('/policies?limit=100')]);
+                const [custRes, polRes] = await Promise.all([
+                    api.get('/customers?limit=100'),
+                    api.get('/policies?limit=100'),
+                ]);
                 setCustomers(custRes.data.data);
                 setPolicies(polRes.data.data);
             } catch { }
@@ -66,7 +75,9 @@ const Claims: React.FC = () => {
         const errs: Record<string, string> = {};
         if (!form.customerId) errs.customerId = 'Please select a customer';
         if (!form.policyId) errs.policyId = 'Please select a policy';
-        if (!form.claimAmount || parseFloat(form.claimAmount) <= 0) errs.claimAmount = 'Valid amount is required';
+        if (!form.claimAmount || parseFloat(form.claimAmount) <= 0) errs.claimAmount = 'Valid claim amount is required';
+        if (form.estimatedAmount && parseFloat(form.estimatedAmount) < 0) errs.estimatedAmount = 'Estimated amount cannot be negative';
+        if (form.billAmount && parseFloat(form.billAmount) < 0) errs.billAmount = 'Bill amount cannot be negative';
         if (!form.claimDate) errs.claimDate = 'Claim date is required';
         if (!form.status) errs.status = 'Please select a status';
         return errs;
@@ -86,6 +97,8 @@ const Claims: React.FC = () => {
             policyId: claim.policyId,
             claimNumber: claim.claimNumber || '',
             claimAmount: String(claim.claimAmount),
+            estimatedAmount: claim.estimatedAmount != null ? String(claim.estimatedAmount) : '',
+            billAmount: claim.billAmount != null ? String(claim.billAmount) : '',
             claimDate: claim.claimDate?.split('T')[0] || '',
             status: claim.status,
             reason: claim.reason || '',
@@ -103,7 +116,14 @@ const Claims: React.FC = () => {
             return;
         }
         setErrors({});
-        const payload = { ...form, claimAmount: parseFloat(form.claimAmount) };
+
+        const payload = {
+            ...form,
+            claimAmount: parseFloat(form.claimAmount),
+            estimatedAmount: form.estimatedAmount ? parseFloat(form.estimatedAmount) : null,
+            billAmount: form.billAmount ? parseFloat(form.billAmount) : null,
+        };
+
         try {
             if (editing) {
                 await api.put(`/claims/${editing.id}`, payload);
@@ -114,10 +134,10 @@ const Claims: React.FC = () => {
             }
             setModalOpen(false);
             fetchClaims(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error saving claim'); }
     };
 
-    const handleDelete = async (id: string, customerName: string) => {
+    const handleDelete = (id: string, customerName: string) => {
         setDeleteConfirm({ id, customerName });
     };
 
@@ -129,11 +149,16 @@ const Claims: React.FC = () => {
             toast.success('Claim deleted successfully');
             setDeleteConfirm(null);
             fetchClaims(meta.page);
-        } catch { 
-            toast.error('Failed to delete claim'); 
+        } catch {
+            toast.error('Failed to delete claim');
         } finally {
             setDeleteLoading(false);
         }
+    };
+
+    const setField = (key: keyof typeof form, value: string) => {
+        setForm(prev => ({ ...prev, [key]: value }));
+        setErrors(prev => ({ ...prev, [key]: '' }));
     };
 
     return (
@@ -143,10 +168,11 @@ const Claims: React.FC = () => {
                 <button onClick={openCreate} className="btn-primary"><HiOutlinePlus className="w-4 h-4" /> File Claim</button>
             </div>
 
+            {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                     <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input className="input pl-10" placeholder="Search by customer..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <input className="input pl-10" placeholder="Search by customer, claim # or policy #..." value={search} onChange={(e) => setSearch(e.target.value)} />
                 </div>
                 <SearchableSelect
                     className="w-48"
@@ -171,24 +197,38 @@ const Claims: React.FC = () => {
                 )}
             </div>
 
+            {/* Table */}
             {loading ? (
-                <TableSkeleton cols={7} rows={10} />
+                <TableSkeleton cols={9} rows={10} />
             ) : claims.length === 0 ? (
                 <EmptyState message="No claims found" icon={<HiOutlineShieldCheck className="w-12 h-12" />} />
             ) : (
                 <>
+                    {/* Desktop Table */}
                     <div className="table-container hidden sm:block">
                         <table className="table">
-                            <thead><tr><th>Customer</th><th>Policy</th><th>Claim #</th><th>Amount</th><th>Date</th><th>Status</th><th>Reason</th><th></th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Policy</th>
+                                    <th>Claim # / Policy #</th>
+                                    <th>Claim Amount</th>
+                                    <th>Estimated Amount</th>
+                                    <th>Bill Amount</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 {claims.map((c) => (
                                     <tr key={c.id}>
                                         <td className="font-medium text-surface-900">{c.customer?.name}</td>
                                         <td className="text-xs">
                                             <div className="flex flex-wrap items-center gap-1.5">
-                                                {c.policy?.policyType === 'motor' 
+                                                {c.policy?.policyType === 'motor'
                                                     ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
-                                                    : c.policy?.productName || c.policy?.policyType} 
+                                                    : c.policy?.productName || c.policy?.policyType}
                                                 {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
                                                 {c.policy?.vehicleClass && (
                                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
@@ -197,11 +237,25 @@ const Claims: React.FC = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="text-xs">{c.claimNumber || '—'}</td>
+                                        <td className="text-xs">
+                                            <p className="font-medium text-surface-900">{c.claimNumber || '—'}</p>
+                                            {c.policy?.policyNumber && (
+                                                <p className="text-surface-400 text-[10px] mt-0.5">Policy: {c.policy.policyNumber}</p>
+                                            )}
+                                        </td>
                                         <td className="font-medium">{formatCurrency(c.claimAmount)}</td>
+                                        <td className="text-sm">
+                                            {c.estimatedAmount != null
+                                                ? <span className="text-amber-700 font-medium">{formatCurrency(c.estimatedAmount)}</span>
+                                                : <span className="text-surface-400">—</span>}
+                                        </td>
+                                        <td className="text-sm">
+                                            {c.billAmount != null
+                                                ? <span className="text-emerald-700 font-medium">{formatCurrency(c.billAmount)}</span>
+                                                : <span className="text-surface-400">—</span>}
+                                        </td>
                                         <td className="text-xs">{formatDate(c.claimDate)}</td>
                                         <td><span className={getStatusColor(c.status)}>{c.status}</span></td>
-                                        <td className="text-xs text-surface-500 max-w-[150px] truncate">{c.reason || '—'}</td>
                                         <td>
                                             <div className="flex gap-1 justify-end">
                                                 <button onClick={() => openEdit(c)} className="btn-ghost btn-sm p-1" title="Edit"><HiOutlinePencil className="w-4 h-4" /></button>
@@ -213,6 +267,8 @@ const Claims: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile Cards */}
                     <div className="sm:hidden space-y-3">
                         {claims.map((c) => (
                             <div key={c.id} className="card card-body">
@@ -221,9 +277,9 @@ const Claims: React.FC = () => {
                                         <p className="font-semibold text-surface-900">{c.customer?.name}</p>
                                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                                             <p className="text-xs text-surface-500">
-                                                {c.policy?.policyType === 'motor' 
+                                                {c.policy?.policyType === 'motor'
                                                     ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor'
-                                                    : c.policy?.productName || c.policy?.policyType} 
+                                                    : c.policy?.productName || c.policy?.policyType}
                                                 {c.policy?.vehicleNumber && ` (${c.policy.vehicleNumber})`}
                                             </p>
                                             {c.policy?.vehicleClass && (
@@ -232,13 +288,26 @@ const Claims: React.FC = () => {
                                                 </span>
                                             )}
                                         </div>
+                                        {c.claimNumber && <p className="text-[10px] text-surface-400 mt-0.5">Claim #: {c.claimNumber}</p>}
+                                        {c.policy?.policyNumber && <p className="text-[10px] text-surface-400">Policy #: {c.policy.policyNumber}</p>}
                                     </div>
                                     <span className={getStatusColor(c.status)}>{c.status}</span>
                                 </div>
-                                <div className="flex justify-between text-sm">
-                                    <span>{formatCurrency(c.claimAmount)}</span>
-                                    <span className="text-xs text-surface-500">{formatDate(c.claimDate)}</span>
+                                <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                                    <div className="bg-surface-50 rounded-lg p-2">
+                                        <p className="text-[10px] text-surface-400 uppercase font-bold mb-0.5">Claim</p>
+                                        <p className="font-semibold text-surface-900">{formatCurrency(c.claimAmount)}</p>
+                                    </div>
+                                    <div className="bg-amber-50 rounded-lg p-2">
+                                        <p className="text-[10px] text-amber-600 uppercase font-bold mb-0.5">Estimated</p>
+                                        <p className="font-semibold text-amber-700">{c.estimatedAmount != null ? formatCurrency(c.estimatedAmount) : '—'}</p>
+                                    </div>
+                                    <div className="bg-emerald-50 rounded-lg p-2">
+                                        <p className="text-[10px] text-emerald-600 uppercase font-bold mb-0.5">Bill</p>
+                                        <p className="font-semibold text-emerald-700">{c.billAmount != null ? formatCurrency(c.billAmount) : '—'}</p>
+                                    </div>
                                 </div>
+                                <p className="text-xs text-surface-400 mt-2">{formatDate(c.claimDate)}</p>
                                 {c.reason && <p className="text-xs text-surface-500 mt-1">{c.reason}</p>}
                                 <div className="flex gap-2 mt-3 pt-3 border-t border-surface-100">
                                     <button onClick={() => openEdit(c)} className="btn-secondary btn-sm flex-1">Edit</button>
@@ -247,51 +316,97 @@ const Claims: React.FC = () => {
                             </div>
                         ))}
                     </div>
+
                     <Pagination page={meta.page} totalPages={meta.totalPages} onPageChange={(p) => fetchClaims(p)} />
                 </>
             )}
 
+            {/* Create / Edit Modal */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Claim' : 'File New Claim'}>
                 <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                    {/* Customer */}
                     <div>
                         <label className="label">Customer *</label>
                         <SearchableSelect
                             disabled={!!editing}
                             options={customers.map(c => ({ value: c.id, label: c.name }))}
                             value={form.customerId}
-                            onChange={(val) => { setForm({ ...form, customerId: val }); setErrors(prev => ({ ...prev, customerId: '' })); }}
+                            onChange={(val) => setField('customerId', val)}
                             placeholder="Select Customer"
                             hasError={!!errors.customerId}
                         />
                         {errors.customerId && <p className="text-xs text-red-500 mt-1">{errors.customerId}</p>}
                     </div>
+
+                    {/* Policy */}
                     <div>
                         <label className="label">Policy *</label>
                         <SearchableSelect
                             disabled={!!editing}
-                            options={policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => ({
-                                value: p.id,
-                                label: `${p.productName || p.policyType} ${p.vehicleNumber ? `(${p.vehicleNumber})` : ''} - ${p.customer?.name}`
-                            }))}
+                            options={policies
+                                .filter(p => !form.customerId || p.customerId === form.customerId)
+                                .map(p => ({
+                                    value: p.id,
+                                    label: `${p.policyNumber ? `${p.policyNumber} — ` : ''}${p.productName || p.policyType}${p.vehicleNumber ? ` (${p.vehicleNumber})` : ''}`,
+                                }))}
                             value={form.policyId}
-                            onChange={(val) => { setForm({ ...form, policyId: val }); setErrors(prev => ({ ...prev, policyId: '' })); }}
+                            onChange={(val) => setField('policyId', val)}
                             placeholder="Select Policy"
                             hasError={!!errors.policyId}
                         />
                         {errors.policyId && <p className="text-xs text-red-500 mt-1">{errors.policyId}</p>}
                     </div>
-                    <div><label className="label">Claim Number</label><input className="input" value={form.claimNumber} onChange={(e) => setForm({ ...form, claimNumber: e.target.value })} /></div>
+
+                    {/* Claim Number / Policy Number label */}
                     <div>
-                        <label className="label">Claim Amount *</label>
+                        <label className="label">Claim Number / Policy Number</label>
                         <input
-                            type="number" min="0" step="0.01"
-                            className={`input ${errors.claimAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
-                            data-error-field={errors.claimAmount ? 'true' : undefined}
-                            value={form.claimAmount}
-                            onChange={(e) => { setForm({ ...form, claimAmount: e.target.value }); setErrors(prev => ({ ...prev, claimAmount: '' })); }}
+                            className="input"
+                            placeholder="e.g. CLM-2024-001 or Policy No."
+                            value={form.claimNumber}
+                            onChange={(e) => setField('claimNumber', e.target.value)}
                         />
-                        {errors.claimAmount && <p className="text-xs text-red-500 mt-1">{errors.claimAmount}</p>}
                     </div>
+
+                    {/* Amounts row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label className="label">Claim Amount *</label>
+                            <input
+                                type="number" min="0" step="0.01"
+                                className={`input ${errors.claimAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                data-error-field={errors.claimAmount ? 'true' : undefined}
+                                placeholder="0.00"
+                                value={form.claimAmount}
+                                onChange={(e) => setField('claimAmount', e.target.value)}
+                            />
+                            {errors.claimAmount && <p className="text-xs text-red-500 mt-1">{errors.claimAmount}</p>}
+                        </div>
+                        <div>
+                            <label className="label">Estimated Amount</label>
+                            <input
+                                type="number" min="0" step="0.01"
+                                className={`input ${errors.estimatedAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                placeholder="0.00 (optional)"
+                                value={form.estimatedAmount}
+                                onChange={(e) => setField('estimatedAmount', e.target.value)}
+                            />
+                            {errors.estimatedAmount && <p className="text-xs text-red-500 mt-1">{errors.estimatedAmount}</p>}
+                        </div>
+                        <div>
+                            <label className="label">Bill Amount</label>
+                            <input
+                                type="number" min="0" step="0.01"
+                                className={`input ${errors.billAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                placeholder="0.00 (optional)"
+                                value={form.billAmount}
+                                onChange={(e) => setField('billAmount', e.target.value)}
+                            />
+                            {errors.billAmount && <p className="text-xs text-red-500 mt-1">{errors.billAmount}</p>}
+                        </div>
+                    </div>
+
+                    {/* Date */}
                     <div>
                         <label className="label">Claim Date *</label>
                         <input
@@ -299,22 +414,36 @@ const Claims: React.FC = () => {
                             className={`input ${errors.claimDate ? 'border-red-500 focus:ring-red-400' : ''}`}
                             data-error-field={errors.claimDate ? 'true' : undefined}
                             value={form.claimDate}
-                            onChange={(e) => { setForm({ ...form, claimDate: e.target.value }); setErrors(prev => ({ ...prev, claimDate: '' })); }}
+                            onChange={(e) => setField('claimDate', e.target.value)}
                         />
                         {errors.claimDate && <p className="text-xs text-red-500 mt-1">{errors.claimDate}</p>}
                     </div>
+
+                    {/* Status */}
                     <div>
                         <label className="label">Status *</label>
                         <SearchableSelect
                             options={claimStatusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
-                            onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
+                            onChange={(val) => setField('status', val)}
                             placeholder="Select Status"
                             hasError={!!errors.status}
                         />
                         {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
                     </div>
-                    <div><label className="label">Reason / Notes</label><textarea className="input" rows={2} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} /></div>
+
+                    {/* Reason */}
+                    <div>
+                        <label className="label">Reason / Notes</label>
+                        <textarea
+                            className="input"
+                            rows={2}
+                            placeholder="Describe the reason for the claim..."
+                            value={form.reason}
+                            onChange={(e) => setField('reason', e.target.value)}
+                        />
+                    </div>
+
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <button type="submit" className="btn-primary flex-1">{editing ? 'Save Changes' : 'File Claim'}</button>
@@ -322,6 +451,7 @@ const Claims: React.FC = () => {
                 </form>
             </Modal>
 
+            {/* Delete Confirm Modal */}
             <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete this claim?">
                 {deleteConfirm && (
                     <div className="space-y-4">
@@ -334,9 +464,9 @@ const Claims: React.FC = () => {
                         </div>
                         <div className="flex gap-3 pt-4 mt-2 border-t border-surface-100">
                             <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1 font-bold">Cancel</button>
-                            <button 
-                                type="button" 
-                                onClick={confirmDelete} 
+                            <button
+                                type="button"
+                                onClick={confirmDelete}
                                 disabled={deleteLoading}
                                 className="btn-danger flex-1 font-bold"
                             >

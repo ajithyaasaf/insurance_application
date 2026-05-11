@@ -13,12 +13,12 @@
 
 * currently in the entire application all places we have d/m/y but they asked for m/d/year also carefull becuase reports page all othe linked parts dont need to break becuase of this change
 
-* in the all pages we have pagination but currently per page we have 20 change that to 10
+* in the all pages we have pagination but currently per page we have 20 change that to 10(completed)
 
 * in claim page we have main change we need to add two more column this is main for workflow and reports estimated amount and Bill amount
-also we have filed claim number in the label just add /policy number in that also we need to check all connected operation related to this so that we will make no mistake
+also we have filed claim number in the label just add /policy number in that. also we need to check all connected operation related to this so that we will make no mistake(completed but i need to check manually again)
 
-* in customer page need to serach based on number email address also needed
+* in customer page need to serach based on number email address also needed(completed)
 
 * i need to confirm one thing in commison if one person have 5 policy during calualtion there is option to diselect certain policy i need to check is they really diselect if i diselect 
 
