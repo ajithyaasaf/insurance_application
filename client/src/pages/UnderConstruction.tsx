@@ -46,7 +46,7 @@ const UnderConstruction: React.FC = () => {
                                 <LuMail className="text-2xl" />
                             </div>
                             <h3 className="font-bold text-surface-900">Contact Us</h3>
-                            <p className="text-xs text-surface-500">Need immediate help? Reach out to our support team.</p>
+                            <p className="text-xs text-surface-500">Need immediate help? Reach out to our support.</p>
                         </div>
                     </div>
 
