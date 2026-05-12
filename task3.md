@@ -11,7 +11,7 @@
 
 * also we currnetly have Dealers selcting option in policy form it is working but do we have Direct choosing option? because some policy we can create direct right?(completed)
 
-* currently in the entire application all places we have d/m/y but they asked for m/d/year also carefull becuase reports page all othe linked parts dont need to break becuase of this change
+* currently in the entire application all forms mostly we have d/m/y format but my client asked for m/d/year in this format also carefull becuase reports page all othe linked parts dont need to break becuase of this change
 
 * in the all pages we have pagination but currently per page we have 20 change that to 10(completed)
 
