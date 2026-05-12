@@ -1,25 +1,26 @@
 import prisma from '../../utils/prisma';
 import { getStartOfDayIST, getEndOfDayIST } from '../../utils/date';
 import { CommissionPreviewInput, CommissionCreateInput, CommissionUpdateInput, CommissionBulkUpdateInput } from './commission.schema';
+import { ownerFilter } from '../../utils/rbac';
 
 export class CommissionService {
     /**
      * Get an overview of pending (unprocessed) commissions grouped by dealer.
      * Helpful for UX so admins know who needs to be paid without guessing.
      */
-    async getPending(userId: string) {
+    async getPending(userId: string, role: string) {
         // Find all active policies that are NOT yet tied to any commission
         const unprocessedPolicies = await prisma.policy.findMany({
             where: {
-                userId,
+                ...ownerFilter(userId, role),
                 deletedAt: null,
                 dealerId: { not: null },
                 status: { in: ['active', 'expired'] }, // EXCLUDE CANCELLED
                 commissionPolicies: { none: {} }
             },
-            select: { 
-                dealerId: true, 
-                companyId: true, 
+            select: {
+                dealerId: true,
+                companyId: true,
                 startDate: true,
                 company: { select: { name: true } }
             },
@@ -30,13 +31,13 @@ export class CommissionService {
         for (const p of unprocessedPolicies) {
             const key = `${p.dealerId}_${p.companyId}`;
             if (!groupingMap.has(key)) {
-                groupingMap.set(key, { 
-                    dealerId: p.dealerId!, 
-                    companyId: p.companyId, 
+                groupingMap.set(key, {
+                    dealerId: p.dealerId!,
+                    companyId: p.companyId,
                     companyName: p.company.name,
-                    count: 0, 
-                    oldestDate: p.startDate, 
-                    newestDate: p.startDate 
+                    count: 0,
+                    oldestDate: p.startDate,
+                    newestDate: p.startDate
                 });
             }
             const stat = groupingMap.get(key)!;
@@ -69,18 +70,18 @@ export class CommissionService {
      * Get aggregated business volume (OD/TP totals) for a dealer/period.
      * Used by the calculator to show context before percentages are entered.
      */
-    async getStats(userId: string, query: { dealerId: string; periodStart: string; periodEnd: string; companyId?: string; companyIds?: string | string[] }) {
+    async getStats(userId: string, role: string, query: { dealerId: string; periodStart: string; periodEnd: string; companyId?: string; companyIds?: string | string[] }) {
         const { dealerId, periodStart, periodEnd, companyId, companyIds } = query;
         const parsedStartDate = getStartOfDayIST(periodStart);
         const parsedEndDate = getEndOfDayIST(periodEnd);
 
         const policies = await prisma.policy.findMany({
             where: {
-                userId,
+                ...ownerFilter(userId, role),
                 dealerId,
                 ...(companyId && { companyId }),
-                ...(companyIds && { 
-                    companyId: { in: Array.isArray(companyIds) ? companyIds : companyIds.split(',') } 
+                ...(companyIds && {
+                    companyId: { in: Array.isArray(companyIds) ? companyIds : companyIds.split(',') }
                 }),
                 deletedAt: null,
                 status: { in: ['active', 'expired'] }, // EXCLUDE CANCELLED
@@ -124,7 +125,7 @@ export class CommissionService {
     /**
      * Preview: Fetch dealer's policies in date range and calculate commission WITHOUT saving.
      */
-    async preview(userId: string, data: CommissionPreviewInput) {
+    async preview(userId: string, role: string, data: CommissionPreviewInput) {
         const { dealerId, periodStart, periodEnd, odPercentage, tpPercentage, companyId } = data;
 
         const parsedStartDate = getStartOfDayIST(periodStart);
@@ -132,14 +133,14 @@ export class CommissionService {
 
         // Validate dealer ownership
         const dealer = await prisma.dealer.findFirst({
-            where: { id: dealerId, userId, deletedAt: null },
+            where: { id: dealerId, ...ownerFilter(userId, role), deletedAt: null },
         });
         if (!dealer) throw Object.assign(new Error('Dealer not found or unauthorized'), { statusCode: 404 });
 
         // Count how many policies in this date range are ALREADY processed (for this dealer+company)
         const alreadyProcessedCount = await prisma.policy.count({
             where: {
-                userId,
+                ...ownerFilter(userId, role),
                 dealerId,
                 ...(companyId && { companyId }),
                 deletedAt: null,
@@ -157,7 +158,7 @@ export class CommissionService {
         // Fetch motor policies for this dealer within the date range
         const policies = await prisma.policy.findMany({
             where: {
-                userId,
+                ...ownerFilter(userId, role),
                 dealerId,
                 ...(companyId && { companyId }),
                 deletedAt: null,
@@ -218,9 +219,9 @@ export class CommissionService {
     /**
      * Create: Calculate AND save commission to history.
      */
-    async create(userId: string, data: CommissionCreateInput) {
+    async create(userId: string, role: string, data: CommissionCreateInput) {
         // First run preview to get the full calculation for the range
-        let preview = await this.preview(userId, data);
+        let preview = await this.preview(userId, role, data);
 
         // If specific policyIds are provided (Selective Commissioning), filter the preview set
         if (data.policyIds && data.policyIds.length > 0) {
@@ -233,7 +234,7 @@ export class CommissionService {
             const totalTp = parseFloat(filteredPolicies.reduce((sum, p) => sum + p.tpCommission, 0).toFixed(2));
             const totalComm = parseFloat((totalOd + totalTp).toFixed(2));
             const totalPrem = parseFloat(filteredPolicies.reduce((sum, p) => sum + p.premiumAmount, 0).toFixed(2));
-            
+
             preview = {
                 ...preview,
                 policies: filteredPolicies,
@@ -307,7 +308,7 @@ export class CommissionService {
         if (companyIds) {
             where.companyId = { in: typeof companyIds === 'string' ? companyIds.split(',') : companyIds };
         }
-        
+
         if (dateFrom || dateTo) {
             where.periodStart = {};
             if (dateFrom) where.periodStart.gte = getStartOfDayIST(dateFrom);

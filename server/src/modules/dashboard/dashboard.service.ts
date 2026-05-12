@@ -1,8 +1,10 @@
 import prisma from '../../utils/prisma';
 import { buildStatusFilter, getStartOfTodayIST } from '../../utils/date';
+import { ownerFilter } from '../../utils/rbac';
 
 export class DashboardService {
-    async getSummary(userId: string) {
+    async getSummary(userId: string, role: string) {
+        const ow = ownerFilter(userId, role); // e.g. {} for staff, { userId } for agents
         const now = new Date();
         const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -12,7 +14,7 @@ export class DashboardService {
             // 0: Policies expiring in next 30 days
             prisma.policy.findMany({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     ...buildStatusFilter('active'),
                     expiryDate: { gte: now, lte: thirtyDaysFromNow },
@@ -24,7 +26,7 @@ export class DashboardService {
             // 1: Count of expiring policies
             prisma.policy.count({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     ...buildStatusFilter('active'),
                     expiryDate: { gte: now, lte: thirtyDaysFromNow },
@@ -34,7 +36,7 @@ export class DashboardService {
             // 2: Today's follow-ups
             prisma.followUp.findMany({
                 where: {
-                    userId,
+                    ...ow,
                     status: 'pending',
                     nextFollowUpDate: { gte: todayStart, lt: todayEnd },
                 },
@@ -45,7 +47,7 @@ export class DashboardService {
             // 3: Count of follow-ups
             prisma.followUp.count({
                 where: {
-                    userId,
+                    ...ow,
                     status: 'pending',
                     nextFollowUpDate: { gte: todayStart, lt: todayEnd },
                 },
@@ -53,18 +55,18 @@ export class DashboardService {
 
             // 4: Pending payments
             prisma.payment.findMany({
-                where: { userId, status: 'pending' },
+                where: { ...ow, status: 'pending' },
                 include: { customer: true, policy: true },
                 orderBy: { dueDate: 'asc' },
                 take: 10,
             }),
             // 5: Count pending payments
-            prisma.payment.count({ where: { userId, status: 'pending' } }),
+            prisma.payment.count({ where: { ...ow, status: 'pending' } }),
 
             // 6: Overdue payments
             prisma.payment.findMany({
-                where: { 
-                    userId, 
+                where: {
+                    ...ow,
                     status: { in: ['pending', 'partial'] },
                     dueDate: { lt: getStartOfTodayIST() }
                 },
@@ -73,24 +75,24 @@ export class DashboardService {
                 take: 10,
             }),
             // 7: Count overdue payments
-            prisma.payment.count({ 
-                where: { 
-                    userId, 
+            prisma.payment.count({
+                where: {
+                    ...ow,
                     status: { in: ['pending', 'partial'] },
                     dueDate: { lt: getStartOfTodayIST() }
-                } 
+                }
             }),
 
             // 8: Total Customers
-            prisma.customer.count({ where: { userId, deletedAt: null } }),
+            prisma.customer.count({ where: { ...ow, deletedAt: null } }),
             // 9: Total Active Policies
-            prisma.policy.count({ where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any }),
+            prisma.policy.count({ where: { ...ow, deletedAt: null, ...buildStatusFilter('active') } as any }),
             // 10: Total Leads
-            prisma.lead.count({ where: { userId, deletedAt: null, status: { not: 'converted' } } }),
+            prisma.lead.count({ where: { ...ow, deletedAt: null, status: { not: 'converted' } } }),
 
             // 11: Recent claims
             prisma.claim.findMany({
-                where: { userId },
+                where: { ...ow },
                 include: { customer: true, policy: true },
                 orderBy: { createdAt: 'desc' },
                 take: 5,
@@ -99,7 +101,7 @@ export class DashboardService {
             // 12: Company stats (grouped by company)
             prisma.policy.groupBy({
                 by: ['companyId'],
-                where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any,
+                where: { ...ow, deletedAt: null, ...buildStatusFilter('active') } as any,
                 _count: { _all: true },
                 _sum: { premiumAmount: true, totalPremium: true },
             }),
@@ -107,7 +109,7 @@ export class DashboardService {
             // 13: Today's lead follow-ups
             prisma.lead.findMany({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     nextFollowUpDate: { gte: todayStart, lt: todayEnd },
                 },
@@ -117,16 +119,16 @@ export class DashboardService {
             // 14: Count lead follow-ups
             prisma.lead.count({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     nextFollowUpDate: { gte: todayStart, lt: todayEnd },
                 },
             }),
 
-            // 15: Today's birthdays candidates
+            // 15: Birthday candidates (filtered in JS for cross-DB compatibility)
             prisma.customer.findMany({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     dob: { not: null },
                 },
@@ -136,7 +138,7 @@ export class DashboardService {
             // 16: Vehicle Class stats (distribution)
             prisma.policy.groupBy({
                 by: ['vehicleClass'],
-                where: { userId, deletedAt: null, ...buildStatusFilter('active') } as any,
+                where: { ...ow, deletedAt: null, ...buildStatusFilter('active') } as any,
                 _count: { _all: true },
                 _sum: { premiumAmount: true, totalPremium: true },
             }),
@@ -160,7 +162,7 @@ export class DashboardService {
         const allBirthdayCandidates = results[15] as any[];
         const vehicleClassGrouping = results[16] as any[];
 
-        // Filter birthdays in JS for compatibility across DB engines (sqlite/postgres)
+        // Filter birthdays in JS for compatibility across DB engines
         const todayMonth = now.getMonth();
         const todayDay = now.getDate();
         const todayBirthdays = allBirthdayCandidates.filter(c => {
@@ -169,17 +171,17 @@ export class DashboardService {
             return d.getMonth() === todayMonth && d.getDate() === todayDay;
         });
 
-        // Merge and process follow-ups
+        // Merge policy follow-ups and lead follow-ups into a single sorted list
         const combinedFollowUps = [
             ...todayFollowUps.map(f => ({ ...f, type: 'followup' })),
             ...todayLeadFollowUps.map(l => ({ ...l, type: 'lead', customer: { name: l.name } }))
-        ].sort((a: any, b: any) => 
+        ].sort((a: any, b: any) =>
             new Date(a.nextFollowUpDate!).getTime() - new Date(b.nextFollowUpDate!).getTime()
         ).slice(0, 10);
 
         const combinedFollowUpsCount = todayFollowUpsCount + todayLeadFollowUpsCount;
 
-        // Fetch company names for the stats
+        // Fetch company names for the groupBy results
         const companyIds = companyGrouping.map((s: any) => s.companyId);
         const companies = await prisma.company.findMany({
             where: { id: { in: companyIds } },
@@ -201,7 +203,7 @@ export class DashboardService {
             count: s._count._all,
             totalPremium: s._sum.totalPremium || s._sum.premiumAmount || 0,
         }));
-        
+
         return {
             stats: {
                 totalCustomers,

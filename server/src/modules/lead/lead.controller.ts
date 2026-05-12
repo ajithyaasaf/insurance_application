@@ -29,6 +29,7 @@ export class LeadController {
 
             const result = await leadService.findAll(
                 req.user!.userId,
+                req.user!.role,
                 page,
                 limit,
                 search,
@@ -51,7 +52,7 @@ export class LeadController {
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const lead = await leadService.findById(req.user!.userId, req.params.id as string);
+            const lead = await leadService.findById(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Lead found', data: lead });
         } catch (error: any) {
             error.statusCode
@@ -78,7 +79,7 @@ export class LeadController {
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await leadService.softDelete(req.user!.userId, req.params.id as string);
+            await leadService.softDelete(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Lead deleted' });
         } catch (error: any) {
             error.statusCode

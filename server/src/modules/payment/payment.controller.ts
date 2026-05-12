@@ -14,13 +14,14 @@ export class PaymentController {
         try {
             const { page, limit, status, search, dateFrom, dateTo, dealerId, policyNumber, vehicleNumber, vehicleClass } = req.query as any;
             const result = await paymentService.findAll(
-                req.user!.userId, 
-                +page || 1, 
-                +limit || 20, 
-                status, 
-                search, 
-                dateFrom, 
-                dateTo, 
+                req.user!.userId,
+                req.user!.role,
+                +page || 1,
+                +limit || 20,
+                status,
+                search,
+                dateFrom,
+                dateTo,
                 dealerId,
                 policyNumber,
                 vehicleNumber,
@@ -32,28 +33,28 @@ export class PaymentController {
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const payment = await paymentService.findById(req.user!.userId, req.params.id as string);
+            const payment = await paymentService.findById(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Payment found', data: payment });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const { payment, message } = await paymentService.update(req.user!.userId, req.params.id as string, req.body);
+            const { payment, message } = await paymentService.update(req.user!.userId, req.user!.role, req.params.id as string, req.body);
             sendSuccess({ res, statusCode: 200, message, data: payment });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await paymentService.delete(req.user!.userId, req.params.id as string);
+            await paymentService.delete(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Payment deleted' });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async detectOverdue(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await paymentService.detectOverdue(req.user!.userId);
+            const result = await paymentService.detectOverdue(req.user!.userId, req.user!.role);
             sendSuccess({ res, statusCode: 200, message: `${result.updated} overdue payment(s) detected`, data: result });
         } catch (e: any) { next(e); }
     }

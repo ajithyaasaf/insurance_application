@@ -1,5 +1,6 @@
 import prisma from '../../utils/prisma';
 import { Prisma, PolicyType, PolicyVehicleClass } from '@prisma/client';
+import { ownerFilter } from '../../utils/rbac';
 
 interface CreateLeadInput {
     name: string;
@@ -70,7 +71,7 @@ export class LeadService {
                     ? new Date(data.nextFollowUpDate)
                     : null,
                 notes: data.notes,
-                
+
                 // Quote Fields
                 policyType: data.policyType,
                 companyId: data.companyId || null,
@@ -99,6 +100,7 @@ export class LeadService {
 
     async findAll(
         userId: string,
+        role: string,
         page: number = 1,
         limit: number = 10,
         search?: string,
@@ -108,7 +110,7 @@ export class LeadService {
     ) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
-            userId,
+            ...ownerFilter(userId, role),
             deletedAt: null,
             ...(search && {
                 OR: [
@@ -143,9 +145,9 @@ export class LeadService {
         };
     }
 
-    async findById(userId: string, id: string) {
+    async findById(userId: string, role: string, id: string) {
         const lead = await prisma.lead.findFirst({
-            where: { id, userId, deletedAt: null },
+            where: { id, ...ownerFilter(userId, role), deletedAt: null },
         });
 
         if (!lead) {
@@ -156,7 +158,7 @@ export class LeadService {
     }
 
     async update(userId: string, role: string, id: string, data: UpdateLeadInput) {
-        await this.findById(userId, id);
+        await this.findById(userId, role, id);
 
         return prisma.lead.update({
             where: { id },
@@ -167,7 +169,7 @@ export class LeadService {
                     : data.nextFollowUpDate === null
                         ? null
                         : undefined,
-                
+
                 // Process dates if provided
                 startDate: data.startDate ? new Date(data.startDate) : undefined,
                 expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
@@ -187,8 +189,8 @@ export class LeadService {
         });
     }
 
-    async softDelete(userId: string, id: string) {
-        await this.findById(userId, id);
+    async softDelete(userId: string, role: string, id: string) {
+        await this.findById(userId, role, id);
 
         return prisma.lead.update({
             where: { id },
@@ -202,7 +204,7 @@ export class LeadService {
         id: string,
         extra: { address?: string; email?: string; policyOrigin?: string; ncbPercentage?: number | null }
     ) {
-        const lead = await this.findById(userId, id);
+        const lead = await this.findById(userId, role, id);
 
         const result = await prisma.$transaction(async (tx) => {
             // 1. Create Customer
@@ -233,7 +235,7 @@ export class LeadService {
                 // --- Smart Premium Pre-calculation for Conversion ---
                 let finalNet = lead.premiumAmount!;
                 let finalTotal = lead.totalPremium;
-                
+
                 if (!finalNet && (lead.od || lead.tp)) {
                     finalNet = (Number(lead.od) || 0) + (Number(lead.tp) || 0);
                 }
@@ -251,7 +253,7 @@ export class LeadService {
                         startDate: lead.startDate,
                         expiryDate: lead.expiryDate,
                         noOfYears: Math.max(1, Math.round(Math.abs(lead.expiryDate.getTime() - lead.startDate.getTime()) / (1000 * 60 * 60 * 24 * 365))),
-                        
+
                         // Motor fields
                         vehicleNumber: lead.vehicleNumber,
                         make: lead.make,
@@ -266,7 +268,7 @@ export class LeadService {
                         dealerId: lead.dealerId,
                         policyOrigin: (extra.policyOrigin || lead.policyOrigin || 'fresh') as any,
                         ncbPercentage: extra.ncbPercentage ?? lead.ncbPercentage ?? null,
-                        
+
                         status: 'active',
                         createdBy: role,
                         updatedBy: role,

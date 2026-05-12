@@ -1,4 +1,5 @@
 import prisma from '../../utils/prisma';
+import { ownerFilter } from '../../utils/rbac';
 import { Prisma } from '@prisma/client';
 
 interface CreateFollowUpInput {
@@ -25,9 +26,9 @@ export class FollowUpService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 10, status?: string, date?: string, search?: string, vehicleClass?: string) {
+    async findAll(userId: string, role: string, page = 1, limit = 10, status?: string, date?: string, search?: string, vehicleClass?: string) {
         const where: any = {
-            userId,
+            ...ownerFilter(userId, role),
             ...(status && { status: status as any }),
             ...(date && {
                 nextFollowUpDate: {
@@ -55,17 +56,17 @@ export class FollowUpService {
         return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
     }
 
-    async findById(userId: string, id: string) {
+    async findById(userId: string, role: string, id: string) {
         const followUp = await prisma.followUp.findFirst({
-            where: { id, userId },
+            where: { id, ...ownerFilter(userId, role) },
             include: { customer: true, policy: true },
         });
         if (!followUp) throw Object.assign(new Error('Follow-up not found'), { statusCode: 404 });
         return followUp;
     }
 
-    async update(userId: string, id: string, data: Partial<CreateFollowUpInput>) {
-        await this.findById(userId, id);
+    async update(userId: string, role: string, id: string, data: Partial<CreateFollowUpInput>) {
+        await this.findById(userId, role, id);
         return prisma.followUp.update({
             where: { id },
             data: {
@@ -77,8 +78,8 @@ export class FollowUpService {
         });
     }
 
-    async delete(userId: string, id: string) {
-        await this.findById(userId, id);
+    async delete(userId: string, role: string, id: string) {
+        await this.findById(userId, role, id);
         return prisma.followUp.delete({ where: { id } });
     }
 }

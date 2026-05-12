@@ -4,6 +4,7 @@ import PDFDocument from 'pdfkit';
 import { Prisma } from '@prisma/client';
 import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, mapPaymentStatus } from '../../utils/date';
 import type { ReportSource, ReportGroupBy } from './report.schema';
+import { ownerFilter } from '../../utils/rbac';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -105,8 +106,8 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
 
 // ─── Helper: build Prisma where clause ───────────────────
 
-function buildPolicyWhere(userId: string, filters?: ReportFilters) {
-    const where: any = { userId, deletedAt: null };
+function buildPolicyWhere(userId: string, role: string, filters?: ReportFilters) {
+    const where: any = { ...ownerFilter(userId, role), deletedAt: null };
     if (filters?.companyId) where.companyId = filters.companyId;
     if (filters?.companyIds) {
         const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
@@ -128,8 +129,8 @@ function buildPolicyWhere(userId: string, filters?: ReportFilters) {
     return where;
 }
 
-function buildPaymentWhere(userId: string, filters?: ReportFilters) {
-    const where: any = { userId };
+function buildPaymentWhere(userId: string, role: string, filters?: ReportFilters) {
+    const where: any = { ...ownerFilter(userId, role) };
     const todayIST = getStartOfTodayIST();
 
     if (filters?.status) {
@@ -162,8 +163,8 @@ function buildPaymentWhere(userId: string, filters?: ReportFilters) {
     return where;
 }
 
-function buildClaimWhere(userId: string, filters?: ReportFilters) {
-    const where: any = { userId };
+function buildClaimWhere(userId: string, role: string, filters?: ReportFilters) {
+    const where: any = { ...ownerFilter(userId, role) };
     if (filters?.status) where.status = filters.status;
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
@@ -180,8 +181,8 @@ function buildClaimWhere(userId: string, filters?: ReportFilters) {
     return where;
 }
 
-function buildCustomerWhere(userId: string, filters?: ReportFilters) {
-    const where: any = { userId, deletedAt: null };
+function buildCustomerWhere(userId: string, role: string, filters?: ReportFilters) {
+    const where: any = { ...ownerFilter(userId, role), deletedAt: null };
     if (filters?.customerId) where.id = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
         where.createdAt = {};
@@ -191,8 +192,8 @@ function buildCustomerWhere(userId: string, filters?: ReportFilters) {
     return where;
 }
 
-function buildFollowUpWhere(userId: string, filters?: ReportFilters) {
-    const where: any = { userId };
+function buildFollowUpWhere(userId: string, role: string, filters?: ReportFilters) {
+    const where: any = { ...ownerFilter(userId, role) };
     if (filters?.status) where.status = filters.status;
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
@@ -221,7 +222,7 @@ export class ReportService {
 
     // ── Flat data queries (no grouping) ──────────────────
 
-    private async queryCustomerSnapshot(userId: string, filters?: ReportFilters) {
+    private async queryCustomerSnapshot(userId: string, role: string, filters?: ReportFilters) {
         if (!filters?.customerId) {
             throw Object.assign(new Error('Customer ID is required for Customer Snapshot'), { statusCode: 400 });
         }
@@ -229,14 +230,15 @@ export class ReportService {
         const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
         const dateTo = filters.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
 
-        const policyWhere: any = { userId, customerId: filters.customerId, deletedAt: null };
+        const ow = ownerFilter(userId, role);
+        const policyWhere: any = { ...ow, customerId: filters.customerId, deletedAt: null };
         if (dateFrom || dateTo) {
             policyWhere.startDate = {};
             if (dateFrom) policyWhere.startDate.gte = dateFrom;
             if (dateTo) policyWhere.startDate.lte = dateTo;
         }
 
-        const claimWhere: any = { userId, customerId: filters.customerId };
+        const claimWhere: any = { ...ow, customerId: filters.customerId };
         if (dateFrom || dateTo) {
             claimWhere.claimDate = {};
             if (dateFrom) claimWhere.claimDate.gte = dateFrom;
@@ -244,7 +246,7 @@ export class ReportService {
         }
 
         const [customer, policies, claims] = await Promise.all([
-            prisma.customer.findFirst({ where: { id: filters.customerId, userId } }),
+            prisma.customer.findFirst({ where: { id: filters.customerId, ...ow } }),
             prisma.policy.findMany({ where: policyWhere, include: { company: true } }),
             prisma.claim.findMany({ where: claimWhere })
         ]);
@@ -298,8 +300,8 @@ export class ReportService {
         };
     }
 
-    private async queryPolicies(userId: string, filters?: ReportFilters, page = 1, limit = 50) {
-        const where = buildPolicyWhere(userId, filters);
+    private async queryPolicies(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
+        const where = buildPolicyWhere(userId, role, filters);
         const [rows, total] = await Promise.all([
             prisma.policy.findMany({
                 where,
@@ -334,14 +336,14 @@ export class ReportService {
             status: r.status,
             policyOrigin: r.policyOrigin === 'external_renewal' ? 'External Renewal'
                 : r.policyOrigin === 'in_system_renewal' ? 'In-System Renewal'
-                : 'Fresh',
+                    : 'Fresh',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.policies };
     }
 
-    private async queryPayments(userId: string, filters?: ReportFilters, page = 1, limit = 50) {
-        const where = buildPaymentWhere(userId, filters);
+    private async queryPayments(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
+        const where = buildPaymentWhere(userId, role, filters);
         const [rows, total] = await Promise.all([
             prisma.payment.findMany({
                 where,
@@ -368,8 +370,8 @@ export class ReportService {
         return { data, total, columns: SOURCE_COLUMNS.payments };
     }
 
-    private async queryClaims(userId: string, filters?: ReportFilters, page = 1, limit = 50) {
-        const where = buildClaimWhere(userId, filters);
+    private async queryClaims(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
+        const where = buildClaimWhere(userId, role, filters);
         const [rows, total] = await Promise.all([
             prisma.claim.findMany({
                 where,
@@ -398,8 +400,8 @@ export class ReportService {
         return { data, total, columns: SOURCE_COLUMNS.claims };
     }
 
-    private async queryCustomers(userId: string, filters?: ReportFilters, page = 1, limit = 50) {
-        const where = buildCustomerWhere(userId, filters);
+    private async queryCustomers(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
+        const where = buildCustomerWhere(userId, role, filters);
         const [rows, total] = await Promise.all([
             prisma.customer.findMany({
                 where,
@@ -429,8 +431,8 @@ export class ReportService {
         return { data, total, columns: SOURCE_COLUMNS.customers };
     }
 
-    private async queryFollowUps(userId: string, filters?: ReportFilters, page = 1, limit = 50) {
-        const where = buildFollowUpWhere(userId, filters);
+    private async queryFollowUps(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
+        const where = buildFollowUpWhere(userId, role, filters);
         const [rows, total] = await Promise.all([
             prisma.followUp.findMany({
                 where,
@@ -456,24 +458,24 @@ export class ReportService {
 
     // ── Grouped aggregation queries ──────────────────────
 
-    private async queryGrouped(userId: string, source: ReportSource, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+    private async queryGrouped(userId: string, role: string, source: ReportSource, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
         // We only support grouping on policies source for now (most common use case)
         // Other sources can be added the same way
         if (source === 'policies') {
-            return this.groupPolicies(userId, filters, groupBy);
+            return this.groupPolicies(userId, role, filters, groupBy);
         }
         if (source === 'payments') {
-            return this.groupPayments(userId, filters, groupBy);
+            return this.groupPayments(userId, role, filters, groupBy);
         }
         if (source === 'claims') {
-            return this.groupClaims(userId, filters, groupBy);
+            return this.groupClaims(userId, role, filters, groupBy);
         }
         // For unsupported combos, fall back to flat data
         return null;
     }
 
-    private async groupPolicies(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
-        const where = buildPolicyWhere(userId, filters);
+    private async groupPolicies(userId: string, role: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildPolicyWhere(userId, role, filters);
 
         if (groupBy === 'company') {
             const groups = await prisma.policy.groupBy({
@@ -681,8 +683,8 @@ export class ReportService {
         return null;
     }
 
-    private async groupPayments(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
-        const where = buildPaymentWhere(userId, filters);
+    private async groupPayments(userId: string, role: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildPaymentWhere(userId, role, filters);
 
         if (groupBy === 'status') {
             const groups = await prisma.payment.groupBy({
@@ -746,8 +748,8 @@ export class ReportService {
         return null;
     }
 
-    private async groupFollowUps(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
-        const where = buildFollowUpWhere(userId, filters);
+    private async groupFollowUps(userId: string, role: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildFollowUpWhere(userId, role, filters);
         if (groupBy === 'status') {
             const groups = await prisma.followUp.groupBy({
                 by: ['status'],
@@ -771,8 +773,8 @@ export class ReportService {
         return null;
     }
 
-    private async groupClaims(userId: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
-        const where = buildClaimWhere(userId, filters);
+    private async groupClaims(userId: string, role: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildClaimWhere(userId, role, filters);
 
         if (groupBy === 'status') {
             const groups = await prisma.claim.groupBy({
@@ -836,50 +838,50 @@ export class ReportService {
 
     // ── Public API ───────────────────────────────────────
 
-    async generateReport(userId: string, params: GenerateParams) {
+    async generateReport(userId: string, role: string, params: GenerateParams) {
         const { source, filters, groupBy, page, limit } = params;
 
         // If groupBy is requested, use aggregation
         if (groupBy) {
-            const grouped = await this.queryGrouped(userId, source, filters, groupBy);
+            const grouped = await this.queryGrouped(userId, role, source, filters, groupBy);
             if (grouped) return grouped;
         }
 
         // Flat data query
         const queryMap: Record<string, Function> = {
-            policies: () => this.queryPolicies(userId, filters, page, limit),
-            payments: () => this.queryPayments(userId, filters, page, limit),
-            claims: () => this.queryClaims(userId, filters, page, limit),
-            customers: () => this.queryCustomers(userId, filters, page, limit),
-            followups: () => this.queryFollowUps(userId, filters, page, limit),
-            'customer-snapshot': () => this.queryCustomerSnapshot(userId, filters),
+            policies: () => this.queryPolicies(userId, role, filters, page, limit),
+            payments: () => this.queryPayments(userId, role, filters, page, limit),
+            claims: () => this.queryClaims(userId, role, filters, page, limit),
+            customers: () => this.queryCustomers(userId, role, filters, page, limit),
+            followups: () => this.queryFollowUps(userId, role, filters, page, limit),
+            'customer-snapshot': () => this.queryCustomerSnapshot(userId, role, filters),
         };
 
         const result = await queryMap[source]();
-        
+
         let chartsData = null;
         if (!groupBy) {
             if (source === 'policies') {
                 const [statusGroup, typeGroup] = await Promise.all([
-                    this.groupPolicies(userId, filters, 'status'),
-                    this.groupPolicies(userId, filters, 'policyType')
+                    this.groupPolicies(userId, role, filters, 'status'),
+                    this.groupPolicies(userId, role, filters, 'policyType')
                 ]);
                 chartsData = {
                     status: statusGroup?.data || [],
                     policyType: typeGroup?.data || []
                 };
             } else if (source === 'payments') {
-                const statusGroup = await this.groupPayments(userId, filters, 'status');
+                const statusGroup = await this.groupPayments(userId, role, filters, 'status');
                 chartsData = {
                     status: statusGroup?.data || []
                 };
             } else if (source === 'claims') {
-                const statusGroup = await this.groupClaims(userId, filters, 'status');
+                const statusGroup = await this.groupClaims(userId, role, filters, 'status');
                 chartsData = {
                     status: statusGroup?.data || []
                 };
             } else if (source === 'followups') {
-                const statusGroup = await this.groupFollowUps(userId, filters, 'status');
+                const statusGroup = await this.groupFollowUps(userId, role, filters, 'status');
                 chartsData = {
                     status: statusGroup?.data || []
                 };
@@ -898,18 +900,19 @@ export class ReportService {
 
     // ── Dashboard analytics (pre-computed) ───────────────
 
-    async getDashboardReport(userId: string, filters?: { dateFrom?: string; dateTo?: string }) {
+    async getDashboardReport(userId: string, role: string, filters?: { dateFrom?: string; dateTo?: string }) {
         const now = new Date();
         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastYearStart = new Date(now.getFullYear() - 1, now.getMonth(), 1);
 
         // When the user provides date filters, use those for KPIs; otherwise default to current month
         const periodFilters: ReportFilters | undefined = filters?.dateFrom || filters?.dateTo
             ? filters
             : undefined;
 
+        const ow = ownerFilter(userId, role);
+
         // For KPI cards - use the filtered period or fall back to current month
-        const kpiWhere: any = { userId, deletedAt: null };
+        const kpiWhere: any = { ...ow, deletedAt: null };
         if (periodFilters?.dateFrom || periodFilters?.dateTo) {
             kpiWhere.createdAt = {};
             if (periodFilters.dateFrom) kpiWhere.createdAt.gte = new Date(periodFilters.dateFrom);
@@ -935,30 +938,30 @@ export class ReportService {
             periodPremium,
         ] = await Promise.all([
             // Company-wise performance (filtered)
-            this.groupPolicies(userId, periodFilters, 'company'),
+            this.groupPolicies(userId, role, periodFilters, 'company'),
 
             // Policy type breakdown (filtered)
-            this.groupPolicies(userId, periodFilters, 'policyType'),
+            this.groupPolicies(userId, role, periodFilters, 'policyType'),
 
             // Dealer performance (filtered)
-            this.groupPolicies(userId, periodFilters, 'dealer'),
+            this.groupPolicies(userId, role, periodFilters, 'dealer'),
 
             // Monthly premium trend
-            this.groupPolicies(userId, {
+            this.groupPolicies(userId, role, {
                 dateFrom: trendStart.toISOString().split('T')[0],
                 dateTo: trendEnd.toISOString().split('T')[0],
             }, 'month'),
 
             // Payment collection summary (filtered)
-            this.groupPayments(userId, periodFilters, 'status'),
+            this.groupPayments(userId, role, periodFilters, 'status'),
 
             // Renewal stats (all-time — not date-sensitive as a concept)
             prisma.$transaction([
                 prisma.policy.count({
-                    where: { userId, deletedAt: null, parentPolicyId: { not: null } },
+                    where: { ...ow, deletedAt: null, parentPolicyId: { not: null } },
                 }),
                 prisma.policy.count({
-                    where: { userId, deletedAt: null, status: 'expired' },
+                    where: { ...ow, deletedAt: null, status: 'expired' },
                 }),
             ]),
 
@@ -1085,25 +1088,25 @@ export class ReportService {
             doc.fontSize(8).font('Helvetica-Bold');
             let x = startX;
             const headerY = doc.y; // Fix: lock Y coordinate for the entire row
-            
+
             for (const col of visibleCols) {
                 // Background color for header
                 doc.rect(x, headerY, colWidth, 22).fill('#1e1b4b');
-                
+
                 // Header Border
                 doc.lineWidth(0.2).rect(x, headerY, colWidth, 22).stroke('#ffffff');
-                
+
                 // Draw header text centered
                 doc.fillColor('#FFFFFF')
-                    .text(col.label, x, headerY + 7, { 
-                        width: colWidth, 
-                        align: 'center', 
-                        lineBreak: false 
+                    .text(col.label, x, headerY + 7, {
+                        width: colWidth,
+                        align: 'center',
+                        lineBreak: false
                     });
-                
+
                 x += colWidth;
             }
-            
+
             // Step cursor past header
             doc.y = headerY + 22;
 
@@ -1118,27 +1121,27 @@ export class ReportService {
                 x = startX;
                 const rowY = doc.y; // Fix: lock Y coordinate for this specific row data
                 const bgColor = rowIdx % 2 === 0 ? '#F9FAFB' : '#FFFFFF';
-                
+
                 for (const col of visibleCols) {
                     const val = String(row[col.key] ?? '—');
-                    
+
                     // Row background
                     doc.rect(x, rowY, colWidth, 18).fill(bgColor);
-                    
+
                     // Cell Border (Darker for visibility)
                     doc.lineWidth(0.2).rect(x, rowY, colWidth, 18).stroke('#d1d5db');
-                    
+
                     doc.font('Helvetica').fontSize(7).fillColor('#374151')
-                        .text(val, x + 4, rowY + 5, { 
-                            width: colWidth - 8, 
-                            align: 'left', 
+                        .text(val, x + 4, rowY + 5, {
+                            width: colWidth - 8,
+                            align: 'left',
                             height: 10,
-                            lineBreak: false 
+                            lineBreak: false
                         });
-                        
+
                     x += colWidth;
                 }
-                
+
                 // Explicitly step down to the next row safely
                 doc.y = rowY + 18;
                 rowIdx++;

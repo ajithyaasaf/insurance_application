@@ -6,7 +6,7 @@ export class SearchController {
     async globalSearch(req: Request, res: Response, next: NextFunction) {
         try {
             const { q } = req.query;
-            const results = await searchService.globalSearch(req.user!.userId, q as string);
+            const results = await searchService.globalSearch(req.user!.userId, req.user!.role, q as string);
             sendSuccess({ res, statusCode: 200, message: 'Search results fetched', data: results });
         } catch (e: any) {
             next(e);

@@ -1,9 +1,11 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../../utils/prisma';
 import { mapPolicyStatus } from '../../utils/date';
+import { ownerFilter } from '../../utils/rbac';
 
 export class SearchService {
-    async globalSearch(userId: string, query: string) {
+    async globalSearch(userId: string, role: string, query: string) {
+        const ow = ownerFilter(userId, role);
         if (!query || query.length < 2) {
             return { customers: [], leads: [], policies: [] };
         }
@@ -12,7 +14,7 @@ export class SearchService {
         const [customers, leads, policies] = await Promise.all([
             prisma.customer.findMany({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     OR: [
                         { name: { contains: query, mode: 'insensitive' } },
@@ -24,7 +26,7 @@ export class SearchService {
             }),
             prisma.lead.findMany({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     OR: [
                         { name: { contains: query, mode: 'insensitive' } },
@@ -40,7 +42,7 @@ export class SearchService {
             }),
             prisma.policy.findMany({
                 where: {
-                    userId,
+                    ...ow,
                     deletedAt: null,
                     OR: [
                         { policyNumber: { contains: query, mode: 'insensitive' } },
@@ -56,10 +58,10 @@ export class SearchService {
             }),
         ]);
 
-        return { 
-            customers, 
-            leads, 
-            policies: policies.map(mapPolicyStatus) 
+        return {
+            customers,
+            leads,
+            policies: policies.map(mapPolicyStatus)
         };
     }
 }

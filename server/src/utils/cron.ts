@@ -15,11 +15,11 @@ export const initCronJobs = () => {
         .catch(err => console.error('[STARTUP] Policy sweep error:', err));
 
     // Payment Overdue Detection
-    prisma.user.findMany({ select: { id: true } })
+    prisma.user.findMany({ select: { id: true, role: true } })
         .then(async (users) => {
             let totalOverdue = 0;
             for (const user of users) {
-                const { updated } = await paymentService.detectOverdue(user.id);
+                const { updated } = await paymentService.detectOverdue(user.id, user.role);
                 totalOverdue += updated;
             }
             if (totalOverdue > 0) console.log(`[STARTUP] Detected ${totalOverdue} overdue payments.`);
@@ -37,10 +37,10 @@ export const initCronJobs = () => {
             }
 
             // 2. Payment overdue detection (for all users)
-            const users = await prisma.user.findMany({ select: { id: true } });
+            const users = await prisma.user.findMany({ select: { id: true, role: true } });
             let totalOverdue = 0;
             for (const user of users) {
-                const { updated } = await paymentService.detectOverdue(user.id);
+                const { updated } = await paymentService.detectOverdue(user.id, user.role);
                 totalOverdue += updated;
             }
             if (totalOverdue > 0) {

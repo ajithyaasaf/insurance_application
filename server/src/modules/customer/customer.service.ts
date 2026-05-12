@@ -1,6 +1,7 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
 import { mapPolicyStatus } from '../../utils/date';
+import { ownerFilter } from '../../utils/rbac';
 
 interface CreateCustomerInput {
     name: string;
@@ -44,9 +45,9 @@ export class CustomerService {
         };
     }
 
-    async findAll(userId: string, page = 1, limit = 10, search?: string) {
+    async findAll(userId: string, role: string, page = 1, limit = 10, search?: string) {
         const where: any = {
-            userId,
+            ...ownerFilter(userId, role),
             deletedAt: null,
             ...(search && {
                 OR: [
@@ -73,9 +74,9 @@ export class CustomerService {
         return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
     }
 
-    async findById(userId: string, id: string) {
+    async findById(userId: string, role: string, id: string) {
         const customer = await prisma.customer.findFirst({
-            where: { id, userId, deletedAt: null },
+            where: { id, ...ownerFilter(userId, role), deletedAt: null },
             include: {
                 policies: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' } },
                 payments: { orderBy: { dueDate: 'desc' }, take: 10 },
@@ -92,7 +93,7 @@ export class CustomerService {
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreateCustomerInput>) {
-        await this.findById(userId, id);
+        await this.findById(userId, role, id);
 
         // Clean up empty strings from frontend
         if (data.dob === '') data.dob = null;
@@ -107,36 +108,37 @@ export class CustomerService {
         return prisma.customer.update({ where: { id }, data: { ...data, updatedBy: role } });
     }
 
-    async softDelete(userId: string, id: string) {
-        await this.findById(userId, id); // ownership check
+    async softDelete(userId: string, role: string, id: string) {
+        await this.findById(userId, role, id); // ownership check
 
         return prisma.$transaction(async (tx) => {
             const now = new Date();
+            const ow = ownerFilter(userId, role);
 
             // 1. Get all policy IDs for this customer
             const policies = await tx.policy.findMany({
-                where: { customerId: id, userId, deletedAt: null },
+                where: { customerId: id, ...ow, deletedAt: null },
                 select: { id: true }
             });
             const policyIds = policies.map(p => p.id);
 
             // 2. Delete all children of those policies
             if (policyIds.length > 0) {
-                await tx.payment.deleteMany({ where: { policyId: { in: policyIds }, userId } });
-                await tx.claim.deleteMany({ where: { policyId: { in: policyIds }, userId } });
-                await tx.followUp.deleteMany({ where: { policyId: { in: policyIds }, userId } });
-                
+                await tx.payment.deleteMany({ where: { policyId: { in: policyIds }, ...ow } });
+                await tx.claim.deleteMany({ where: { policyId: { in: policyIds }, ...ow } });
+                await tx.followUp.deleteMany({ where: { policyId: { in: policyIds }, ...ow } });
+
                 // 3. Soft delete the policies themselves
                 await tx.policy.updateMany({
-                    where: { id: { in: policyIds }, userId },
+                    where: { id: { in: policyIds }, ...ow },
                     data: { deletedAt: now }
                 });
             }
 
             // 4. Soft delete the customer
-            return tx.customer.update({ 
-                where: { id }, 
-                data: { deletedAt: now } 
+            return tx.customer.update({
+                where: { id },
+                data: { deletedAt: now }
             });
         });
     }

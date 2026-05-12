@@ -1,6 +1,7 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
 import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST } from '../../utils/date';
+import { ownerFilter } from '../../utils/rbac';
 
 interface CreatePolicyInput {
     customerId: string;
@@ -61,8 +62,8 @@ export class PolicyService {
 
         // 2. Cross-tenant ownership validation for Customer and Dealer
         const [customer, dealer] = await Promise.all([
-            prisma.customer.findFirst({ where: { id: data.customerId, userId, deletedAt: null } }),
-            data.dealerId ? prisma.dealer.findFirst({ where: { id: data.dealerId, userId, deletedAt: null } }) : Promise.resolve(null),
+            prisma.customer.findFirst({ where: { id: data.customerId, ...ownerFilter(userId, role), deletedAt: null } }),
+            data.dealerId ? prisma.dealer.findFirst({ where: { id: data.dealerId, ...ownerFilter(userId, role), deletedAt: null } }) : Promise.resolve(null),
         ]);
 
         if (!customer) throw Object.assign(new Error('Customer not found or unauthorized'), { statusCode: 404 });
@@ -176,6 +177,7 @@ export class PolicyService {
 
     async findAll(
         userId: string,
+        role: string,
         page = 1,
         limit = 10,
         search?: string,
@@ -188,7 +190,7 @@ export class PolicyService {
     ) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
-            userId,
+            ...ownerFilter(userId, role),
             deletedAt: null,
             ...(search && {
                 OR: [
@@ -233,9 +235,15 @@ export class PolicyService {
         };
     }
 
-    async findById(userId: string, id: string) {
+    async findById(userId: string, role: string, id: string) {
+        const where: any = { 
+            id, 
+            deletedAt: null,
+            ...ownerFilter(userId, role)
+        };
+
         const policy = await prisma.policy.findFirst({
-            where: { id, userId, deletedAt: null },
+            where,
             include: {
                 customer: true,
                 company: true,
@@ -270,7 +278,7 @@ export class PolicyService {
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
-        const policy = await this.findById(userId, id);
+        const policy = await this.findById(userId, role, id);
 
         // --- Smart Premium Pre-calculation ---
         const od = data.od !== undefined ? data.od : policy.od;
@@ -293,11 +301,11 @@ export class PolicyService {
 
         // 2. Ownership validation for changed Customer/Dealer
         if (data.customerId && data.customerId !== policy.customerId) {
-            const customer = await prisma.customer.findFirst({ where: { id: data.customerId, userId, deletedAt: null } });
+            const customer = await prisma.customer.findFirst({ where: { id: data.customerId, ...ownerFilter(userId, role), deletedAt: null } });
             if (!customer) throw Object.assign(new Error('Target customer not found or unauthorized'), { statusCode: 404 });
         }
         if (data.dealerId && data.dealerId !== policy.dealerId) {
-            const dealer = await prisma.dealer.findFirst({ where: { id: data.dealerId, userId, deletedAt: null } });
+            const dealer = await prisma.dealer.findFirst({ where: { id: data.dealerId, ...ownerFilter(userId, role), deletedAt: null } });
             if (!dealer) throw Object.assign(new Error('Target dealer not found or unauthorized'), { statusCode: 404 });
         }
 
@@ -350,7 +358,7 @@ export class PolicyService {
             if (newEffective !== oldEffective) {
                 // 1. Calculate how much has already been paid across all non-pending records
                 const collections = await tx.payment.aggregate({
-                    where: { policyId: id, userId, status: { not: 'pending' } },
+                    where: { policyId: id, ...ownerFilter(userId, role), status: { not: 'pending' } },
                     _sum: { paidAmount: true }
                 });
                 const totalCollected = collections._sum.paidAmount || 0;
@@ -360,7 +368,7 @@ export class PolicyService {
                 await tx.payment.updateMany({
                     where: {
                         policyId: id,
-                        userId,
+                        ...ownerFilter(userId, role),
                         status: 'pending'
                     },
                     data: {
@@ -373,21 +381,27 @@ export class PolicyService {
         });
     }
 
-    async softDelete(userId: string, id: string) {
-        await this.findById(userId, id); // ownership check
+    async softDelete(userId: string, role: string, id: string) {
+        await this.findById(userId, role, id); // ownership check
 
         // Recursive soft delete in a transaction
         return prisma.$transaction(async (tx) => {
             const now = new Date();
 
             // Delete child payments
-            await tx.payment.deleteMany({ where: { policyId: id, userId } });
+            await tx.payment.deleteMany({ 
+                where: { policyId: id, ...ownerFilter(userId, role) } 
+            });
 
             // Delete child claims
-            await tx.claim.deleteMany({ where: { policyId: id, userId } });
+            await tx.claim.deleteMany({ 
+                where: { policyId: id, ...ownerFilter(userId, role) } 
+            });
 
             // Delete child follow-ups
-            await tx.followUp.deleteMany({ where: { policyId: id, userId } });
+            await tx.followUp.deleteMany({ 
+                where: { policyId: id, ...ownerFilter(userId, role) } 
+            });
 
             return tx.policy.update({
                 where: { id },
@@ -398,7 +412,7 @@ export class PolicyService {
 
     // Renewal = create a new policy linked via parentPolicyId using $transaction
     async renew(userId: string, role: string, id: string, data: Partial<CreatePolicyInput>) {
-        const originalPolicy = await this.findById(userId, id);
+        const originalPolicy = await this.findById(userId, role, id);
 
         // --- Smart Premium Pre-calculation for Renewal ---
         const od = data.od !== undefined ? data.od : originalPolicy.od;
@@ -535,13 +549,18 @@ export class PolicyService {
     }
 
     // Pre-delete check: returns counts of linked records so the frontend can warn the user
-    async preDeleteCheck(userId: string, id: string) {
-        await this.findById(userId, id); // ownership check
+    async preDeleteCheck(userId: string, role: string, id: string) {
+        await this.findById(userId, role, id); // ownership check
+
+        const where = { 
+            policyId: id, 
+            ...ownerFilter(userId, role)
+        };
 
         const [paymentsCount, claimsCount, followUpsCount] = await Promise.all([
-            prisma.payment.count({ where: { policyId: id, userId } }),
-            prisma.claim.count({ where: { policyId: id, userId } }),
-            prisma.followUp.count({ where: { policyId: id, userId } }),
+            prisma.payment.count({ where }),
+            prisma.claim.count({ where }),
+            prisma.followUp.count({ where }),
         ]);
 
         return { paymentsCount, claimsCount, followUpsCount };

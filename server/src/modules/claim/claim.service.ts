@@ -1,4 +1,5 @@
 import prisma from '../../utils/prisma';
+import { ownerFilter } from '../../utils/rbac';
 
 interface CreateClaimInput {
     policyId: string;
@@ -16,8 +17,8 @@ export class ClaimService {
     async create(userId: string, role: string, data: CreateClaimInput) {
         // Ownership validation for related entities
         const [policy, customer] = await Promise.all([
-            prisma.policy.findFirst({ where: { id: data.policyId, userId, deletedAt: null } }),
-            prisma.customer.findFirst({ where: { id: data.customerId, userId, deletedAt: null } }),
+            prisma.policy.findFirst({ where: { id: data.policyId, ...ownerFilter(userId, role), deletedAt: null } }),
+            prisma.customer.findFirst({ where: { id: data.customerId, ...ownerFilter(userId, role), deletedAt: null } }),
         ]);
 
         if (!policy) throw Object.assign(new Error('Policy not found or unauthorized'), { statusCode: 404 });
@@ -49,10 +50,10 @@ export class ClaimService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 10, search?: string, status?: string, vehicleClass?: string) {
+    async findAll(userId: string, role: string, page = 1, limit = 10, search?: string, status?: string, vehicleClass?: string) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
-            userId,
+            ...ownerFilter(userId, role),
             ...(search && {
                 OR: [
                     { customer: { name: { contains: search, mode: 'insensitive' } } },
@@ -80,17 +81,17 @@ export class ClaimService {
         return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
     }
 
-    async findById(userId: string, id: string) {
+    async findById(userId: string, role: string, id: string) {
         const claim = await prisma.claim.findFirst({
-            where: { id, userId },
+            where: { id, ...ownerFilter(userId, role) },
             include: { customer: true, policy: true },
         });
         if (!claim) throw Object.assign(new Error('Claim not found'), { statusCode: 404 });
         return claim;
     }
 
-    async update(userId: string, id: string, data: Partial<CreateClaimInput>) {
-        await this.findById(userId, id); // ownership check
+    async update(userId: string, role: string, id: string, data: Partial<CreateClaimInput>) {
+        await this.findById(userId, role, id); // ownership check
         return prisma.claim.update({
             where: { id },
             data: {
@@ -106,8 +107,8 @@ export class ClaimService {
         });
     }
 
-    async delete(userId: string, id: string) {
-        await this.findById(userId, id); // ownership check
+    async delete(userId: string, role: string, id: string) {
+        await this.findById(userId, role, id); // ownership check
         return prisma.claim.delete({ where: { id } });
     }
 }

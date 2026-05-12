@@ -5,7 +5,7 @@ import { sendSuccess } from '../../utils/apiResponse';
 export class DashboardController {
     async getSummary(req: Request, res: Response, next: NextFunction) {
         try {
-            const data = await dashboardService.getSummary(req.user!.userId);
+            const data = await dashboardService.getSummary(req.user!.userId, req.user!.role);
             sendSuccess({ res, statusCode: 200, message: 'Dashboard summary', data });
         } catch (e: any) { next(e); }
     }

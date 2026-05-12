@@ -6,7 +6,7 @@ import { reportService } from '../report/report.service';
 export class CommissionController {
     async getPending(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await commissionService.getPending((req as any).user.userId);
+            const result = await commissionService.getPending(req.user!.userId, req.user!.role);
             sendSuccess({ res, statusCode: 200, message: 'Pending commissions fetched', data: result });
         } catch (err) { next(err); }
     }
@@ -17,7 +17,7 @@ export class CommissionController {
             if (!dealerId || !periodStart || !periodEnd) {
                 return next(Object.assign(new Error('Missing query params'), { statusCode: 400 }));
             }
-            const result = await commissionService.getStats((req as any).user.userId, {
+            const result = await commissionService.getStats(req.user!.userId, req.user!.role, {
                 dealerId: dealerId as string,
                 periodStart: periodStart as string,
                 periodEnd: periodEnd as string,
@@ -30,14 +30,14 @@ export class CommissionController {
 
     async preview(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await commissionService.preview((req as any).user.userId, req.body);
+            const result = await commissionService.preview(req.user!.userId, req.user!.role, req.body);
             sendSuccess({ res, statusCode: 200, message: 'Commission preview calculated', data: result });
         } catch (err) { next(err); }
     }
 
     async create(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await commissionService.create((req as any).user.userId, req.body);
+            const result = await commissionService.create(req.user!.userId, req.user!.role, req.body);
             sendSuccess({ res, statusCode: 201, message: 'Commission record saved', data: result });
         } catch (err) { next(err); }
     }
@@ -46,7 +46,7 @@ export class CommissionController {
         try {
             const { dealerId, status, dateFrom, dateTo, companyId, companyIds } = req.query;
             const result = await commissionService.findAll(
-                (req as any).user.userId,
+                req.user!.userId,
                 dealerId as string | undefined,
                 status as string | undefined,
                 dateFrom as string | undefined,
@@ -62,7 +62,7 @@ export class CommissionController {
         try {
             const { dealerId, status, dateFrom, dateTo, companyId, companyIds } = req.body;
             const history = await commissionService.findAll(
-                (req as any).user.userId,
+                req.user!.userId,
                 dealerId as string | undefined,
                 status as string | undefined,
                 dateFrom as string | undefined,
@@ -110,14 +110,14 @@ export class CommissionController {
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await commissionService.findById((req as any).user.userId, req.params.id as string);
+            const result = await commissionService.findById(req.user!.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Commission record fetched', data: result });
         } catch (err) { next(err); }
     }
 
     async bulkUpdateStatus(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await commissionService.bulkUpdateStatus((req as any).user.userId, req.body);
+            const result = await commissionService.bulkUpdateStatus(req.user!.userId, req.body);
             sendSuccess({ res, statusCode: 200, message: 'Commissions updated', data: result });
         } catch (err) { next(err); }
     }
@@ -125,7 +125,7 @@ export class CommissionController {
     async update(req: Request, res: Response, next: NextFunction) {
         try {
             const result = await commissionService.update(
-                (req as any).user.userId,
+                req.user!.userId,
                 req.params.id as string,
                 req.body
             );
@@ -135,7 +135,7 @@ export class CommissionController {
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await commissionService.delete((req as any).user.userId, req.params.id as string);
+            await commissionService.delete(req.user!.userId, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Commission record deleted' });
         } catch (err) { next(err); }
     }

@@ -8,7 +8,7 @@ export class ReportController {
     async generate(req: Request, res: Response, next: NextFunction) {
         try {
             const { source, filters, groupBy, page = 1, limit = 50 } = req.body;
-            const data = await reportService.generateReport(req.user!.userId, {
+            const data = await reportService.generateReport(req.user!.userId, req.user!.role, {
                 source, filters, groupBy, page, limit,
             });
             sendSuccess({ res, statusCode: 200, message: 'Report generated', data });
@@ -20,7 +20,7 @@ export class ReportController {
         try {
             const dateFrom = typeof req.query.dateFrom === 'string' ? req.query.dateFrom : undefined;
             const dateTo = typeof req.query.dateTo === 'string' ? req.query.dateTo : undefined;
-            const data = await reportService.getDashboardReport(req.user!.userId, { dateFrom, dateTo });
+            const data = await reportService.getDashboardReport(req.user!.userId, req.user!.role, { dateFrom, dateTo });
             sendSuccess({ res, statusCode: 200, message: 'Dashboard analytics', data });
         } catch (e: any) { next(e); }
     }
@@ -31,7 +31,7 @@ export class ReportController {
             const { source, filters, groupBy, format, columns, title } = req.body;
 
             // Fetch ALL data (no pagination for export)
-            const result = await reportService.generateReport(req.user!.userId, {
+            const result = await reportService.generateReport(req.user!.userId, req.user!.role, {
                 source, filters, groupBy, page: 1, limit: 10000,
             });
 

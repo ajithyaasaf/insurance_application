@@ -1,4 +1,5 @@
 import prisma from '../../utils/prisma';
+import { ownerFilter } from '../../utils/rbac';
 
 interface CreateDealerInput {
     name: string;
@@ -18,9 +19,9 @@ export class DealerService {
         });
     }
 
-    async findAll(userId: string, page = 1, limit = 10, search?: string) {
+    async findAll(userId: string, role: string, page = 1, limit = 10, search?: string) {
         const where: any = {
-            userId,
+            ...ownerFilter(userId, role),
             deletedAt: null,
             ...(search && {
                 OR: [
@@ -48,9 +49,9 @@ export class DealerService {
         return { data, meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
     }
 
-    async findById(userId: string, id: string) {
+    async findById(userId: string, role: string, id: string) {
         const dealer = await prisma.dealer.findFirst({
-            where: { id, userId, deletedAt: null },
+            where: { id, deletedAt: null, ...ownerFilter(userId, role) },
             include: { policies: true },
         });
 
@@ -59,8 +60,8 @@ export class DealerService {
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreateDealerInput>) {
-        await this.findById(userId, id); // Ensure it exists and belongs to user
-        
+        await this.findById(userId, role, id); // Ensure it exists and belongs to user
+
         return prisma.dealer.update({
             where: { id },
             data: {
@@ -70,8 +71,8 @@ export class DealerService {
         });
     }
 
-    async delete(userId: string, id: string) {
-        const dealer = await this.findById(userId, id);
+    async delete(userId: string, role: string, id: string) {
+        const dealer = await this.findById(userId, role, id);
 
         // Check for linked policies
         const linkedPoliciesCount = await prisma.policy.count({

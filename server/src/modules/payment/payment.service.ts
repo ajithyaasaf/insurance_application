@@ -1,6 +1,7 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
 import { getStartOfTodayIST, mapPaymentStatus } from '../../utils/date';
+import { ownerFilter } from '../../utils/rbac';
 
 interface CreatePaymentInput {
     policyId: string;
@@ -18,7 +19,7 @@ export class PaymentService {
         return prisma.$transaction(async (tx) => {
             // 1. Fetch the policy to validate premium bounds
             const policy = await tx.policy.findFirst({
-                where: { id: data.policyId, userId },
+                where: { id: data.policyId, ...ownerFilter(userId, role) },
             });
             if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
 
@@ -71,6 +72,7 @@ export class PaymentService {
 
     async findAll(
         userId: string,
+        role: string,
         page = 1,
         limit = 10,
         status?: string,
@@ -99,7 +101,7 @@ export class PaymentService {
         }
 
         const where: any = {
-            userId,
+            ...ownerFilter(userId, role),
             // Status filter logic:
             // 'overdue' as virtual filter → match pending/partial with past dueDate
             // 'pending' → also include DB records stored as 'overdue' (legacy from detectOverdue mutations)
@@ -135,9 +137,9 @@ export class PaymentService {
         return { data: data.map(mapPaymentStatus), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
     }
 
-    async findById(userId: string, id: string) {
+    async findById(userId: string, role: string, id: string) {
         const payment = await prisma.payment.findFirst({
-            where: { id, userId },
+            where: { id, ...ownerFilter(userId, role) },
             include: { customer: true, policy: true },
         });
         if (!payment) throw Object.assign(new Error('Payment not found'), { statusCode: 404 });
@@ -145,11 +147,11 @@ export class PaymentService {
     }
 
     // Update payment — supports partial payments via $transaction
-    async update(userId: string, id: string, data: Partial<CreatePaymentInput>) {
+    async update(userId: string, role: string, id: string, data: Partial<CreatePaymentInput>) {
         return prisma.$transaction(async (tx: any) => {
-            // 1. Cross-tenant check
+            // 1. Ownership check
             const payment = await tx.payment.findFirst({
-                where: { id, userId },
+                where: { id, ...ownerFilter(userId, role) },
                 include: { policy: true }
             });
             if (!payment) throw Object.assign(new Error('Payment not found'), { statusCode: 404 });
@@ -197,7 +199,7 @@ export class PaymentService {
                     finalMessage = `Payment updated. Note: Status set to 'pending' as no payment was recorded.`;
                 }
                 newStatus = 'pending';
-                
+
                 if ((payment.status === 'paid' || payment.status === 'partial') && currentPaidAmount < 0.01) {
                     finalMessage = `Payment reverted to 'pending' because paid amount was cleared.`;
                 }
@@ -217,15 +219,15 @@ export class PaymentService {
             // 3. Data Consistency: Sync Policy Status
             if (updatedPayment.status !== 'paid') {
                 const totalPaidAmount = await tx.payment.aggregate({
-                    where: { 
-                        policyId: updatedPayment.policyId, 
-                        status: 'paid' 
+                    where: {
+                        policyId: updatedPayment.policyId,
+                        status: 'paid'
                     },
                     _sum: { paidAmount: true }
                 });
 
                 const totalPaid = totalPaidAmount._sum.paidAmount || 0;
-                
+
                 if (totalPaid < 0.01 && updatedPayment.policy.status === 'active') {
                     // Optional: You could update policy status here if business rules require it
                 }
@@ -235,20 +237,16 @@ export class PaymentService {
         });
     }
 
-    async delete(userId: string, id: string) {
-        await this.findById(userId, id);
+    async delete(userId: string, role: string, id: string) {
+        await this.findById(userId, role, id);
         return prisma.payment.delete({ where: { id } });
     }
 
-    // Detect overdue payments — 'overdue' is a virtual/computed status.
-    // We do NOT store 'overdue' in the DB because it breaks status filters.
-    // The isOverdue flag is computed at runtime by mapPaymentStatus().
-    // This method simply counts how many would be considered overdue.
-    async detectOverdue(userId: string) {
+    async detectOverdue(userId: string, role: string) {
         const todayIST = getStartOfTodayIST();
         const count = await prisma.payment.count({
             where: {
-                userId,
+                ...ownerFilter(userId, role),
                 status: { in: ['pending', 'partial'] },
                 dueDate: { lt: todayIST },
             },

@@ -18,14 +18,14 @@ export class CustomerController {
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
             const { page, limit, search } = req.query as any;
-            const result = await customerService.findAll(req.user!.userId, +page || 1, +limit || 20, search);
+            const result = await customerService.findAll(req.user!.userId, req.user!.role, +page || 1, +limit || 20, search);
             sendSuccess({ res, statusCode: 200, message: 'Customers fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const customer = await customerService.findById(req.user!.userId, req.params.id as string);
+            const customer = await customerService.findById(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Customer found', data: customer });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
@@ -39,7 +39,7 @@ export class CustomerController {
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await customerService.softDelete(req.user!.userId, req.params.id as string);
+            await customerService.softDelete(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Customer deleted' });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }

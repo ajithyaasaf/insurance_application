@@ -13,28 +13,28 @@ export class FollowUpController {
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
             const { page, limit, status, date, search, vehicleClass } = req.query as any;
-            const result = await followUpService.findAll(req.user!.userId, +page || 1, +limit || 20, status, date, search, vehicleClass);
+            const result = await followUpService.findAll(req.user!.userId, req.user!.role, +page || 1, +limit || 20, status, date, search, vehicleClass);
             sendSuccess({ res, statusCode: 200, message: 'Follow-ups fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const followUp = await followUpService.findById(req.user!.userId, req.params.id as string);
+            const followUp = await followUpService.findById(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Follow-up found', data: followUp });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const followUp = await followUpService.update(req.user!.userId, req.params.id as string, req.body);
+            const followUp = await followUpService.update(req.user!.userId, req.user!.role, req.params.id as string, req.body);
             sendSuccess({ res, statusCode: 200, message: 'Follow-up updated', data: followUp });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await followUpService.delete(req.user!.userId, req.params.id as string);
+            await followUpService.delete(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Follow-up deleted' });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }

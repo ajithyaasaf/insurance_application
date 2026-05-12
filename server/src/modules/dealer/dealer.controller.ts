@@ -13,14 +13,14 @@ export class DealerController {
     async findAll(req: Request, res: Response, next: NextFunction) {
         try {
             const { page, limit, search } = req.query as any;
-            const result = await dealerService.findAll(req.user!.userId, +page || 1, +limit || 20, search);
+            const result = await dealerService.findAll(req.user!.userId, req.user!.role, +page || 1, +limit || 20, search);
             sendSuccess({ res, statusCode: 200, message: 'Dealers fetched', data: result.data, meta: result.meta });
         } catch (e: any) { next(e); }
     }
 
     async findById(req: Request, res: Response, next: NextFunction) {
         try {
-            const dealer = await dealerService.findById(req.user!.userId, req.params.id as string);
+            const dealer = await dealerService.findById(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Dealer found', data: dealer });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
@@ -34,7 +34,7 @@ export class DealerController {
 
     async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            await dealerService.delete(req.user!.userId, req.params.id as string);
+            await dealerService.delete(req.user!.userId, req.user!.role, req.params.id as string);
             sendSuccess({ res, statusCode: 200, message: 'Dealer deleted successfully' });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
