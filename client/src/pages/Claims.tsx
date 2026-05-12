@@ -9,6 +9,7 @@ import { formatDate, formatCurrency, getStatusColor, scrollToFirstError, formatV
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
 import { CLAIM_STATUSES as claimStatusOptions, VEHICLE_CLASSES } from '../utils/constants';
+import Button from '../components/ui/Button';
 
 const initialForm = {
     customerId: '',
@@ -37,6 +38,7 @@ const Claims: React.FC = () => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; customerName: string } | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchClaims = useCallback(async (page = 1) => {
         setLoading(true);
@@ -124,6 +126,7 @@ const Claims: React.FC = () => {
             billAmount: form.billAmount ? parseFloat(form.billAmount) : null,
         };
 
+        setIsSubmitting(true);
         try {
             if (editing) {
                 await api.put(`/claims/${editing.id}`, payload);
@@ -134,7 +137,7 @@ const Claims: React.FC = () => {
             }
             setModalOpen(false);
             fetchClaims(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error saving claim'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error saving claim'); } finally { setIsSubmitting(false); }
     };
 
     const handleDelete = (id: string, customerName: string) => {
@@ -446,7 +449,7 @@ const Claims: React.FC = () => {
 
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">{editing ? 'Save Changes' : 'File Claim'}</button>
+                        <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Save Changes' : 'File Claim'}</Button>
                     </div>
                 </form>
             </Modal>
@@ -464,14 +467,15 @@ const Claims: React.FC = () => {
                         </div>
                         <div className="flex gap-3 pt-4 mt-2 border-t border-surface-100">
                             <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1 font-bold">Cancel</button>
-                            <button
+                            <Button
                                 type="button"
                                 onClick={confirmDelete}
-                                disabled={deleteLoading}
+                                isLoading={deleteLoading}
+                                loadingText="Deleting..."
                                 className="btn-danger flex-1 font-bold"
                             >
-                                {deleteLoading ? 'Deleting...' : 'Yes, Delete Claim'}
-                            </button>
+                                Yes, Delete Claim
+                            </Button>
                         </div>
                     </div>
                 )}

@@ -7,6 +7,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { formatDate, scrollToFirstError } from '../utils/format';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUsers } from 'react-icons/hi';
+import Button from '../components/ui/Button';
 
 const Dealers: React.FC = () => {
     const [dealers, setDealers] = useState<any[]>([]);
@@ -17,6 +18,7 @@ const Dealers: React.FC = () => {
     const [editing, setEditing] = useState<any>(null);
     const [form, setForm] = useState({ name: '', phone: '', address: '' });
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchDealers = useCallback(async (page = 1) => {
         setLoading(true);
@@ -54,6 +56,7 @@ const Dealers: React.FC = () => {
             return;
         }
         setErrors({});
+        setIsSubmitting(true);
         try {
             if (editing) {
                 const response = await api.put(`/dealers/${editing.id}`, form);
@@ -64,7 +67,7 @@ const Dealers: React.FC = () => {
             }
             setModalOpen(false);
             fetchDealers(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error saving dealer'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error saving dealer'); } finally { setIsSubmitting(false); }
     };
 
     const handleDelete = async (id: string) => {
@@ -168,7 +171,7 @@ const Dealers: React.FC = () => {
                     <div><label className="label">Address</label><textarea className="input" rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
+                        <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
             </Modal>

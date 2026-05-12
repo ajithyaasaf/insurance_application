@@ -10,6 +10,7 @@ import { formatDate, getStatusColor, scrollToFirstError, formatVehicleClass } fr
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUserAdd, HiOutlineTrendingUp } from 'react-icons/hi';
 import { LEAD_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
+import Button from '../components/ui/Button';
 
 const Leads: React.FC = () => {
     const [leads, setLeads] = useState<any[]>([]);
@@ -35,6 +36,8 @@ const Leads: React.FC = () => {
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [convertForm, setConvertForm] = useState({ address: '', email: '', policyOrigin: 'fresh', ncbPercentage: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isConverting, setIsConverting] = useState(false);
 
     const fetchLeads = useCallback(async (page = 1, status = statusFilter, vehicleClass = vehicleClassFilter) => {
         setLoading(true);
@@ -113,6 +116,7 @@ const Leads: React.FC = () => {
             return;
         }
         setErrors({});
+        setIsSubmitting(true);
         try {
             // Parse numbers for payload
             const payload = {
@@ -147,7 +151,7 @@ const Leads: React.FC = () => {
             }
             setModalOpen(false);
             fetchLeads(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsSubmitting(false); }
     };
 
     const handleDelete = async (id: string) => {
@@ -171,12 +175,13 @@ const Leads: React.FC = () => {
 
     const handleConvert = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsConverting(true);
         try {
             await api.post(`/leads/${convertingLead.id}/convert`, convertForm);
             toast.success('Lead converted to customer!');
             setConvertModalOpen(false);
             fetchLeads(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsConverting(false); }
     };
 
     return (
@@ -331,7 +336,7 @@ const Leads: React.FC = () => {
 
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
+                        <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
             </Modal>
@@ -380,7 +385,7 @@ const Leads: React.FC = () => {
                     <div><label className="label">Customer Address (Optional)</label><textarea className="input" rows={2} value={convertForm.address} onChange={(e) => setConvertForm({ ...convertForm, address: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setConvertModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">Convert</button>
+                        <Button type="submit" isLoading={isConverting} className="btn-primary flex-1">Convert</Button>
                     </div>
                 </form>
             </Modal>

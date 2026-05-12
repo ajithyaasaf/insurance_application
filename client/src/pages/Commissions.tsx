@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { HiOutlineCalculator, HiOutlineSave, HiOutlineDocumentDownload, HiOutlineEye, HiOutlineTrash, HiOutlineCheckCircle } from 'react-icons/hi';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import Button from '../components/ui/Button';
 
 const Commissions: React.FC = () => {
     const [dealers, setDealers] = useState<any[]>([]);
@@ -626,9 +627,9 @@ const Commissions: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex gap-3 mt-4">
-                            <button onClick={handlePreview} disabled={loading} className="btn-primary">
-                                {loading ? 'Calculating...' : <><HiOutlineCalculator className="w-4 h-4" /> Calculate</>}
-                            </button>
+                            <Button onClick={handlePreview} isLoading={loading} loadingText="Calculating..." className="btn-primary">
+                                <HiOutlineCalculator className="w-4 h-4" /> Calculate
+                            </Button>
                         </div>
                     </div>
 
@@ -761,13 +762,15 @@ const Commissions: React.FC = () => {
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
                                         />
-                                        <button 
+                                        <Button 
                                             onClick={handleSave} 
-                                            disabled={saving || selectedPolicyIds.length === 0} 
+                                            isLoading={saving}
+                                            disabled={selectedPolicyIds.length === 0} 
+                                            loadingText="Saving..."
                                             className="btn-primary self-end"
                                         >
-                                            {saving ? 'Saving...' : <><HiOutlineSave className="w-4 h-4" /> Save {selectedPolicyIds.length} Policies</>}
-                                        </button>
+                                            <HiOutlineSave className="w-4 h-4" /> Save {selectedPolicyIds.length} Policies
+                                        </Button>
                                     </div>
                                 </>
                             )}

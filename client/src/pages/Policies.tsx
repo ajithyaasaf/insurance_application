@@ -11,6 +11,7 @@ import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STAT
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
+import Button from '../components/ui/Button';
 
 
 
@@ -48,6 +49,8 @@ const Policies: React.FC = () => {
     const [renewErrors, setRenewErrors] = useState<Record<string, string>>({});
     const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; counts: { paymentsCount: number; claimsCount: number; followUpsCount: number } } | null>(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isRenewing, setIsRenewing] = useState(false);
 
     const fetchPolicies = useCallback(async (page = 1) => {
         setLoading(true);
@@ -137,6 +140,7 @@ const Policies: React.FC = () => {
             return;
         }
         setErrors({});
+        setIsSubmitting(true);
         try {
             const payload = {
                 ...form,
@@ -162,7 +166,7 @@ const Policies: React.FC = () => {
             if (editing) { await api.put(`/policies/${editing.id}`, payload); toast.success('Policy updated'); }
             else { await api.post('/policies', payload); toast.success('Policy created'); }
             setModalOpen(false); fetchPolicies(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsSubmitting(false); }
     };
 
     const handleDelete = async (id: string, customerName: string) => {
@@ -246,6 +250,7 @@ const Policies: React.FC = () => {
             return;
         }
         setRenewErrors({});
+        setIsRenewing(true);
         try {
             await api.post(`/policies/${renewingPolicy.id}/renew`, {
                 ...renewForm, 
@@ -259,7 +264,7 @@ const Policies: React.FC = () => {
             });
             toast.success('Policy renewed!');
             setRenewModalOpen(false); fetchPolicies(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsRenewing(false); }
     };
 
     return (
@@ -458,7 +463,7 @@ const Policies: React.FC = () => {
 
                     <div className="flex gap-3 pt-4">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
+                        <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
             </Modal>
@@ -562,7 +567,7 @@ const Policies: React.FC = () => {
 
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setRenewModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">Renew</button>
+                        <Button type="submit" isLoading={isRenewing} className="btn-primary flex-1">Renew</Button>
                     </div>
                 </form>
             </Modal>
@@ -602,14 +607,15 @@ const Policies: React.FC = () => {
                         )}
                         <div className="flex gap-3 pt-4 mt-2 border-t border-surface-100">
                             <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary flex-1 font-bold">Cancel</button>
-                            <button
+                            <Button
                                 type="button"
                                 onClick={confirmDelete}
-                                disabled={deleteLoading}
+                                isLoading={deleteLoading}
+                                loadingText="Deleting..."
                                 className="btn-danger flex-1 font-bold"
                             >
-                                {deleteLoading ? 'Deleting...' : 'Yes, Delete Everything'}
-                            </button>
+                                Yes, Delete Everything
+                            </Button>
                         </div>
                     </div>
                 )}

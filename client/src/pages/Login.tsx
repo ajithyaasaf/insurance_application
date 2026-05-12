@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { HiOutlineShieldCheck, HiOutlineMail, HiOutlineLockClosed, HiOutlineUser } from 'react-icons/hi';
+import Button from '../components/ui/Button';
 
 const Login: React.FC = () => {
     const { login, register } = useAuth();
@@ -124,24 +125,16 @@ const Login: React.FC = () => {
                             </div>
                         </div>
 
-                        <button
+                        <Button
                             type="submit"
-                            disabled={loading}
+                            isLoading={loading}
+                            loadingText="Processing..."
                             className="w-full py-3 rounded-xl bg-primary-600 text-white font-semibold text-sm
                 hover:bg-primary-700 active:bg-primary-800 transition-all duration-200
-                shadow-lg shadow-primary-600/30 hover:shadow-xl hover:shadow-primary-600/40
-                disabled:opacity-50 disabled:cursor-not-allowed"
+                shadow-lg shadow-primary-600/30 hover:shadow-xl hover:shadow-primary-600/40"
                         >
-                            {loading ? (
-                                <span className="inline-flex items-center gap-2">
-                                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" opacity="0.25" />
-                                        <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" opacity="0.75" />
-                                    </svg>
-                                    Processing...
-                                </span>
-                            ) : isRegister ? 'Create Account' : 'Sign In'}
-                        </button>
+                            {isRegister ? 'Create Account' : 'Sign In'}
+                        </Button>
                     </form>
 
                     <div className="mt-6 text-center">

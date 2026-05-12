@@ -8,6 +8,7 @@ import { formatDate, formatVehicleClass, scrollToFirstError } from '../utils/for
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineUsers, HiOutlineEye } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
+import Button from '../components/ui/Button';
 
 const Customers: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
@@ -219,9 +220,9 @@ const Customers: React.FC = () => {
                     </div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1" disabled={submitting}>Cancel</button>
-                        <button type="submit" className="btn-primary flex-1" disabled={submitting}>
-                            {submitting ? 'Saving...' : editing ? 'Update Customer' : 'Create Customer'}
-                        </button>
+                        <Button type="submit" isLoading={submitting} className="btn-primary flex-1">
+                            {editing ? 'Update Customer' : 'Create Customer'}
+                        </Button>
                     </div>
                 </form>
             </Modal>

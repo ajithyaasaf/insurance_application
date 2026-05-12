@@ -17,6 +17,7 @@ import {
     HiOutlinePlus,
     HiOutlineCreditCard
 } from 'react-icons/hi';
+import Button from '../components/ui/Button';
 
 const PolicyDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -510,13 +511,14 @@ const PolicyDetail: React.FC = () => {
                         >
                             Cancel
                         </button>
-                        <button 
+                        <Button 
                             type="submit" 
+                            isLoading={isSubmitting}
+                            disabled={!paymentAmount}
                             className="btn-primary flex-1"
-                            disabled={isSubmitting || !paymentAmount}
                         >
-                            {isSubmitting ? 'Recording...' : 'Collect Payment'}
-                        </button>
+                            Collect Payment
+                        </Button>
                     </div>
                 </form>
             </Modal>

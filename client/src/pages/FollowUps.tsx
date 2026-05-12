@@ -9,6 +9,7 @@ import { formatDate, getStatusColor, scrollToFirstError, formatVehicleClass } fr
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlinePhone, HiOutlineSearch } from 'react-icons/hi';
 import { FOLLOWUP_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
+import Button from '../components/ui/Button';
 
 
 
@@ -26,6 +27,7 @@ const FollowUps: React.FC = () => {
     const [editing, setEditing] = useState<any>(null);
     const [form, setForm] = useState({ customerId: '', policyId: '', nextFollowUpDate: '', notes: '', status: 'pending' });
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchFollowUps = useCallback(async (page = 1) => {
         setLoading(true);
@@ -91,12 +93,13 @@ const FollowUps: React.FC = () => {
             return;
         }
         setErrors({});
+        setIsSubmitting(true);
         try {
             const payload = { ...form, policyId: form.policyId || undefined };
             if (editing) { await api.put(`/follow-ups/${editing.id}`, payload); toast.success('Follow-up updated'); }
             else { await api.post('/follow-ups', payload); toast.success('Follow-up created'); }
             setModalOpen(false); fetchFollowUps(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsSubmitting(false); }
     };
 
     const handleDelete = async (id: string) => {
@@ -245,7 +248,7 @@ const FollowUps: React.FC = () => {
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
+                        <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
             </Modal>

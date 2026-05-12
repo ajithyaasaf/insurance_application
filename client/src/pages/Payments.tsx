@@ -9,6 +9,7 @@ import { formatDate, formatCurrency, getStatusColor, scrollToFirstError, formatV
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineCreditCard } from 'react-icons/hi';
 import { PAYMENT_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
+import Button from '../components/ui/Button';
 
 
 
@@ -31,6 +32,8 @@ const Payments: React.FC = () => {
         customerId: '', policyId: '', amount: '', dueDate: '', paidDate: '', paidAmount: '', status: 'pending', notes: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDetecting, setIsDetecting] = useState(false);
 
     const fetchPayments = useCallback(async (page = 1) => {
         setLoading(true);
@@ -106,6 +109,7 @@ const Payments: React.FC = () => {
             return;
         }
         setErrors({});
+        setIsSubmitting(true);
         try {
             const payload = {
                 ...form, amount: parseFloat(form.amount), paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
@@ -120,15 +124,16 @@ const Payments: React.FC = () => {
                 toast.success(res.data.message || 'Payment created');
             }
             setModalOpen(false); fetchPayments(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); }
+        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsSubmitting(false); }
     };
 
     const handleDetectOverdue = async () => {
+        setIsDetecting(true);
         try {
             const res = await api.post('/payments/detect-overdue');
             toast.success(res.data.message);
             fetchPayments(meta.page);
-        } catch { toast.error('Failed'); }
+        } catch { toast.error('Failed'); } finally { setIsDetecting(false); }
     };
 
     return (
@@ -136,7 +141,7 @@ const Payments: React.FC = () => {
             <div className="page-header">
                 <h1 className="page-title">Payments</h1>
                 <div className="flex gap-2">
-                    <button onClick={handleDetectOverdue} className="btn-secondary text-amber-600">Detect Overdue</button>
+                    <Button onClick={handleDetectOverdue} isLoading={isDetecting} className="btn-secondary text-amber-600">Detect Overdue</Button>
                     <button onClick={openCreate} className="btn-primary"><HiOutlinePlus className="w-4 h-4" /> Add Payment</button>
                 </div>
             </div>
@@ -375,7 +380,7 @@ const Payments: React.FC = () => {
                     <div><label className="label">Notes</label><textarea className="input" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</button>
+                        <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
             </Modal>
