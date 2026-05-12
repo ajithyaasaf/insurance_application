@@ -250,8 +250,8 @@ const Commissions: React.FC = () => {
             if (pendingCompanyFilter.length > 0 && !pendingCompanyFilter.includes(pd.companyId)) return false;
             const search = pendingSearch.toLowerCase().trim();
             if (!search) return true;
-            return pd.dealerName.toLowerCase().includes(search) || 
-                   pd.companyName.toLowerCase().includes(search);
+            return pd.dealerName.toLowerCase().includes(search) ||
+                pd.companyName.toLowerCase().includes(search);
         });
     }, [pendingDealers, pendingCompanyFilter, pendingSearch]);
 
@@ -263,7 +263,7 @@ const Commissions: React.FC = () => {
 
         try {
             toast.loading('Generating Excel...', { id: 'export-excel' });
-            
+
             const reqBody: any = {};
             if (historyDealerFilter) reqBody.dealerId = historyDealerFilter;
             if (historyCompanyFilter) reqBody.companyId = historyCompanyFilter;
@@ -280,7 +280,7 @@ const Commissions: React.FC = () => {
             a.download = `Commission_History_${new Date().toISOString().split('T')[0]}.xlsx`;
             a.click();
             window.URL.revokeObjectURL(url);
-            
+
             toast.success('Excel downloaded!', { id: 'export-excel' });
         } catch {
             toast.error('Failed to export', { id: 'export-excel' });
@@ -310,12 +310,12 @@ const Commissions: React.FC = () => {
         doc.setTextColor(17, 24, 39); // Almost Black
         doc.setFontSize(14);
         doc.text('Commission Report', 14, 48);
-        
+
         doc.setFontSize(10);
         doc.text(`Dealer: ${dealerName}`, 14, 56);
         doc.text(`Insurance: ${data.company?.name || 'All Companies'}`, 14, 62);
         doc.text(`Period: ${formatDate(data.periodStart)} - ${formatDate(data.periodEnd)}`, 14, 68);
-        
+
         // Align these to the right side
         const rightX = doc.internal.pageSize.width - 14;
         doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, rightX, 62, { align: 'right' });
@@ -338,14 +338,14 @@ const Commissions: React.FC = () => {
                 ((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN'),
             ]),
             theme: 'grid',
-            styles: { 
+            styles: {
                 fontSize: 7,
                 cellPadding: 3,
                 valign: 'middle',
                 lineWidth: 0.2,
                 lineColor: [209, 213, 219] // Darker Gray (Gray 300)
             },
-            headStyles: { 
+            headStyles: {
                 fillColor: [30, 58, 138],
                 textColor: [255, 255, 255],
                 fontStyle: 'bold',
@@ -369,7 +369,7 @@ const Commissions: React.FC = () => {
         doc.setTextColor(107, 114, 128);
         doc.text(`Total OD Commission: ${(data.totalOdCommission || data.summary?.totalOdCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 12);
         doc.text(`Total TP Commission: ${(data.totalTpCommission || data.summary?.totalTpCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 19);
-        
+
         doc.setFontSize(14);
         doc.setTextColor(21, 128, 61); // Emerald 700
         doc.text(`Grand Total: ${(data.totalCommission || data.summary?.totalCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 30);
@@ -416,9 +416,9 @@ const Commissions: React.FC = () => {
                                 multiple={true}
                                 placeholder="Filter Insurers"
                             />
-                            <input 
-                                type="text" 
-                                placeholder="Search dealer..." 
+                            <input
+                                type="text"
+                                placeholder="Search dealer..."
                                 className="input w-64"
                                 value={pendingSearch}
                                 onChange={(e) => setPendingSearch(e.target.value)}
@@ -427,11 +427,11 @@ const Commissions: React.FC = () => {
                     </div>
 
                     {filteredPending.length === 0 ? (
-                        <EmptyState 
-                            message={pendingSearch || pendingCompanyFilter.length > 0 
-                                ? "No pending commissions match your filters." 
-                                : "All caught up! No pending commissions found."} 
-                            icon={<HiOutlineCheckCircle className="w-12 h-12 text-emerald-500" />} 
+                        <EmptyState
+                            message={pendingSearch || pendingCompanyFilter.length > 0
+                                ? "No pending commissions match your filters."
+                                : "All caught up! No pending commissions found."}
+                            icon={<HiOutlineCheckCircle className="w-12 h-12 text-emerald-500" />}
                         />
                     ) : (
                         <div className="table-container">
@@ -460,7 +460,7 @@ const Commissions: React.FC = () => {
                                             </td>
                                             <td className="text-surface-600 font-medium">{formatDate(pd.oldestPolicyDate)}</td>
                                             <td>
-                                                <button 
+                                                <button
                                                     onClick={() => handleProcessPending(pd)}
                                                     className="btn-primary btn-sm"
                                                 >
@@ -498,7 +498,7 @@ const Commissions: React.FC = () => {
                                             </span>
                                         )}
                                         {stats?.policyCount > 0 && (
-                                            <button 
+                                            <button
                                                 onClick={handlePeekVolume}
                                                 className="text-[10px] font-bold text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-0.5"
                                             >
@@ -512,7 +512,7 @@ const Commissions: React.FC = () => {
                                         </p>
                                     )}
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-6 border-l border-surface-100 pl-6">
                                     <div>
                                         <p className="text-[10px] font-extrabold text-blue-500 uppercase mb-0.5">Total OD Volume</p>
@@ -533,15 +533,15 @@ const Commissions: React.FC = () => {
                                     <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Live Commission Est.</p>
                                     <div className="flex justify-between items-baseline relative z-10">
                                         <p className="text-3xl font-black text-emerald-700 tabular-nums">
-                                            {stats && (odPercentage || tpPercentage) 
+                                            {stats && (odPercentage || tpPercentage)
                                                 ? formatCurrency((stats.totalOdPremium * (parseFloat(odPercentage) || 0) / 100) + (stats.totalTpPremium * (parseFloat(tpPercentage) || 0) / 100))
                                                 : formatCurrency(0)
                                             }
                                         </p>
                                     </div>
                                     <div className="mt-2 h-1 bg-emerald-200/50 rounded-full overflow-hidden">
-                                        <div 
-                                            className="h-full bg-emerald-500 transition-all duration-500" 
+                                        <div
+                                            className="h-full bg-emerald-500 transition-all duration-500"
                                             style={{ width: `${Math.min((parseFloat(odPercentage) || 0) + (parseFloat(tpPercentage) || 0), 100)}%` }}
                                         ></div>
                                     </div>
@@ -569,47 +569,47 @@ const Commissions: React.FC = () => {
                             </div>
                             <div>
                                 <label className="label">Period Start *</label>
-                                <input 
-                                    type="date" 
+                                <input
+                                    type="date"
                                     className={`input ${calcErrors.periodStart ? 'border-red-500 focus:ring-red-400' : ''}`}
                                     data-error-field={calcErrors.periodStart ? 'true' : undefined}
-                                    value={periodStart} 
-                                    onChange={e => { setPeriodStart(e.target.value); setCalcErrors(prev => ({ ...prev, periodStart: '' })); }} 
+                                    value={periodStart}
+                                    onChange={e => { setPeriodStart(e.target.value); setCalcErrors(prev => ({ ...prev, periodStart: '' })); }}
                                 />
                                 {calcErrors.periodStart && <p className="text-xs text-red-500 mt-1">{calcErrors.periodStart}</p>}
                             </div>
                             <div>
                                 <label className="label">Period End *</label>
-                                <input 
-                                    type="date" 
+                                <input
+                                    type="date"
                                     className={`input ${calcErrors.periodEnd ? 'border-red-500 focus:ring-red-400' : ''}`}
                                     data-error-field={calcErrors.periodEnd ? 'true' : undefined}
-                                    value={periodEnd} 
-                                    onChange={e => { setPeriodEnd(e.target.value); setCalcErrors(prev => ({ ...prev, periodEnd: '' })); }} 
+                                    value={periodEnd}
+                                    onChange={e => { setPeriodEnd(e.target.value); setCalcErrors(prev => ({ ...prev, periodEnd: '' })); }}
                                 />
                                 {calcErrors.periodEnd && <p className="text-xs text-red-500 mt-1">{calcErrors.periodEnd}</p>}
                             </div>
                             <div>
                                 <label className="label">OD % *</label>
-                                <input 
-                                    type="number" min="0" max="100" step="0.1" 
+                                <input
+                                    type="number" min="0" max="100" step="0.1"
                                     className={`input ${calcErrors.odPercentage ? 'border-red-500 focus:ring-red-400' : ''}`}
                                     data-error-field={calcErrors.odPercentage ? 'true' : undefined}
-                                    placeholder="e.g. 10" 
-                                    value={odPercentage} 
-                                    onChange={e => { setOdPercentage(e.target.value); setCalcErrors(prev => ({ ...prev, odPercentage: '' })); }} 
+                                    placeholder="e.g. 10"
+                                    value={odPercentage}
+                                    onChange={e => { setOdPercentage(e.target.value); setCalcErrors(prev => ({ ...prev, odPercentage: '' })); }}
                                 />
                                 {calcErrors.odPercentage && <p className="text-xs text-red-500 mt-1">{calcErrors.odPercentage}</p>}
                             </div>
                             <div>
                                 <label className="label">TP % *</label>
-                                <input 
-                                    type="number" min="0" max="100" step="0.1" 
+                                <input
+                                    type="number" min="0" max="100" step="0.1"
                                     className={`input ${calcErrors.tpPercentage ? 'border-red-500 focus:ring-red-400' : ''}`}
                                     data-error-field={calcErrors.tpPercentage ? 'true' : undefined}
-                                    placeholder="e.g. 5" 
-                                    value={tpPercentage} 
-                                    onChange={e => { setTpPercentage(e.target.value); setCalcErrors(prev => ({ ...prev, tpPercentage: '' })); }} 
+                                    placeholder="e.g. 5"
+                                    value={tpPercentage}
+                                    onChange={e => { setTpPercentage(e.target.value); setCalcErrors(prev => ({ ...prev, tpPercentage: '' })); }}
                                 />
                                 {calcErrors.tpPercentage && <p className="text-xs text-red-500 mt-1">{calcErrors.tpPercentage}</p>}
                             </div>
@@ -654,13 +654,13 @@ const Commissions: React.FC = () => {
                             )}
 
                             {preview.policies.length === 0 ? (
-                                <EmptyState 
+                                <EmptyState
                                     message={
-                                        preview.alreadyProcessedCount > 0 
-                                            ? `All ${preview.alreadyProcessedCount} policies for this period were already processed.` 
+                                        preview.alreadyProcessedCount > 0
+                                            ? `All ${preview.alreadyProcessedCount} policies for this period were already processed.`
                                             : "No policies found for this dealer in the selected period"
-                                    } 
-                                    icon={<HiOutlineCalculator className="w-12 h-12" />} 
+                                    }
+                                    icon={<HiOutlineCalculator className="w-12 h-12" />}
                                 />
                             ) : (
                                 <>
@@ -669,9 +669,9 @@ const Commissions: React.FC = () => {
                                             <thead>
                                                 <tr>
                                                     <th className="w-10">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            className="checkbox" 
+                                                        <input
+                                                            type="checkbox"
+                                                            className="checkbox"
                                                             checked={preview.policies.length > 0 && selectedPolicyIds.length === preview.policies.length}
                                                             onChange={(e) => {
                                                                 if (e.target.checked) setSelectedPolicyIds(preview.policies.map((p: any) => p.policyId));
@@ -697,9 +697,9 @@ const Commissions: React.FC = () => {
                                                 {preview.policies.map((p: any, i: number) => (
                                                     <tr key={i} className={!selectedPolicyIds.includes(p.policyId) ? 'opacity-50 grayscale bg-surface-50' : ''}>
                                                         <td>
-                                                            <input 
-                                                                type="checkbox" 
-                                                                className="checkbox" 
+                                                            <input
+                                                                type="checkbox"
+                                                                className="checkbox"
                                                                 checked={selectedPolicyIds.includes(p.policyId)}
                                                                 onChange={(e) => {
                                                                     if (e.target.checked) setSelectedPolicyIds([...selectedPolicyIds, p.policyId]);
@@ -762,10 +762,10 @@ const Commissions: React.FC = () => {
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
                                         />
-                                        <Button 
-                                            onClick={handleSave} 
+                                        <Button
+                                            onClick={handleSave}
                                             isLoading={saving}
-                                            disabled={selectedPolicyIds.length === 0} 
+                                            disabled={selectedPolicyIds.length === 0}
                                             loadingText="Saving..."
                                             className="btn-primary self-end"
                                         >
@@ -825,11 +825,11 @@ const Commissions: React.FC = () => {
                     </div>
 
                     {filteredHistory.length === 0 ? (
-                        <EmptyState 
+                        <EmptyState
                             message={(historyDealerFilter || historyCompanyFilter || historyStatusFilter || historyDateFrom || historyDateTo)
                                 ? "No history records match your filters."
-                                : "No commission history found."} 
-                            icon={<HiOutlineCalculator className="w-12 h-12" />} 
+                                : "No commission history found."}
+                            icon={<HiOutlineCalculator className="w-12 h-12" />}
                         />
                     ) : (
                         <div className="table-container">
@@ -837,8 +837,8 @@ const Commissions: React.FC = () => {
                                 <thead>
                                     <tr>
                                         <th className="w-10">
-                                            <input 
-                                                type="checkbox" 
+                                            <input
+                                                type="checkbox"
                                                 className="checkbox"
                                                 checked={selectedIds.length > 0 && selectedIds.length === filteredHistory.filter(c => c.status === 'draft').length}
                                                 onChange={(e) => {
@@ -866,9 +866,9 @@ const Commissions: React.FC = () => {
                                         <tr key={c.id} className={selectedIds.includes(c.id) ? 'bg-primary-50' : ''}>
                                             <td>
                                                 {c.status === 'draft' && (
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className="checkbox" 
+                                                    <input
+                                                        type="checkbox"
+                                                        className="checkbox"
                                                         checked={selectedIds.includes(c.id)}
                                                         onChange={(e) => {
                                                             if (e.target.checked) setSelectedIds([...selectedIds, c.id]);
@@ -897,9 +897,9 @@ const Commissions: React.FC = () => {
                                                     {c.status === 'draft' && (
                                                         <button onClick={() => handleMarkPaid(c.id)} className="btn-ghost btn-sm text-emerald-600" title="Mark Paid"><HiOutlineCheckCircle className="w-3.5 h-3.5" /></button>
                                                     )}
-                                                    <button 
-                                                        onClick={() => handleDelete(c.id)} 
-                                                        className={`btn-ghost btn-sm ${c.status === 'paid' ? 'text-surface-300 cursor-not-allowed' : 'text-red-500'}`} 
+                                                    <button
+                                                        onClick={() => handleDelete(c.id)}
+                                                        className={`btn-ghost btn-sm ${c.status === 'paid' ? 'text-surface-300 cursor-not-allowed' : 'text-red-500'}`}
                                                         title={c.status === 'paid' ? 'Cannot delete paid records' : 'Delete'}
                                                         disabled={c.status === 'paid'}
                                                     >
@@ -994,7 +994,7 @@ const Commissions: React.FC = () => {
             <Modal isOpen={showVolumeModal} onClose={() => setShowVolumeModal(false)} title="Policies in Range (Unprocessed)" size="lg">
                 <div className="space-y-4">
                     <p className="text-sm text-surface-500">
-                        This is a quick preview of the {volumePolicies.length} policies found for this period. 
+                        This is a quick preview of the {volumePolicies.length} policies found for this period.
                         No commissions are calculated yet.
                     </p>
                     <div className="table-container max-h-[60vh] overflow-auto border rounded-lg">
