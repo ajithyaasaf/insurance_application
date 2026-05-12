@@ -15,12 +15,19 @@ export const formatShortCurrency = (amount: number): string => {
     }).format(amount);
 };
 
-export const formatDate = (date: string | Date): string => {
-    return new Intl.DateTimeFormat('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    }).format(new Date(date));
+export const formatDate = (date: string | Date | null | undefined): string => {
+    if (!date) return '—';
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '—';
+        return new Intl.DateTimeFormat('en-IN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+        }).format(d);
+    } catch (e) {
+        return '—';
+    }
 };
 
 export const formatDateInput = (date: string | Date): string => {

@@ -213,7 +213,7 @@ function buildFollowUpWhere(userId: string, role: string, filters?: ReportFilter
 
 function fmtDate(d: Date | null | undefined): string {
     if (!d) return '';
-    return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(d));
+    return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(d));
 }
 
 // ─── Service Class ───────────────────────────────────────
