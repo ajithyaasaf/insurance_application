@@ -9,9 +9,11 @@ const router = Router();
 
 
 
-router.post('/register', authLimiter, validate(registerSchema), (req, res, next) =>
-    authController.register(req, res, next)
-);
+if (process.env.ENABLE_SIGNUP === 'true') {
+    router.post('/register', authLimiter, validate(registerSchema), (req, res, next) =>
+        authController.register(req, res, next)
+    );
+}
 router.post('/login', authLimiter, validate(loginSchema), (req, res, next) =>
     authController.login(req, res, next)
 );

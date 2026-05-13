@@ -136,16 +136,7 @@ const Login: React.FC = () => {
                         </Button>
                     </form>
 
-                    <div className="mt-6 text-center">
-                        <button
-                            onClick={() => setIsRegister(!isRegister)}
-                            className="text-sm text-surface-400 hover:text-primary-400 transition-colors"
-                        >
-                            {isRegister
-                                ? 'Already have an account? Sign in'
-                                : "Don't have an account? Register"}
-                        </button>
-                    </div>
+                    {/* Registration link removed for security in private app */}
                 </div>
             </div>
 
