@@ -2,7 +2,7 @@
 
 *when customer enter policy we have multiple policy type and based on that we have fields but my client little bit feels like sometimes it feels like long process for me to add customer in customer and then i ahve to go policy and then select that customer and then i make polcy so this is what my client says so need to plan solution for this 
 
-* and in policy origin my client ask to have new vehicle,fresh,own renewal,and external renewal in this we have to be carefull becuase we already have renwal form who is already our customer who is in policy customer but this renewal select is since this application created now he have to enter his but since we have already own renewal form for button i think we dont need to add own renewal becuase even though that csutomer my client have is previusly insurance started and closed before application i think we  have create manually that expired policy start and end date and we can renew own by clcik the renewal button may be i wrong younshould correct me on this if i am wrong also tell me why my client want new vehicle and tell me why he want that new vehicle why?(doubt need to ask wait)
+* and in policy origin my client ask to have new vehicle,fresh,own renewal,and external renewal in this we have to be carefull becuase we already have renwal form who is already our customer who is in policy customer but this renewal select is since this application created now he have to enter his but since we have already own renewal form for button i think we dont need to add own renewal becuase even though that csutomer my client have is previusly insurance started and closed before application i think we  have create manually that expired policy start and end date and we can renew own by clcik the renewal button may be i wrong younshould correct me on this if i am wrong also tell me why my client want new vehicle and tell me why he want that new vehicle why?(doubt need to ask wait)(completed)
 
 
 * in vehicle class need to add SAOD TW, SAOD PVT, CPA(completed)
@@ -28,7 +28,7 @@ also we have filed claim number in the label just add /policy number in that. al
 
 * this is the biggest change reports builder tab in the reports page is have many tab and have so many filters first question what is group by field is for? next my client ask customer based filter based on selected customer it should be filtered out also from date to do date in this filters filtered based on what basis my client tells his customers who puts so many vehicle policy some times asks this year how many claims we maded? how much bill amount we give and how much we claimed ? this type of questions they ask to my client who is this insurar , also they asked this type of vehicle how much we policies we put on you company? so this kindd of quesitons will be asked to my client (completed but need to check manually)
 
-* need staff control they no need to access commision page and reaport page dashboard tab also currently sign up page have able to choose agent also it let to someone sign up them also as a agent i dont want this 
+* need staff control they no need to access commision page and reaport page dashboard tab also currently sign up page have able to choose agent also it let to someone sign up them also as a agent i dont want this (completed)
 
 
 
