@@ -360,6 +360,7 @@ enum PolicyVehicleClass {
 }
 
 enum PolicyOrigin {
+  new_vehicle
   fresh
   external_renewal
   in_system_renewal

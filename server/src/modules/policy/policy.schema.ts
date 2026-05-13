@@ -28,7 +28,7 @@ export const createPolicySchema = z.object({
         paymentMethod: z.enum(['Cash', 'UPI', 'Cheque', 'Online', 'NEFT']).optional(),
         paidAmount: z.number().min(0).optional(),
         dealerId: z.string().optional().or(z.literal('')),
-        policyOrigin: z.enum(['fresh', 'external_renewal', 'in_system_renewal']).optional().default('fresh'),
+        policyOrigin: z.enum(['new_vehicle', 'fresh', 'external_renewal', 'in_system_renewal']).optional().default('fresh'),
         ncbPercentage: z.number().min(0).max(50).optional().nullable(),
     }),
 });
@@ -61,7 +61,7 @@ export const updatePolicySchema = z.object({
         totalPremium: z.number().min(0).optional(),
         paymentMethod: z.enum(['Cash', 'UPI', 'Cheque', 'Online', 'NEFT']).optional(),
         dealerId: z.string().optional().or(z.literal('')),
-        policyOrigin: z.enum(['fresh', 'external_renewal', 'in_system_renewal']).optional(),
+        policyOrigin: z.enum(['new_vehicle', 'fresh', 'external_renewal', 'in_system_renewal']).optional(),
         ncbPercentage: z.number().min(0).max(50).optional().nullable(),
     }),
 });

@@ -239,8 +239,9 @@ const Leads: React.FC = () => {
                                                         {formatVehicleClass(lead.vehicleClass)}
                                                     </span>
                                                 )}
+                                                {lead.policyOrigin === 'new_vehicle' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">New Vehicle</span>}
                                                 {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
-                                                {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
+                                                {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Own Renewal</span>}
                                                 {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
                                             </div>
                                         </td>
@@ -269,8 +270,9 @@ const Leads: React.FC = () => {
                                     <div>
                                         <p className="font-semibold text-surface-900 flex items-center gap-1.5">
                                             {lead.name}
+                                            {lead.policyOrigin === 'new_vehicle' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-200 text-[10px] font-medium bg-green-50 text-green-800">New Vehicle</span>}
                                             {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
-                                            {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Renewal</span>}
+                                            {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Own Renewal</span>}
                                             {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-surface-200 text-[10px] font-medium bg-surface-50 text-surface-600">Fresh</span>}
                                         </p>
                                         <p className="text-xs text-surface-500">{lead.phone || 'No phone'}</p>
@@ -351,15 +353,27 @@ const Leads: React.FC = () => {
                             <label className="label">Policy Origin *</label>
                             <SearchableSelect
                                 options={[
-                                    { value: 'fresh', label: 'Fresh (New Policy)' },
-                                    { value: 'external_renewal', label: 'External Renewal (Prior outside policy)' },
+                                    { value: 'new_vehicle', label: 'New Vehicle (First-time insurance)' },
+                                    { value: 'fresh', label: 'Fresh (No prior policy / Port-in)' },
+                                    { value: 'external_renewal', label: 'External Renewal (From another insurer)' },
+                                    { value: 'in_system_renewal', label: 'Own Renewal (Manual re-entry)' },
                                 ]}
                                 value={convertForm.policyOrigin}
-                                onChange={(val) => setConvertForm({ ...convertForm, policyOrigin: val })}
+                                onChange={(val) => setConvertForm({
+                                    ...convertForm,
+                                    policyOrigin: val,
+                                    // Clear NCB if switching to non-NCB origins
+                                    ...(['new_vehicle', 'fresh'].includes(val) ? { ncbPercentage: '' } : {}),
+                                })}
                                 placeholder="Select Origin"
                             />
+                            {convertForm.policyOrigin === 'new_vehicle' && (
+                                <p className="text-xs text-blue-600 mt-1 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                                    ℹ️ New vehicles have no NCB history — NCB is automatically set to 0%.
+                                </p>
+                            )}
                         </div>
-                        {convertingLead?.policyType === 'motor' && convertForm.policyOrigin !== 'fresh' && (
+                        {convertingLead?.policyType === 'motor' && (convertForm.policyOrigin === 'external_renewal' || convertForm.policyOrigin === 'in_system_renewal') && (
                             <div>
                                 <label className="label">
                                     {convertForm.policyOrigin === 'external_renewal' ? 'Prior NCB (from previous insurer) %' : 'NCB Applied %'}

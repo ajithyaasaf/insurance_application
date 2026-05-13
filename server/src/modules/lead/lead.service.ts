@@ -26,7 +26,7 @@ interface CreateLeadInput {
     startDate?: string;
     expiryDate?: string;
     dealerId?: string;
-    policyOrigin?: 'fresh' | 'external_renewal' | 'in_system_renewal';
+    policyOrigin?: 'new_vehicle' | 'fresh' | 'external_renewal' | 'in_system_renewal';
     ncbPercentage?: number | null;
 }
 
@@ -54,7 +54,7 @@ interface UpdateLeadInput {
     startDate?: string;
     expiryDate?: string;
     dealerId?: string;
-    policyOrigin?: 'fresh' | 'external_renewal' | 'in_system_renewal';
+    policyOrigin?: 'new_vehicle' | 'fresh' | 'external_renewal' | 'in_system_renewal';
     ncbPercentage?: number | null;
 }
 

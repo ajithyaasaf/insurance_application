@@ -334,9 +334,10 @@ export class ReportService {
             startDate: fmtDate(r.startDate),
             expiryDate: fmtDate(r.expiryDate),
             status: r.status,
-            policyOrigin: r.policyOrigin === 'external_renewal' ? 'External Renewal'
-                : r.policyOrigin === 'in_system_renewal' ? 'In-System Renewal'
-                    : 'Fresh',
+            policyOrigin: r.policyOrigin === 'new_vehicle' ? 'New Vehicle'
+                : r.policyOrigin === 'external_renewal' ? 'External Renewal'
+                    : r.policyOrigin === 'in_system_renewal' ? 'Own Renewal'
+                        : 'Fresh',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.policies };
@@ -619,9 +620,10 @@ export class ReportService {
                 _sum: { premiumAmount: true, totalPremium: true },
             });
             const originLabels: Record<string, string> = {
+                new_vehicle: 'New Vehicle',
                 fresh: 'Fresh',
                 external_renewal: 'External Renewal',
-                in_system_renewal: 'In-System Renewal',
+                in_system_renewal: 'Own Renewal',
             };
             return {
                 grouped: true,

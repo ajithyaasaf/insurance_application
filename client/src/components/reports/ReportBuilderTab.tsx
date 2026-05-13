@@ -314,9 +314,10 @@ const ReportBuilderTab: React.FC = () => {
                                     <label className="label">Policy Origin</label>
                                     <SearchableSelect
                                         options={[
+                                            { value: 'new_vehicle', label: 'New Vehicle' },
                                             { value: 'fresh', label: 'Fresh' },
                                             { value: 'external_renewal', label: 'External Renewal' },
-                                            { value: 'in_system_renewal', label: 'In-System Renewal' },
+                                            { value: 'in_system_renewal', label: 'Own Renewal' },
                                         ]}
                                         value={localFilters.policyOrigin || ''}
                                         onChange={val => updateLocalFilter('policyOrigin', val)}

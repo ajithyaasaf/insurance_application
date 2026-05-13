@@ -119,18 +119,42 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     <label className="label">Policy Origin {isRequired ? '*' : ''}</label>
                     <SearchableSelect
                         options={[
-                            { value: 'fresh', label: 'Fresh (New Vehicle / No Prior Policy)' },
+                            { value: 'new_vehicle', label: 'New Vehicle (First-time insurance)' },
+                            { value: 'fresh', label: 'Fresh (No prior policy / Port-in)' },
                             { value: 'external_renewal', label: 'External Renewal (From another insurer)' },
+                            { value: 'in_system_renewal', label: 'Own Renewal (Manual re-entry)' },
                         ]}
                         value={form.policyOrigin || 'fresh'}
-                        onChange={(val) => handleChange('policyOrigin', val)}
+                        onChange={(val) => {
+                            // When switching to new_vehicle or fresh, zero-out NCB automatically
+                            const noNcbOrigins = ['new_vehicle', 'fresh'];
+                            setForm((prev: any) => ({
+                                ...prev,
+                                policyOrigin: val,
+                                ...(noNcbOrigins.includes(val) ? { ncbPercentage: null } : {}),
+                            }));
+                            if (typeof setErrors === 'function') {
+                                setErrors((prev: any) => ({ ...prev, policyOrigin: '' }));
+                            }
+                        }}
                         placeholder="Select Origin"
                         hasError={!!errors.policyOrigin}
                     />
+                    {form.policyOrigin === 'new_vehicle' && (
+                        <p className="text-xs text-blue-600 mt-1 bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                            ℹ️ New vehicles have no NCB history — NCB is automatically set to 0%.
+                        </p>
+                    )}
+                    {form.policyOrigin === 'in_system_renewal' && (
+                        <p className="text-xs text-amber-600 mt-1 bg-amber-50 px-2 py-1 rounded border border-amber-100">
+                            ⚠️ Use this only for manual re-entry of existing customer policies. Use the Renew button on a policy for in-system renewals.
+                        </p>
+                    )}
                 </div>
             )}
 
-            {isMotor && form.policyOrigin !== 'fresh' && (
+            {/* NCB Field: shown only for external_renewal and in_system_renewal, hidden for new_vehicle and fresh */}
+            {isMotor && (form.policyOrigin === 'external_renewal' || form.policyOrigin === 'in_system_renewal') && (
                 <div>
                     <label className="label">
                         {form.policyOrigin === 'external_renewal' ? 'Prior NCB (from previous insurer) %' : 'NCB Applied %'}

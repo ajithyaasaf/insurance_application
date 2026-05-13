@@ -361,8 +361,9 @@ const Policies: React.FC = () => {
                                                         {formatVehicleClass(p.vehicleClass)}
                                                     </span>
                                                 )}
+                                                {p.policyOrigin === 'new_vehicle' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">New Vehicle</span>}
                                                 {p.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
-                                                {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Renewal</span>}
+                                                {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Own Renewal</span>}
                                                 {p.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
                                             </div>
                                         </td>
@@ -397,8 +398,9 @@ const Policies: React.FC = () => {
                                         <p className="font-semibold text-surface-900">{p.customer?.name}</p>
                                         <p className="text-xs text-surface-500 capitalize flex items-center gap-1.5">
                                             {p.policyType} • {p.company?.name}
+                                            {p.policyOrigin === 'new_vehicle' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-200 text-[10px] font-medium bg-green-50 text-green-800">New Vehicle</span>}
                                             {p.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
-                                            {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Renewal</span>}
+                                            {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Own Renewal</span>}
                                             {p.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-surface-200 text-[10px] font-medium bg-surface-50 text-surface-600">Fresh</span>}
                                         </p>
                                     </div>
