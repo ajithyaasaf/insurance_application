@@ -14,7 +14,6 @@ const Login: React.FC = () => {
         name: '',
         email: '',
         password: '',
-        role: 'staff',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +22,7 @@ const Login: React.FC = () => {
 
         try {
             if (isRegister) {
-                await register(form.name, form.email, form.password, form.role);
+                await register(form.name, form.email, form.password);
                 toast.success('Account created successfully!');
             } else {
                 await login(form.email, form.password);
