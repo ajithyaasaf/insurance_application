@@ -27,7 +27,9 @@ type GroupBy = 'company' | 'dealer' | 'policyType' | 'vehicleClass' | 'status' |
 interface Column { key: string; label: string }
 interface ReportFilters {
     companyId?: string;
+    companyIds?: string[] | string;
     dealerId?: string;
+    customerId?: string;
     policyType?: string;
     vehicleClass?: string;
     status?: string;

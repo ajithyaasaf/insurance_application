@@ -88,7 +88,7 @@ const Commissions: React.FC = () => {
                 setLoadingStats(true);
                 try {
                     const res = await api.get(`/commissions/stats`, {
-                        params: { dealerId, periodStart, periodEnd, companyId: companyId || undefined }
+                        params: { dealerId, periodStart, periodEnd, companyIds: companyIds.length > 0 ? companyIds.join(',') : undefined }
                     });
                     setStats(res.data.data);
                 } catch { setStats(null); }
