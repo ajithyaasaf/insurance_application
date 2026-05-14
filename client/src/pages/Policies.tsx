@@ -40,7 +40,7 @@ const Policies: React.FC = () => {
         registrationDate: '', policyOrigin: 'fresh', ncbPercentage: ''
     });
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
-    const [renewForm, setRenewForm] = useState({ 
+    const [renewForm, setRenewForm] = useState({
         startDate: '', expiryDate: '', premiumAmount: '', totalPremium: '', policyNumber: '', paidAmount: '',
         od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: ''
     });
@@ -55,17 +55,17 @@ const Policies: React.FC = () => {
     const fetchPolicies = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            const res = await api.get('/policies', { 
-                params: { 
-                    page, 
-                    limit: 10, 
-                    search: search || undefined, 
-                    status: statusFilter || undefined, 
-                    policyType: typeFilter || undefined, 
+            const res = await api.get('/policies', {
+                params: {
+                    page,
+                    limit: 10,
+                    search: search || undefined,
+                    status: statusFilter || undefined,
+                    policyType: typeFilter || undefined,
                     companyIds: companyFilter.length > 0 ? companyFilter.join(',') : undefined,
                     dealerId: dealerFilter || undefined,
                     vehicleClass: vehicleClassFilter || undefined
-                } 
+                }
             });
             setPolicies(res.data.data);
             setMeta(res.data.meta);
@@ -253,7 +253,7 @@ const Policies: React.FC = () => {
         setIsRenewing(true);
         try {
             await api.post(`/policies/${renewingPolicy.id}/renew`, {
-                ...renewForm, 
+                ...renewForm,
                 premiumAmount: parseFloat(renewForm.premiumAmount),
                 totalPremium: renewForm.totalPremium ? parseFloat(renewForm.totalPremium) : undefined,
                 od: renewForm.od ? parseFloat(renewForm.od) : undefined,
@@ -341,11 +341,11 @@ const Policies: React.FC = () => {
             {loading ? (
                 <TableSkeleton cols={7} rows={10} />
             ) : policies.length === 0 ? (
-                <EmptyState 
-                    message={(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter) 
-                        ? "No policies match your search filters." 
-                        : "No policies found. Click 'New Policy' to create one."} 
-                    icon={<HiOutlineDocumentText className="w-12 h-12" />} 
+                <EmptyState
+                    message={(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter)
+                        ? "No policies match your search filters."
+                        : "No policies found. Click 'New Policy' to create one."}
+                    icon={<HiOutlineDocumentText className="w-12 h-12" />}
                 />
             ) : (
                 <>
@@ -429,13 +429,13 @@ const Policies: React.FC = () => {
             {/* Create/Edit Modal */}
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Policy' : 'New Policy'} size="lg">
                 <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-                    <PolicyFormFields 
-                        form={form} 
-                        setForm={setForm} 
-                        companies={companies} 
-                        dealers={dealers} 
-                        customers={customers} 
-                        isEditing={!!editing} 
+                    <PolicyFormFields
+                        form={form}
+                        setForm={setForm}
+                        companies={companies}
+                        dealers={dealers}
+                        customers={customers}
+                        isEditing={!!editing}
                         errors={errors}
                         setErrors={setErrors}
                     />
@@ -450,10 +450,10 @@ const Policies: React.FC = () => {
                                         type="button"
                                         onClick={() => setEditStatus(s as 'active' | 'cancelled')}
                                         className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${editStatus === s
-                                                ? s === 'cancelled'
-                                                    ? 'bg-red-50 border-red-400 text-red-700'
-                                                    : 'bg-emerald-50 border-emerald-400 text-emerald-700'
-                                                : 'bg-white border-surface-200 text-surface-500 hover:bg-surface-50'
+                                            ? s === 'cancelled'
+                                                ? 'bg-red-50 border-red-400 text-red-700'
+                                                : 'bg-emerald-50 border-emerald-400 text-emerald-700'
+                                            : 'bg-white border-surface-200 text-surface-500 hover:bg-surface-50'
                                             }`}
                                     >
                                         {s === 'active' ? '✓ Active' : '✕ Cancelled'}
@@ -477,7 +477,7 @@ const Policies: React.FC = () => {
             <Modal isOpen={renewModalOpen} onClose={() => setRenewModalOpen(false)} title="Renew Policy">
                 <form onSubmit={handleRenew} className="space-y-4" noValidate>
                     <p className="text-sm text-surface-500">Renewing policy for <strong>{renewingPolicy?.customer?.name}</strong></p>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="col-span-full">
                             <label className="label">New Policy Number *</label>
@@ -505,7 +505,7 @@ const Policies: React.FC = () => {
                                         disabled={true}
                                         options={[{ value: 'in_system_renewal', label: 'In-System Renewal' }]}
                                         value={renewForm.policyOrigin}
-                                        onChange={() => {}}
+                                        onChange={() => { }}
                                     />
                                 </div>
                                 <div className="sm:col-span-1">
@@ -557,15 +557,15 @@ const Policies: React.FC = () => {
 
                         <div className="col-span-full">
                             <label className="label">Initial Paid Amount (₹)</label>
-                            <input 
-                                type="number" 
-                                min="0" 
-                                max={parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0} 
-                                step="0.01" 
-                                className="input" 
+                            <input
+                                type="number"
+                                min="0"
+                                max={parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0}
+                                step="0.01"
+                                className="input"
                                 placeholder="Leave empty if pending"
-                                value={renewForm.paidAmount} 
-                                onChange={(e) => handleRenewChange('paidAmount', e.target.value)} 
+                                value={renewForm.paidAmount}
+                                onChange={(e) => handleRenewChange('paidAmount', e.target.value)}
                             />
                         </div>
                     </div>
