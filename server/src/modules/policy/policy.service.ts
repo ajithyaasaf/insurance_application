@@ -186,7 +186,9 @@ export class PolicyService {
         companyId?: string,
         dealerId?: string,
         vehicleClass?: string,
-        companyIds?: string | string[]
+        companyIds?: string | string[],
+        dateFrom?: string,
+        dateTo?: string
     ) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const where: any = {
@@ -208,6 +210,12 @@ export class PolicyService {
             }),
             ...(dealerId === 'direct' ? { dealerId: null } : dealerId ? { dealerId } : {}),
             ...(vehicleClass && { vehicleClass: vehicleClass as any }),
+            ...(dateFrom || dateTo) && {
+                startDate: {
+                    ...(dateFrom && { gte: getStartOfDayIST(dateFrom) }),
+                    ...(dateTo && { lte: getEndOfDayIST(dateTo) }),
+                }
+            }
         };
 
         const total = await prisma.policy.count({ where });

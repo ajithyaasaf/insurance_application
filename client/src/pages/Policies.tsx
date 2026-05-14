@@ -28,6 +28,8 @@ const Policies: React.FC = () => {
     const [companyFilter, setCompanyFilter] = useState<string[]>([]);
     const [dealerFilter, setDealerFilter] = useState('');
     const [vehicleClassFilter, setVehicleClassFilter] = useState('');
+    const [dateFromFilter, setDateFromFilter] = useState('');
+    const [dateToFilter, setDateToFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [renewModalOpen, setRenewModalOpen] = useState(false);
@@ -64,13 +66,15 @@ const Policies: React.FC = () => {
                     policyType: typeFilter || undefined,
                     companyIds: companyFilter.length > 0 ? companyFilter.join(',') : undefined,
                     dealerId: dealerFilter || undefined,
-                    vehicleClass: vehicleClassFilter || undefined
+                    vehicleClass: vehicleClassFilter || undefined,
+                    dateFrom: dateFromFilter || undefined,
+                    dateTo: dateToFilter || undefined
                 }
             });
             setPolicies(res.data.data);
             setMeta(res.data.meta);
         } catch { toast.error('Failed to fetch policies'); } finally { setLoading(false); }
-    }, [search, statusFilter, typeFilter, companyFilter, dealerFilter, vehicleClassFilter]);
+    }, [search, statusFilter, typeFilter, companyFilter, dealerFilter, vehicleClassFilter, dateFromFilter, dateToFilter]);
 
     useEffect(() => { fetchPolicies(); }, [fetchPolicies]);
 
@@ -331,8 +335,22 @@ const Policies: React.FC = () => {
                     allLabel="All Classes"
                     placeholder="Search class..."
                 />
-                {(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter) && (
-                    <button onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setCompanyFilter([]); setDealerFilter(''); setVehicleClassFilter(''); }} className="btn-ghost btn-sm self-start sm:self-auto text-red-500 font-bold uppercase tracking-wider text-[10px]">
+                <input
+                    type="date"
+                    className="input w-full sm:w-40"
+                    value={dateFromFilter}
+                    onChange={(e) => setDateFromFilter(e.target.value)}
+                    title="Start Date From"
+                />
+                <input
+                    type="date"
+                    className="input w-full sm:w-40"
+                    value={dateToFilter}
+                    onChange={(e) => setDateToFilter(e.target.value)}
+                    title="Start Date To"
+                />
+                {(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter || dateFromFilter || dateToFilter) && (
+                    <button onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setCompanyFilter([]); setDealerFilter(''); setVehicleClassFilter(''); setDateFromFilter(''); setDateToFilter(''); }} className="btn-ghost btn-sm self-start sm:self-auto text-red-500 font-bold uppercase tracking-wider text-[10px]">
                         Clear All
                     </button>
                 )}
@@ -342,7 +360,7 @@ const Policies: React.FC = () => {
                 <TableSkeleton cols={7} rows={10} />
             ) : policies.length === 0 ? (
                 <EmptyState
-                    message={(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter)
+                    message={(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter || dateFromFilter || dateToFilter)
                         ? "No policies match your search filters."
                         : "No policies found. Click 'New Policy' to create one."}
                     icon={<HiOutlineDocumentText className="w-12 h-12" />}

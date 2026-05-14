@@ -2,7 +2,7 @@ import prisma from '../../utils/prisma';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { Prisma } from '@prisma/client';
-import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, mapPaymentStatus } from '../../utils/date';
+import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, mapPaymentStatus, getStartOfDayIST, getEndOfDayIST } from '../../utils/date';
 import type { ReportSource, ReportGroupBy } from './report.schema';
 import { ownerFilter } from '../../utils/rbac';
 
@@ -127,8 +127,8 @@ function buildPolicyWhere(userId: string, role: string, filters?: ReportFilters)
     }
     if (filters?.dateFrom || filters?.dateTo) {
         where.startDate = {};
-        if (filters?.dateFrom) where.startDate.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo) where.startDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateFrom) where.startDate.gte = getStartOfDayIST(filters.dateFrom);
+        if (filters?.dateTo) where.startDate.lte = getEndOfDayIST(filters.dateTo);
     }
     return where;
 }
@@ -149,8 +149,8 @@ function buildPaymentWhere(userId: string, role: string, filters?: ReportFilters
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
         where.dueDate = {};
-        if (filters?.dateFrom) where.dueDate.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo) where.dueDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateFrom) where.dueDate.gte = getStartOfDayIST(filters.dateFrom);
+        if (filters?.dateTo) where.dueDate.lte = getEndOfDayIST(filters.dateTo);
     }
     // Join-level filters (company, dealer) — we filter via the policy relation
     if (filters?.companyId || filters?.companyIds || filters?.dealerId || filters?.policyType || filters?.vehicleClass) {
@@ -177,8 +177,8 @@ function buildClaimWhere(userId: string, role: string, filters?: ReportFilters) 
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
         where.claimDate = {};
-        if (filters?.dateFrom) where.claimDate.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo) where.claimDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateFrom) where.claimDate.gte = getStartOfDayIST(filters.dateFrom);
+        if (filters?.dateTo) where.claimDate.lte = getEndOfDayIST(filters.dateTo);
     }
     if (filters?.companyId || filters?.policyType || filters?.vehicleClass) {
         where.policy = { deletedAt: null };
@@ -194,8 +194,8 @@ function buildCustomerWhere(userId: string, role: string, filters?: ReportFilter
     if (filters?.customerId) where.id = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
         where.createdAt = {};
-        if (filters?.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo) where.createdAt.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateFrom) where.createdAt.gte = getStartOfDayIST(filters.dateFrom);
+        if (filters?.dateTo) where.createdAt.lte = getEndOfDayIST(filters.dateTo);
     }
     return where;
 }
@@ -206,8 +206,8 @@ function buildFollowUpWhere(userId: string, role: string, filters?: ReportFilter
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.dateFrom || filters?.dateTo) {
         where.nextFollowUpDate = {};
-        if (filters?.dateFrom) where.nextFollowUpDate.gte = new Date(filters.dateFrom);
-        if (filters?.dateTo) where.nextFollowUpDate.lte = new Date(filters.dateTo + 'T23:59:59.999Z');
+        if (filters?.dateFrom) where.nextFollowUpDate.gte = getStartOfDayIST(filters.dateFrom);
+        if (filters?.dateTo) where.nextFollowUpDate.lte = getEndOfDayIST(filters.dateTo);
     }
     if (filters?.companyId || filters?.policyType) {
         where.policy = { deletedAt: null };
