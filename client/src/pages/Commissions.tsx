@@ -314,14 +314,15 @@ const Commissions: React.FC = () => {
         doc.setFontSize(10);
         doc.text(`Dealer: ${dealerName}`, 14, 56);
         doc.text(`Insurance: ${data.company?.name || 'All Companies'}`, 14, 62);
-        doc.text(`Period: ${formatDate(data.periodStart)} - ${formatDate(data.periodEnd)}`, 14, 68);
+        
+        const policies = data.commissionPolicies || data.policies || [];
+        doc.text(`Period: ${formatDate(data.periodStart)} to ${formatDate(data.periodEnd)} (${policies.length} Policies)`, 14, 68);
 
         // Align these to the right side
         const rightX = doc.internal.pageSize.width - 14;
-        doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, rightX, 62, { align: 'right' });
+        doc.text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightX, 62, { align: 'right' });
 
         // Policy table
-        const policies = data.commissionPolicies || data.policies || [];
         autoTable(doc, {
             startY: 75,
             head: [['Customer', 'Vehicle No', 'Make', 'Model', 'Class', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
