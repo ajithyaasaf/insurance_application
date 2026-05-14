@@ -314,7 +314,7 @@ const Commissions: React.FC = () => {
         doc.setFontSize(10);
         doc.text(`Dealer: ${dealerName}`, 14, 56);
         doc.text(`Insurance: ${data.company?.name || 'All Companies'}`, 14, 62);
-        
+
         const policies = data.commissionPolicies || data.policies || [];
         doc.text(`Period: ${formatDate(data.periodStart)} to ${formatDate(data.periodEnd)} (${policies.length} Policies)`, 14, 68);
 
