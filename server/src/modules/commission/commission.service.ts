@@ -172,6 +172,7 @@ export class CommissionService {
                     none: {}
                 }
             },
+            include: { customer: true },
             orderBy: { startDate: 'desc' },
         });
 
@@ -183,6 +184,7 @@ export class CommissionService {
             const tpCommission = parseFloat(((tp * tpPercentage) / 100).toFixed(2));
             return {
                 policyId: p.id,
+                customerName: p.customer?.name || 'Unknown',
                 vehicleNumber: p.vehicleNumber,
                 make: p.make,
                 model: p.model,
@@ -337,6 +339,7 @@ export class CommissionService {
                 company: { select: { id: true, name: true } },
                 commissionPolicies: {
                     orderBy: { startDate: 'desc' },
+                    include: { policy: { include: { customer: true } } }
                 },
             },
         });

@@ -324,8 +324,9 @@ const Commissions: React.FC = () => {
         const policies = data.commissionPolicies || data.policies || [];
         autoTable(doc, {
             startY: 75,
-            head: [['Vehicle No', 'Make', 'Model', 'Class', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
+            head: [['Customer', 'Vehicle No', 'Make', 'Model', 'Class', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
             body: policies.map((p: any) => [
+                p.customerName || p.policy?.customer?.name || '-',
                 p.vehicleNumber || '-',
                 p.make || '-',
                 p.model || '-',
@@ -354,12 +355,12 @@ const Commissions: React.FC = () => {
                 lineColor: [255, 255, 255] // White borders for header
             },
             columnStyles: {
-                4: { halign: 'right' },
                 5: { halign: 'right' },
                 6: { halign: 'right' },
-                7: { halign: 'right', textColor: [22, 163, 74] },
+                7: { halign: 'right' },
                 8: { halign: 'right', textColor: [22, 163, 74] },
-                9: { halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
+                9: { halign: 'right', textColor: [22, 163, 74] },
+                10: { halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
             }
         });
 
