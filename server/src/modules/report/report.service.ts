@@ -64,6 +64,9 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
     payments: [
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy #' },
+        { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'startDate', label: 'Start Date' },
+        { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'companyName', label: 'Company' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'amount', label: 'Amount' },
@@ -76,6 +79,9 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'claimNumber', label: 'Claim # / Policy #' },
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy #' },
+        { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'startDate', label: 'Start Date' },
+        { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'companyName', label: 'Company' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'claimAmount', label: 'Claim Amount' },
@@ -98,6 +104,9 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'customerName', label: 'Customer' },
         { key: 'customerPhone', label: 'Phone' },
         { key: 'policyNumber', label: 'Policy #' },
+        { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'startDate', label: 'Start Date' },
+        { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'nextFollowUpDate', label: 'Follow-up Date' },
         { key: 'status', label: 'Status' },
         { key: 'notes', label: 'Notes' },
@@ -235,8 +244,8 @@ export class ReportService {
             throw Object.assign(new Error('Customer ID is required for Customer Snapshot'), { statusCode: 400 });
         }
 
-        const dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
-        const dateTo = filters.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
+        const dateFrom = filters.dateFrom ? getStartOfDayIST(filters.dateFrom) : undefined;
+        const dateTo = filters.dateTo ? getEndOfDayIST(filters.dateTo) : undefined;
 
         const ow = ownerFilter(userId, role);
         const policyWhere: any = { ...ow, customerId: filters.customerId, deletedAt: null };
@@ -367,6 +376,9 @@ export class ReportService {
         const data = rows.map((r: any) => ({
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
+            vehicleNumber: r.policy?.vehicleNumber || '—',
+            startDate: fmtDate(r.policy?.startDate),
+            expiryDate: fmtDate(r.policy?.expiryDate),
             companyName: r.policy?.company?.name || '—',
             vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
             amount: r.amount,
@@ -396,6 +408,9 @@ export class ReportService {
             claimNumber: r.claimNumber || '—',
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
+            vehicleNumber: r.policy?.vehicleNumber || '—',
+            startDate: fmtDate(r.policy?.startDate),
+            expiryDate: fmtDate(r.policy?.expiryDate),
             companyName: r.policy?.company?.name || '—',
             vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
             claimAmount: r.claimAmount,
@@ -457,6 +472,9 @@ export class ReportService {
             customerName: r.customer?.name || '—',
             customerPhone: r.customer?.phone || '—',
             policyNumber: r.policy?.policyNumber || '—',
+            vehicleNumber: r.policy?.vehicleNumber || '—',
+            startDate: fmtDate(r.policy?.startDate),
+            expiryDate: fmtDate(r.policy?.expiryDate),
             nextFollowUpDate: fmtDate(r.nextFollowUpDate),
             status: r.status,
             notes: r.notes || '—',

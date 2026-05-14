@@ -1,6 +1,6 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
-import { getStartOfTodayIST, mapPaymentStatus } from '../../utils/date';
+import { getStartOfTodayIST, mapPaymentStatus, getStartOfDayIST, getEndOfDayIST } from '../../utils/date';
 import { ownerFilter } from '../../utils/rbac';
 
 interface CreatePaymentInput {
@@ -95,8 +95,8 @@ export class PaymentService {
         if (dateFrom || dateTo) {
             dueDateFilter = {
                 ...dueDateFilter,
-                ...(dateFrom && { gte: new Date(dateFrom) }),
-                ...(dateTo && { lte: new Date(dateTo) }),
+                ...(dateFrom && { gte: getStartOfDayIST(dateFrom) }),
+                ...(dateTo && { lte: getEndOfDayIST(dateTo) }),
             };
         }
 
