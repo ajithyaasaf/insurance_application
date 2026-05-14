@@ -164,7 +164,10 @@ const Payments: React.FC = () => {
                 />
                 <SearchableSelect
                     className="w-full sm:w-48"
-                    options={dealers.map(d => ({ value: d.id, label: d.name }))}
+                    options={[
+                        { value: 'direct', label: '⭐ Direct' },
+                        ...dealers.map(d => ({ value: d.id, label: d.name }))
+                    ]}
                     value={dealerFilter}
                     onChange={setDealerFilter}
                     allLabel="All Dealers"

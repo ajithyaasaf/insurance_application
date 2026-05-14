@@ -289,7 +289,10 @@ const ReportBuilderTab: React.FC = () => {
                         <div>
                             <label className="label">Dealer</label>
                             <SearchableSelect
-                                options={dealers.map((d: any) => ({ value: d.id, label: d.name }))}
+                                options={[
+                                    { value: 'direct', label: '⭐ Direct' },
+                                    ...dealers.map((d: any) => ({ value: d.id, label: d.name }))
+                                ]}
                                 value={localFilters.dealerId || ''}
                                 onChange={val => updateLocalFilter('dealerId', val)}
                                 allLabel="All Dealers"

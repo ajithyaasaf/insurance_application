@@ -206,7 +206,7 @@ export class PolicyService {
             ...(companyIds && { 
                 companyId: { in: typeof companyIds === 'string' ? companyIds.split(',') : companyIds } 
             }),
-            ...(dealerId && { dealerId }),
+            ...(dealerId === 'direct' ? { dealerId: null } : dealerId ? { dealerId } : {}),
             ...(vehicleClass && { vehicleClass: vehicleClass as any }),
         };
 

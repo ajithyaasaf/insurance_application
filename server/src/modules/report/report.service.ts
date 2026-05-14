@@ -113,7 +113,11 @@ function buildPolicyWhere(userId: string, role: string, filters?: ReportFilters)
         const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
         where.companyId = { in: ids };
     }
-    if (filters?.dealerId) where.dealerId = filters.dealerId;
+    if (filters?.dealerId === 'direct') {
+        where.dealerId = null;
+    } else if (filters?.dealerId) {
+        where.dealerId = filters.dealerId;
+    }
     if (filters?.customerId) where.customerId = filters.customerId;
     if (filters?.policyType) where.policyType = filters.policyType;
     if (filters?.vehicleClass) where.vehicleClass = filters.vehicleClass;
@@ -156,7 +160,11 @@ function buildPaymentWhere(userId: string, role: string, filters?: ReportFilters
             const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
             where.policy.companyId = { in: ids };
         }
-        if (filters?.dealerId) where.policy.dealerId = filters.dealerId;
+        if (filters?.dealerId === 'direct') {
+            where.policy.dealerId = null;
+        } else if (filters?.dealerId) {
+            where.policy.dealerId = filters.dealerId;
+        }
         if (filters?.policyType) where.policy.policyType = filters.policyType;
         if (filters?.vehicleClass) where.policy.vehicleClass = filters.vehicleClass;
     }

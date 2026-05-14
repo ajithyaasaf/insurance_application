@@ -164,7 +164,7 @@ const PolicyDetail: React.FC = () => {
                                         {policy.dealer ? policy.dealer.name : 'Direct Policy'}
                                     </p>
                                     <p className="text-xs text-surface-500">
-                                        {policy.dealer ? (policy.dealer.phone || 'Referred') : 'In-house business'}
+                                        {policy.dealer ? (policy.dealer.phone || 'Referred') : 'Direct'}
                                     </p>
                                 </div>
                             </div>
