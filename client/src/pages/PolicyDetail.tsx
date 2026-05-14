@@ -154,16 +154,20 @@ const PolicyDetail: React.FC = () => {
                                     <p className="text-xs text-surface-500">{policy.company?.category}</p>
                                 </div>
                             </div>
-                            {policy.dealer && (
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><HiOutlineUserGroup className="w-5 h-5" /></div>
-                                    <div>
-                                        <p className="text-xs font-bold text-surface-400 uppercase tracking-wider">Dealer</p>
-                                        <p className="text-sm font-medium text-surface-900">{policy.dealer?.name}</p>
-                                        <p className="text-xs text-surface-500">{policy.dealer?.phone || 'Referred'}</p>
-                                    </div>
+                            <div className="flex items-start gap-3">
+                                <div className={`p-2 rounded-lg ${policy.dealer ? 'bg-purple-50 text-purple-600' : 'bg-surface-100 text-surface-500'}`}>
+                                    <HiOutlineUserGroup className="w-5 h-5" />
                                 </div>
-                            )}
+                                <div>
+                                    <p className="text-xs font-bold text-surface-400 uppercase tracking-wider">Source / Dealer</p>
+                                    <p className="text-sm font-medium text-surface-900">
+                                        {policy.dealer ? policy.dealer.name : 'Direct Policy'}
+                                    </p>
+                                    <p className="text-xs text-surface-500">
+                                        {policy.dealer ? (policy.dealer.phone || 'Referred') : 'In-house business'}
+                                    </p>
+                                </div>
+                            </div>
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-amber-50 rounded-lg text-amber-600"><HiOutlineDocumentText className="w-5 h-5" /></div>
                                 <div>
