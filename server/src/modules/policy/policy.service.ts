@@ -1,6 +1,6 @@
 import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
-import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST } from '../../utils/date';
+import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, getStartOfDayIST, getEndOfDayIST } from '../../utils/date';
 import { ownerFilter } from '../../utils/rbac';
 
 interface CreatePolicyInput {
