@@ -205,8 +205,8 @@ export class PolicyService {
             ...(status ? buildStatusFilter(status) : {}),
             ...(policyType && { policyType: policyType as any }),
             ...(companyId && { companyId }),
-            ...(companyIds && { 
-                companyId: { in: typeof companyIds === 'string' ? companyIds.split(',') : companyIds } 
+            ...(companyIds && {
+                companyId: { in: typeof companyIds === 'string' ? companyIds.split(',') : companyIds }
             }),
             ...(dealerId === 'direct' ? { dealerId: null } : dealerId ? { dealerId } : {}),
             ...(vehicleClass && { vehicleClass: vehicleClass as any }),
@@ -221,9 +221,9 @@ export class PolicyService {
         const total = await prisma.policy.count({ where });
         const policies = await prisma.policy.findMany({
             where,
-            include: { 
-                customer: true, 
-                company: true, 
+            include: {
+                customer: true,
+                company: true,
                 dealer: true,
                 _count: {
                     select: {
@@ -244,8 +244,8 @@ export class PolicyService {
     }
 
     async findById(userId: string, role: string, id: string) {
-        const where: any = { 
-            id, 
+        const where: any = {
+            id,
             deletedAt: null,
             ...ownerFilter(userId, role)
         };
@@ -264,7 +264,7 @@ export class PolicyService {
         });
 
         if (!policy) throw Object.assign(new Error('Policy not found'), { statusCode: 404 });
-        
+
         // Calculate financial summary
         const effectivePremium = policy.totalPremium || policy.premiumAmount;
         const totalPaid = policy.payments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
@@ -279,7 +279,7 @@ export class PolicyService {
         const parentHasNoClaims = policy.parentPolicyId
             ? (await prisma.claim.count({
                 where: { policyId: policy.parentPolicyId, status: { not: 'REJECTED' } }
-              })) === 0
+            })) === 0
             : true;
         const hasNCB = currentHasNoClaims && parentHasNoClaims;
         return mapPolicyStatus({ ...policy, hasNCB, paymentSummary });
@@ -397,18 +397,18 @@ export class PolicyService {
             const now = new Date();
 
             // Delete child payments
-            await tx.payment.deleteMany({ 
-                where: { policyId: id, ...ownerFilter(userId, role) } 
+            await tx.payment.deleteMany({
+                where: { policyId: id, ...ownerFilter(userId, role) }
             });
 
             // Delete child claims
-            await tx.claim.deleteMany({ 
-                where: { policyId: id, ...ownerFilter(userId, role) } 
+            await tx.claim.deleteMany({
+                where: { policyId: id, ...ownerFilter(userId, role) }
             });
 
             // Delete child follow-ups
-            await tx.followUp.deleteMany({ 
-                where: { policyId: id, ...ownerFilter(userId, role) } 
+            await tx.followUp.deleteMany({
+                where: { policyId: id, ...ownerFilter(userId, role) }
             });
 
             return tx.policy.update({
@@ -560,8 +560,8 @@ export class PolicyService {
     async preDeleteCheck(userId: string, role: string, id: string) {
         await this.findById(userId, role, id); // ownership check
 
-        const where = { 
-            policyId: id, 
+        const where = {
+            policyId: id,
             ...ownerFilter(userId, role)
         };
 
