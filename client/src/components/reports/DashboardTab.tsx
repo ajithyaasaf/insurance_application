@@ -235,7 +235,15 @@ const DashboardTab: React.FC = () => {
                                             {formatShortCurrency(p.amountSum || 0)}
                                         </p>
                                         <p className="text-xs font-medium text-surface-500">
-                                            {p.count} {p.count === 1 ? 'payment' : 'payments'} collected
+                                            {(() => {
+                                                const lower = p.name.toLowerCase();
+                                                const pluralSuffix = p.count === 1 ? 'payment' : 'payments';
+                                                if (lower === 'paid') return `${p.count} ${pluralSuffix} collected`;
+                                                if (lower === 'partial') return `${p.count} ${pluralSuffix} partially collected`;
+                                                if (lower === 'pending') return `${p.count} ${pluralSuffix} pending collection`;
+                                                if (lower === 'overdue') return `${p.count} ${pluralSuffix} overdue`;
+                                                return `${p.count} ${pluralSuffix}`;
+                                            })()}
                                         </p>
                                     </div>
                                 </div>
