@@ -149,11 +149,6 @@ const AppLayout: React.FC = () => {
                         >
                             <HiOutlineMenu className="w-5 h-5" />
                         </button>
-                        <div className="hidden lg:block">
-                            <h2 className="text-lg font-bold text-surface-900 capitalize">
-                                {window.location.pathname.replace('/', '') || 'Dashboard'}
-                            </h2>
-                        </div>
                     </div>
 
                     <div className="flex-1 max-w-md mx-4">
