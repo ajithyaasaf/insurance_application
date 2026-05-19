@@ -432,7 +432,7 @@ export class ReportService {
                 include: {
                     policies: {
                         where: { deletedAt: null },
-                        select: { premiumAmount: true },
+                        select: { premiumAmount: true, totalPremium: true },
                     },
                 },
                 orderBy: { createdAt: 'desc' },
