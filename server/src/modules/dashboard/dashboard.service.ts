@@ -7,7 +7,7 @@ export class DashboardService {
         const ow = ownerFilter(userId, role); // e.g. {} for staff, { userId } for agents
         const now = new Date();
         const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const todayStart = getStartOfTodayIST();
         const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
         const results = await Promise.all([
@@ -162,13 +162,27 @@ export class DashboardService {
         const allBirthdayCandidates = results[15] as any[];
         const vehicleClassGrouping = results[16] as any[];
 
-        // Filter birthdays in JS for compatibility across DB engines
-        const todayMonth = now.getMonth();
-        const todayDay = now.getDate();
+        // Get current month and date in IST (0-indexed month)
+        const istParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Kolkata',
+            month: 'numeric',
+            day: 'numeric'
+        }).formatToParts(now);
+        
+        const todayMonth = parseInt(istParts.find(p => p.type === 'month')?.value || '1') - 1; // 0-indexed
+        const todayDay = parseInt(istParts.find(p => p.type === 'day')?.value || '1');
+
         const todayBirthdays = allBirthdayCandidates.filter(c => {
             if (!c.dob) return false;
             const d = new Date(c.dob);
-            return d.getMonth() === todayMonth && d.getDate() === todayDay;
+            const dobParts = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'Asia/Kolkata',
+                month: 'numeric',
+                day: 'numeric'
+            }).formatToParts(d);
+            const dobMonth = parseInt(dobParts.find(p => p.type === 'month')?.value || '1') - 1;
+            const dobDay = parseInt(dobParts.find(p => p.type === 'day')?.value || '1');
+            return dobMonth === todayMonth && dobDay === todayDay;
         });
 
         // Merge policy follow-ups and lead follow-ups into a single sorted list
