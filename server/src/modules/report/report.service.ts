@@ -42,14 +42,14 @@ interface ExportParams {
 
 const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
     policies: [
-        { key: 'policyNumber', label: 'Policy #' },
+        { key: 'policyNumber', label: 'Policy No.' },
         { key: 'customerName', label: 'Customer' },
         { key: 'customerPhone', label: 'Phone' },
         { key: 'companyName', label: 'Company' },
         { key: 'policyType', label: 'Type' },
         { key: 'make', label: 'Make' },
         { key: 'model', label: 'Model' },
-        { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'vehicleNumber', label: 'Vehicle No.' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'od', label: 'OD Premium (₹)' },
         { key: 'tp', label: 'TP Premium (₹)' },
@@ -63,8 +63,8 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
     ],
     payments: [
         { key: 'customerName', label: 'Customer' },
-        { key: 'policyNumber', label: 'Policy #' },
-        { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'policyNumber', label: 'Policy No.' },
+        { key: 'vehicleNumber', label: 'Vehicle No.' },
         { key: 'startDate', label: 'Start Date' },
         { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'companyName', label: 'Company' },
@@ -76,10 +76,10 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'status', label: 'Status' },
     ],
     claims: [
-        { key: 'claimNumber', label: 'Claim # / Policy #' },
+        { key: 'claimNumber', label: 'Claim No. / Policy No.' },
         { key: 'customerName', label: 'Customer' },
-        { key: 'policyNumber', label: 'Policy #' },
-        { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'policyNumber', label: 'Policy No.' },
+        { key: 'vehicleNumber', label: 'Vehicle No.' },
         { key: 'startDate', label: 'Start Date' },
         { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'companyName', label: 'Company' },
@@ -103,8 +103,8 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
     followups: [
         { key: 'customerName', label: 'Customer' },
         { key: 'customerPhone', label: 'Phone' },
-        { key: 'policyNumber', label: 'Policy #' },
-        { key: 'vehicleNumber', label: 'Vehicle #' },
+        { key: 'policyNumber', label: 'Policy No.' },
+        { key: 'vehicleNumber', label: 'Vehicle No.' },
         { key: 'startDate', label: 'Start Date' },
         { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'nextFollowUpDate', label: 'Follow-up Date' },
