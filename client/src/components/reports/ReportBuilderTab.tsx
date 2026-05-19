@@ -13,6 +13,7 @@ import api from '../../api/client';
 import SearchableSelect from '../ui/SearchableSelect';
 import Pagination from '../ui/Pagination';
 import TableSkeleton from '../ui/TableSkeleton';
+import EmptyState from '../ui/EmptyState';
 import ReportTable from './ReportTable';
 import { formatVehicleClass } from '../../utils/format';
 import { BarChartRow, PolicyPieChart, CompanyBarChart } from './ReportCharts';
@@ -84,6 +85,7 @@ const ReportBuilderTab: React.FC = () => {
     const [source, setSource] = useState<Source>('policies');
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
     const [showColumns, setShowColumns] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
@@ -107,7 +109,7 @@ const ReportBuilderTab: React.FC = () => {
     const customers = customersData?.data || [];
 
     // --- Report builder data ---
-    const { data: reportData, isLoading: reportLoading } = useQuery({
+    const { data: reportData, isLoading: reportLoading, isError, error } = useQuery({
         queryKey: ['report-generate', source, appliedGroupBy, appliedFilters, page],
         queryFn: () => api.post('/reports/generate', {
             source,
@@ -207,6 +209,7 @@ const ReportBuilderTab: React.FC = () => {
                                 setPage(1);
                                 setHiddenColumns([]);
                                 setShowColumns(false);
+                                setShowAdvancedFilters(false);
                                 setIsDirty(false);
                             }}
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${source === opt.value
@@ -235,153 +238,166 @@ const ReportBuilderTab: React.FC = () => {
                         >
                             {showFilters ? 'Hide Filters' : 'Show Filters'}
                         </button>
+                        <button
+                            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                            className={`btn-secondary btn-sm flex items-center gap-1.5 ${showAdvancedFilters ? 'bg-surface-200' : ''} ${!showFilters ? 'hidden lg:flex' : ''}`}
+                        >
+                            <HiOutlineAdjustments className="w-3.5 h-3.5" />
+                            {showAdvancedFilters ? 'Less Filters' : 'More Filters'}
+                        </button>
                         <button onClick={clearFilters} className="btn-ghost btn-sm text-red-500">
                             Clear All
                         </button>
                     </div>
                 </div>
 
-                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 ${!showFilters ? 'hidden lg:grid' : ''}`}>
-                    {/* Group By */}
-                    {groupOptions.length > 0 && !isSnapshot && (
-                        <div>
-                            <label className="label">Group By</label>
-                            <SearchableSelect
-                                options={groupOptions.map(opt => ({ value: opt.value, label: opt.label }))}
-                                value={localGroupBy}
-                                onChange={val => { setLocalGroupBy(val as GroupBy); setIsDirty(true); }}
-                                allLabel="No Grouping"
-                                placeholder="Select grouping..."
-                            />
-                        </div>
-                    )}
-
-                    {/* Company */}
-                    {showCompanyFilter && (
-                        <div>
-                            <label className="label">Insurers</label>
-                            <SearchableSelect
-                                options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
-                                value={localFilters.companyIds || []}
-                                onChange={val => updateLocalFilter('companyIds', val)}
-                                multiple={true}
-                                placeholder="Select Insurers"
-                            />
-                        </div>
-                    )}
-
-                    {/* Customer */}
-                    {showCustomerFilter && (
-                        <div>
-                            <label className="label">Customer</label>
-                            <SearchableSelect
-                                options={customers.map((c: any) => ({ value: c.id, label: c.name }))}
-                                value={localFilters.customerId || ''}
-                                onChange={val => updateLocalFilter('customerId', val)}
-                                allLabel="All Customers"
-                                placeholder="Search customer..."
-                            />
-                        </div>
-                    )}
-
-                    {/* Dealer */}
-                    {showDealerFilter && (
-                        <div>
-                            <label className="label">Dealer</label>
-                            <SearchableSelect
-                                options={[
-                                    { value: 'direct', label: '⭐ Direct' },
-                                    ...dealers.map((d: any) => ({ value: d.id, label: d.name }))
-                                ]}
-                                value={localFilters.dealerId || ''}
-                                onChange={val => updateLocalFilter('dealerId', val)}
-                                allLabel="All Dealers"
-                                placeholder="Search dealer..."
-                            />
-                        </div>
-                    )}
-
-                    {/* Policy Type */}
-                    {showPolicyTypeFilter && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={`space-y-4 ${!showFilters ? 'hidden lg:block' : ''}`}>
+                    {/* Primary Filters Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        {/* Group By */}
+                        {groupOptions.length > 0 && !isSnapshot && (
                             <div>
-                                <label className="label">Policy Type</label>
+                                <label className="label">Group By</label>
                                 <SearchableSelect
-                                    options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
-                                    value={localFilters.policyType || ''}
-                                    onChange={val => updateLocalFilter('policyType', val)}
-                                    allLabel="All Types"
-                                    placeholder="Select policy type..."
+                                    options={groupOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                                    value={localGroupBy}
+                                    onChange={val => { setLocalGroupBy(val as GroupBy); setIsDirty(true); }}
+                                    allLabel="No Grouping"
+                                    placeholder="Select grouping..."
                                 />
                             </div>
-                            {source === 'policies' && (
-                                <div>
-                                    <label className="label">Policy Origin</label>
-                                    <SearchableSelect
-                                        options={[
-                                            { value: 'new_vehicle', label: 'New Vehicle' },
-                                            { value: 'fresh', label: 'Fresh' },
-                                            { value: 'external_renewal', label: 'External Renewal' },
-                                            { value: 'in_system_renewal', label: 'Own Renewal' },
-                                        ]}
-                                        value={localFilters.policyOrigin || ''}
-                                        onChange={val => updateLocalFilter('policyOrigin', val)}
-                                        allLabel="All Origins"
-                                        placeholder="Select origin..."
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
+                        )}
 
-                    {/* Vehicle Class */}
-                    {showVehicleClassFilter && (
+                        {/* Status */}
+                        {statuses.length > 0 && (
+                            <div>
+                                <label className="label">Status</label>
+                                <SearchableSelect
+                                    options={statuses.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                                    value={localFilters.status || ''}
+                                    onChange={val => updateLocalFilter('status', val)}
+                                    allLabel="All Statuses"
+                                    placeholder="Select status..."
+                                />
+                            </div>
+                        )}
+
+                        {/* Date From */}
                         <div>
-                            <label className="label">Vehicle Class</label>
-                            <SearchableSelect
-                                options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
-                                value={localFilters.vehicleClass || ''}
-                                onChange={val => updateLocalFilter('vehicleClass', val)}
-                                allLabel="All Classes"
-                                placeholder="Select vehicle class..."
+                            <label className="label">Date From</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={localFilters.dateFrom || ''}
+                                onChange={e => updateLocalFilter('dateFrom', e.target.value)}
                             />
                         </div>
-                    )}
 
-                    {/* Status */}
-                    {statuses.length > 0 && (
+                        {/* Date To */}
                         <div>
-                            <label className="label">Status</label>
-                            <SearchableSelect
-                                options={statuses.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
-                                value={localFilters.status || ''}
-                                onChange={val => updateLocalFilter('status', val)}
-                                allLabel="All Statuses"
-                                placeholder="Select status..."
+                            <label className="label">Date To</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={localFilters.dateTo || ''}
+                                onChange={e => updateLocalFilter('dateTo', e.target.value)}
                             />
                         </div>
-                    )}
-
-                    {/* Date From */}
-                    <div>
-                        <label className="label">Date From</label>
-                        <input
-                            type="date"
-                            className="input"
-                            value={localFilters.dateFrom || ''}
-                            onChange={e => updateLocalFilter('dateFrom', e.target.value)}
-                        />
                     </div>
 
-                    {/* Date To */}
-                    <div>
-                        <label className="label">Date To</label>
-                        <input
-                            type="date"
-                            className="input"
-                            value={localFilters.dateTo || ''}
-                            onChange={e => updateLocalFilter('dateTo', e.target.value)}
-                        />
+                    {/* Advanced/Secondary Filters Row */}
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-surface-200 ${!showAdvancedFilters ? 'hidden' : ''}`}>
+                        {/* Company */}
+                        {showCompanyFilter && (
+                            <div>
+                                <label className="label">Insurers</label>
+                                <SearchableSelect
+                                    options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                                    value={localFilters.companyIds || []}
+                                    onChange={val => updateLocalFilter('companyIds', val)}
+                                    multiple={true}
+                                    placeholder="Select Insurers"
+                                />
+                            </div>
+                        )}
+
+                        {/* Customer */}
+                        {showCustomerFilter && (
+                            <div>
+                                <label className="label">Customer</label>
+                                <SearchableSelect
+                                    options={customers.map((c: any) => ({ value: c.id, label: c.name }))}
+                                    value={localFilters.customerId || ''}
+                                    onChange={val => updateLocalFilter('customerId', val)}
+                                    allLabel="All Customers"
+                                    placeholder="Search customer..."
+                                />
+                            </div>
+                        )}
+
+                        {/* Dealer */}
+                        {showDealerFilter && (
+                            <div>
+                                <label className="label">Dealer</label>
+                                <SearchableSelect
+                                    options={[
+                                        { value: 'direct', label: '⭐ Direct' },
+                                        ...dealers.map((d: any) => ({ value: d.id, label: d.name }))
+                                    ]}
+                                    value={localFilters.dealerId || ''}
+                                    onChange={val => updateLocalFilter('dealerId', val)}
+                                    allLabel="All Dealers"
+                                    placeholder="Search dealer..."
+                                />
+                            </div>
+                        )}
+
+                        {/* Policy Type */}
+                        {showPolicyTypeFilter && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="label">Policy Type</label>
+                                    <SearchableSelect
+                                        options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                                        value={localFilters.policyType || ''}
+                                        onChange={val => updateLocalFilter('policyType', val)}
+                                        allLabel="All Types"
+                                        placeholder="Select policy type..."
+                                    />
+                                </div>
+                                {source === 'policies' && (
+                                    <div>
+                                        <label className="label">Origin</label>
+                                        <SearchableSelect
+                                            options={[
+                                                { value: 'new_vehicle', label: 'New Vehicle' },
+                                                { value: 'fresh', label: 'Fresh' },
+                                                { value: 'external_renewal', label: 'External Renewal' },
+                                                { value: 'in_system_renewal', label: 'Own Renewal' },
+                                            ]}
+                                            value={localFilters.policyOrigin || ''}
+                                            onChange={val => updateLocalFilter('policyOrigin', val)}
+                                            allLabel="All Origins"
+                                            placeholder="Select origin..."
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Vehicle Class */}
+                        {showVehicleClassFilter && (
+                            <div>
+                                <label className="label">Vehicle Class</label>
+                                <SearchableSelect
+                                    options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
+                                    value={localFilters.vehicleClass || ''}
+                                    onChange={val => updateLocalFilter('vehicleClass', val)}
+                                    allLabel="All Classes"
+                                    placeholder="Select vehicle class..."
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -453,18 +469,41 @@ const ReportBuilderTab: React.FC = () => {
             )}
 
             {/* Results */}
-            {reportLoading ? (
+            {isError ? (
+                <div className="card card-body py-16 mt-4 border-dashed border-2 border-surface-200">
+                    <EmptyState 
+                        message="We encountered an issue while generating this report." 
+                        icon={<HiOutlineFilter className="w-16 h-16 text-surface-300" />} 
+                    />
+                    <div className="flex justify-center mt-2">
+                        <button onClick={clearFilters} className="btn-ghost text-primary-600 font-semibold">
+                            Reset filters and try again
+                        </button>
+                    </div>
+                </div>
+            ) : reportLoading ? (
                 <TableSkeleton cols={6} rows={10} />
             ) : report ? (
+                report.total === 0 ? (
+                    <div className="card card-body py-20 mt-4 border-dashed border-2 border-surface-200">
+                        <EmptyState 
+                            message="No results match your current filters" 
+                            icon={<HiOutlineFilter className="w-16 h-16 text-surface-300" />} 
+                        />
+                        <div className="flex justify-center mt-2">
+                            <button onClick={clearFilters} className="btn-ghost text-primary-600 font-semibold">
+                                Clear all filters
+                            </button>
+                        </div>
+                    </div>
+                ) : (
                 <div className="space-y-4">
                     {/* Summary info */}
                     <div className="flex items-center justify-between mt-4">
                         <p className="text-xs text-surface-500 font-medium">
                             {report.grouped
                                 ? `Grouped by ${report.groupLabel} • ${report.total} groups`
-                                : report.total === 0
-                                    ? "No results matching your filters."
-                                    : `${report.total} records found`}
+                                : `${report.total} records found`}
                         </p>
                     </div>
 
@@ -584,6 +623,7 @@ const ReportBuilderTab: React.FC = () => {
                         />
                     )}
                 </div>
+                )
             ) : null}
         </div>
     );
