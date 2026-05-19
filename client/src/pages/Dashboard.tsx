@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
         { label: 'Total Customers', value: data.stats.totalCustomers, icon: HiOutlineUsers, color: 'text-blue-600 bg-blue-50' },
         { label: 'Active Policies', value: data.stats.totalActivePolicies, icon: HiOutlineDocumentText, color: 'text-emerald-600 bg-emerald-50' },
         { label: 'Total Leads', value: data.stats.totalLeads, icon: HiOutlineTrendingUp, color: 'text-violet-600 bg-violet-50' },
-        { label: 'Expiring (30d)', value: data.stats.expiringPoliciesCount, icon: HiOutlineClock, color: 'text-amber-600 bg-amber-50' },
+        { label: 'Expiring in 30d', value: data.stats.expiringPoliciesCount, icon: HiOutlineClock, color: 'text-amber-600 bg-amber-50' },
         { label: "Today's Follow-ups", value: data.stats.todayFollowUpsCount, icon: HiOutlinePhone, color: 'text-cyan-600 bg-cyan-50' },
         { label: 'Pending Payments', value: data.stats.pendingPaymentsCount, icon: HiOutlineCreditCard, color: 'text-orange-600 bg-orange-50' },
         { label: 'Overdue Payments', value: data.stats.overduePaymentsCount, icon: HiOutlineExclamation, color: 'text-red-600 bg-red-50' },
