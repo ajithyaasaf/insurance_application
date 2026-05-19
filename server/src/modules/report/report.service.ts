@@ -70,7 +70,7 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'companyName', label: 'Company' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'amount', label: 'Amount' },
-        { key: 'paidAmount', label: 'Paid' },
+        { key: 'paidAmount', label: 'Paid Amount' },
         { key: 'dueDate', label: 'Due Date' },
         { key: 'paidDate', label: 'Paid Date' },
         { key: 'status', label: 'Status' },
@@ -384,7 +384,7 @@ export class ReportService {
             amount: r.amount,
             paidAmount: r.paidAmount ?? 0,
             dueDate: fmtDate(r.dueDate),
-            paidDate: r.paidDate ? fmtDate(r.paidDate) : '—',
+            paidDate: (r.paidAmount > 0 && r.paidDate) ? fmtDate(r.paidDate) : '—',
             status: r.status,
         }));
 
