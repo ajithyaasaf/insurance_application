@@ -6,7 +6,8 @@ import {
     HiOutlineRefresh, 
     HiOutlineAdjustments, 
     HiOutlineDocumentDownload,
-    HiOutlineUser
+    HiOutlineUser,
+    HiOutlineDatabase
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import api from '../../api/client';
@@ -185,17 +186,18 @@ const ReportBuilderTab: React.FC = () => {
     const showDealerFilter = ['policies', 'payments'].includes(source);
     const showCustomerFilter = ['policies', 'payments', 'claims', 'followups', 'leads', 'customer-snapshot'].includes(source);
     const showPolicyTypeFilter = ['policies', 'payments', 'claims', 'followups', 'customer-snapshot'].includes(source);
-    const showVehicleClassFilter = (source === 'policies' || source === 'customer-snapshot') && localFilters.policyType === 'motor';
+    const showVehicleClassFilter = ['policies', 'payments', 'claims', 'customer-snapshot'].includes(source);
     const isSnapshot = source === 'customer-snapshot';
+    const hasAdvancedFilters = showCompanyFilter || showCustomerFilter || showDealerFilter || showPolicyTypeFilter || showVehicleClassFilter;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             {/* Source selector pills */}
             <div className="card card-body">
-                <div className="flex items-center gap-2 mb-4">
-                    <HiOutlineTable className="w-4 h-4 text-surface-500" />
-                    <span className="text-sm font-bold text-surface-900">Data Source</span>
-                </div>
+                <h2 className="text-sm font-bold text-surface-900 mb-3 flex items-center gap-2">
+                    <HiOutlineDatabase className="w-4 h-4 text-primary-500" />
+                    Data Source
+                </h2>
                 <div className="flex flex-wrap gap-2">
                     {SOURCE_OPTIONS.map(opt => (
                         <button
@@ -212,10 +214,13 @@ const ReportBuilderTab: React.FC = () => {
                                 setShowAdvancedFilters(false);
                                 setIsDirty(false);
                             }}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${source === opt.value
-                                ? 'bg-primary-600 text-white shadow-md shadow-primary-600/25'
-                                : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
-                                }`}
+                            className={`
+                                btn flex items-center gap-1.5 py-2 px-4 rounded-xl text-sm font-medium transition-all duration-200
+                                ${source === opt.value
+                                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20'
+                                    : 'bg-surface-50 text-surface-600 hover:bg-surface-100 hover:text-surface-900 border border-surface-100'
+                                }
+                            `}
                         >
                             <opt.icon className="w-4 h-4" />
                             {opt.label}
@@ -238,13 +243,15 @@ const ReportBuilderTab: React.FC = () => {
                         >
                             {showFilters ? 'Hide Filters' : 'Show Filters'}
                         </button>
-                        <button
-                            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                            className={`btn-secondary btn-sm flex items-center gap-1.5 ${showAdvancedFilters ? 'bg-surface-200' : ''} ${!showFilters ? 'hidden lg:flex' : ''}`}
-                        >
-                            <HiOutlineAdjustments className="w-3.5 h-3.5" />
-                            {showAdvancedFilters ? 'Less Filters' : 'More Filters'}
-                        </button>
+                        {hasAdvancedFilters && (
+                            <button
+                                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                                className={`btn-secondary btn-sm flex items-center gap-1.5 ${showAdvancedFilters ? 'bg-surface-200' : ''} ${!showFilters ? 'hidden lg:flex' : ''}`}
+                            >
+                                <HiOutlineAdjustments className="w-3.5 h-3.5" />
+                                {showAdvancedFilters ? 'Less Filters' : 'More Filters'}
+                            </button>
+                        )}
                         <button onClick={clearFilters} className="btn-ghost btn-sm text-red-500">
                             Clear All
                         </button>
@@ -306,99 +313,110 @@ const ReportBuilderTab: React.FC = () => {
                     </div>
 
                     {/* Advanced/Secondary Filters Row */}
-                    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-surface-200 ${!showAdvancedFilters ? 'hidden' : ''}`}>
-                        {/* Company */}
-                        {showCompanyFilter && (
-                            <div>
-                                <label className="label">Insurers</label>
-                                <SearchableSelect
-                                    options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
-                                    value={localFilters.companyIds || []}
-                                    onChange={val => updateLocalFilter('companyIds', val)}
-                                    multiple={true}
-                                    placeholder="Select Insurers"
-                                />
-                            </div>
-                        )}
+                    {hasAdvancedFilters && (
+                        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-surface-200 ${!showAdvancedFilters ? 'hidden' : ''}`}>
+                            {/* Company */}
+                            {showCompanyFilter && (
+                                <div>
+                                    <label className="label">Insurers</label>
+                                    <SearchableSelect
+                                        options={companies.map((c: any) => ({ value: c.id, label: c.name }))}
+                                        value={localFilters.companyIds || []}
+                                        onChange={val => updateLocalFilter('companyIds', val)}
+                                        multiple={true}
+                                        placeholder="Select Insurers"
+                                    />
+                                </div>
+                            )}
 
-                        {/* Customer */}
-                        {showCustomerFilter && (
-                            <div>
-                                <label className="label">Customer</label>
-                                <SearchableSelect
-                                    options={customers.map((c: any) => ({ value: c.id, label: c.name }))}
-                                    value={localFilters.customerId || ''}
-                                    onChange={val => updateLocalFilter('customerId', val)}
-                                    allLabel="All Customers"
-                                    placeholder="Search customer..."
-                                />
-                            </div>
-                        )}
+                            {/* Customer */}
+                            {showCustomerFilter && (
+                                <div>
+                                    <label className="label">Customer</label>
+                                    <SearchableSelect
+                                        options={customers.map((c: any) => ({ value: c.id, label: c.name }))}
+                                        value={localFilters.customerId || ''}
+                                        onChange={val => updateLocalFilter('customerId', val)}
+                                        allLabel="All Customers"
+                                        placeholder="Search customer..."
+                                    />
+                                </div>
+                            )}
 
-                        {/* Dealer */}
-                        {showDealerFilter && (
-                            <div>
-                                <label className="label">Dealer</label>
-                                <SearchableSelect
-                                    options={[
-                                        { value: 'direct', label: '⭐ Direct' },
-                                        ...dealers.map((d: any) => ({ value: d.id, label: d.name }))
-                                    ]}
-                                    value={localFilters.dealerId || ''}
-                                    onChange={val => updateLocalFilter('dealerId', val)}
-                                    allLabel="All Dealers"
-                                    placeholder="Search dealer..."
-                                />
-                            </div>
-                        )}
+                            {/* Dealer */}
+                            {showDealerFilter && (
+                                <div>
+                                    <label className="label">Dealer</label>
+                                    <SearchableSelect
+                                        options={[
+                                            { value: 'direct', label: '⭐ Direct' },
+                                            ...dealers.map((d: any) => ({ value: d.id, label: d.name }))
+                                        ]}
+                                        value={localFilters.dealerId || ''}
+                                        onChange={val => updateLocalFilter('dealerId', val)}
+                                        allLabel="All Dealers"
+                                        placeholder="Search dealer..."
+                                    />
+                                </div>
+                            )}
 
-                        {/* Policy Type */}
-                        {showPolicyTypeFilter && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Policy Type */}
+                            {showPolicyTypeFilter && (
                                 <div>
                                     <label className="label">Policy Type</label>
                                     <SearchableSelect
                                         options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
                                         value={localFilters.policyType || ''}
-                                        onChange={val => updateLocalFilter('policyType', val)}
+                                        onChange={val => {
+                                            updateLocalFilter('policyType', val);
+                                            // Auto-clear vehicle class and origin if switching away from motor
+                                            if (val !== 'motor') {
+                                                updateLocalFilter('vehicleClass', '');
+                                                updateLocalFilter('policyOrigin', '');
+                                            }
+                                        }}
                                         allLabel="All Types"
                                         placeholder="Select policy type..."
                                     />
                                 </div>
-                                {source === 'policies' && (
-                                    <div>
-                                        <label className="label">Origin</label>
-                                        <SearchableSelect
-                                            options={[
-                                                { value: 'new_vehicle', label: 'New Vehicle' },
-                                                { value: 'fresh', label: 'Fresh' },
-                                                { value: 'external_renewal', label: 'External Renewal' },
-                                                { value: 'in_system_renewal', label: 'Own Renewal' },
-                                            ]}
-                                            value={localFilters.policyOrigin || ''}
-                                            onChange={val => updateLocalFilter('policyOrigin', val)}
-                                            allLabel="All Origins"
-                                            placeholder="Select origin..."
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                            )}
 
-                        {/* Vehicle Class */}
-                        {showVehicleClassFilter && (
-                            <div>
-                                <label className="label">Vehicle Class</label>
-                                <SearchableSelect
-                                    options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
-                                    value={localFilters.vehicleClass || ''}
-                                    onChange={val => updateLocalFilter('vehicleClass', val)}
-                                    allLabel="All Classes"
-                                    placeholder="Select vehicle class..."
-                                />
-                            </div>
-                        )}
-                    </div>
+                            {/* Origin */}
+                            {source === 'policies' && (
+                                <div>
+                                    <label className="label">Origin</label>
+                                    <SearchableSelect
+                                        disabled={localFilters.policyType && localFilters.policyType !== 'motor'}
+                                        options={[
+                                            { value: 'new_vehicle', label: 'New Vehicle' },
+                                            { value: 'fresh', label: 'Fresh' },
+                                            { value: 'external_renewal', label: 'External Renewal' },
+                                            { value: 'in_system_renewal', label: 'Own Renewal' },
+                                        ]}
+                                        value={localFilters.policyOrigin || ''}
+                                        onChange={val => updateLocalFilter('policyOrigin', val)}
+                                        allLabel="All Origins"
+                                        placeholder={localFilters.policyType && localFilters.policyType !== 'motor' ? "N/A (Motor Only)" : "Select origin..."}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Vehicle Class */}
+                            {showVehicleClassFilter && (
+                                <div>
+                                    <label className="label">Vehicle Class</label>
+                                    <SearchableSelect
+                                        disabled={localFilters.policyType && localFilters.policyType !== 'motor'}
+                                        options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
+                                        value={localFilters.vehicleClass || ''}
+                                        onChange={val => updateLocalFilter('vehicleClass', val)}
+                                        allLabel="All Classes"
+                                        placeholder={localFilters.policyType && localFilters.policyType !== 'motor' ? "N/A (Motor Only)" : "Select vehicle class..."}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
