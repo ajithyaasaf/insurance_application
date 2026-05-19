@@ -254,12 +254,21 @@ export class ReportService {
             if (dateFrom) policyWhere.startDate.gte = dateFrom;
             if (dateTo) policyWhere.startDate.lte = dateTo;
         }
+        if (filters.companyId) policyWhere.companyId = filters.companyId;
+        if (filters.policyType) policyWhere.policyType = filters.policyType;
+        if (filters.vehicleClass) policyWhere.vehicleClass = filters.vehicleClass;
 
         const claimWhere: any = { ...ow, customerId: filters.customerId };
         if (dateFrom || dateTo) {
             claimWhere.claimDate = {};
             if (dateFrom) claimWhere.claimDate.gte = dateFrom;
             if (dateTo) claimWhere.claimDate.lte = dateTo;
+        }
+        if (filters.companyId || filters.policyType || filters.vehicleClass) {
+            claimWhere.policy = { deletedAt: null };
+            if (filters.companyId) claimWhere.policy.companyId = filters.companyId;
+            if (filters.policyType) claimWhere.policy.policyType = filters.policyType;
+            if (filters.vehicleClass) claimWhere.policy.vehicleClass = filters.vehicleClass;
         }
 
         const [customer, policies, claims] = await Promise.all([
@@ -272,6 +281,7 @@ export class ReportService {
 
         const totalPremium = policies.reduce((sum, p) => sum + (p.totalPremium || p.premiumAmount || 0), 0);
         const totalClaimed = claims.reduce((sum, c) => sum + (c.claimAmount || 0), 0);
+        const totalBillAmount = claims.reduce((sum, c) => sum + (c.billAmount || 0), 0);
 
         // Group by Insurer
         const byInsurer = policies.reduce((acc: any, p) => {
@@ -299,6 +309,7 @@ export class ReportService {
                 totalPremium,
                 totalClaims: claims.length,
                 totalClaimedAmount: totalClaimed,
+                totalBillAmount,
                 insurers: Object.values(byInsurer),
                 vehicles: Object.values(byVehicle)
             }
@@ -310,6 +321,7 @@ export class ReportService {
                 { key: 'totalPolicies', label: 'Total Policies' },
                 { key: 'totalPremium', label: 'Total Premium (₹)' },
                 { key: 'totalClaims', label: 'Total Claims' },
+                { key: 'totalBillAmount', label: 'Billed Amount (₹)' },
                 { key: 'totalClaimedAmount', label: 'Claimed Amount (₹)' }
             ],
             data,

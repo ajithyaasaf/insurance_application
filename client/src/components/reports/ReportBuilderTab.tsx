@@ -181,11 +181,11 @@ const ReportBuilderTab: React.FC = () => {
 
     const statuses = getStatusOptions(source);
     const groupOptions = getGroupOptions(source);
-    const showCompanyFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
+    const showCompanyFilter = ['policies', 'payments', 'claims', 'followups', 'customer-snapshot'].includes(source);
     const showDealerFilter = ['policies', 'payments'].includes(source);
     const showCustomerFilter = ['policies', 'payments', 'claims', 'followups', 'leads', 'customer-snapshot'].includes(source);
-    const showPolicyTypeFilter = ['policies', 'payments', 'claims', 'followups'].includes(source);
-    const showVehicleClassFilter = source === 'policies' && localFilters.policyType === 'motor';
+    const showPolicyTypeFilter = ['policies', 'payments', 'claims', 'followups', 'customer-snapshot'].includes(source);
+    const showVehicleClassFilter = (source === 'policies' || source === 'customer-snapshot') && localFilters.policyType === 'motor';
     const isSnapshot = source === 'customer-snapshot';
 
     return (
@@ -510,7 +510,7 @@ const ReportBuilderTab: React.FC = () => {
                     {/* Dynamic Charts Section */}
                     {isSnapshot && report.data?.[0] ? (
                         <div className="space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                 <div className="card p-4 bg-primary-50 border border-primary-100">
                                     <p className="text-xs text-primary-600 font-bold uppercase">Total Policies</p>
                                     <p className="text-2xl font-bold text-primary-900">{report.data[0].totalPolicies}</p>
@@ -522,6 +522,10 @@ const ReportBuilderTab: React.FC = () => {
                                 <div className="card p-4 bg-rose-50 border border-rose-100">
                                     <p className="text-xs text-rose-600 font-bold uppercase">Total Claims Made</p>
                                     <p className="text-2xl font-bold text-rose-900">{report.data[0].totalClaims}</p>
+                                </div>
+                                <div className="card p-4 bg-orange-50 border border-orange-100">
+                                    <p className="text-xs text-orange-600 font-bold uppercase">Total Billed Amount</p>
+                                    <p className="text-2xl font-bold text-orange-900">₹{report.data[0].totalBillAmount.toLocaleString('en-IN')}</p>
                                 </div>
                                 <div className="card p-4 bg-purple-50 border border-purple-100">
                                     <p className="text-xs text-purple-600 font-bold uppercase">Total Claimed Amount</p>
