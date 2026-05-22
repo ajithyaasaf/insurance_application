@@ -55,7 +55,7 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'tp', label: 'TP Premium (₹)' },
         { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
         { key: 'tax', label: 'Tax (₹)' },
-        { key: 'totalPremium', label: 'Total Premium (Gross) (₹)' },
+        { key: 'totalPremium', label: 'Total Premium (₹)' },
         { key: 'startDate', label: 'Start Date' },
         { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'status', label: 'Status' },
@@ -1249,9 +1249,12 @@ export class ReportService {
                 // Header Border
                 doc.lineWidth(0.2).rect(x, headerY, colWidth, 22).stroke('#ffffff');
 
+                // Replace Rupee symbol with Rs. to avoid PDFKit character rendering issues
+                const labelText = col.label.replace(/₹/g, 'Rs.');
+
                 // Draw header text centered
                 doc.fillColor('#FFFFFF')
-                    .text(col.label, x, headerY + 7, {
+                    .text(labelText, x, headerY + 7, {
                         width: colWidth,
                         align: 'center',
                         lineBreak: false
@@ -1278,7 +1281,7 @@ export class ReportService {
                 for (const col of visibleCols) {
                     let val = String(row[col.key] ?? '—');
                     if (typeof row[col.key] === 'number' && (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax')) {
-                        val = `₹${row[col.key].toLocaleString('en-IN')}`;
+                        val = `Rs.${row[col.key].toLocaleString('en-IN')}`;
                     }
 
                     // Row background
