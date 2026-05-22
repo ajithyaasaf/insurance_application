@@ -1231,7 +1231,7 @@ export class ReportService {
 
             // Table
             const sNoCol = { key: 'sNo', label: 'S.No.' };
-            const visibleCols = [sNoCol, ...columns.slice(0, 7)]; // Prepend S.No. and keep up to 7 columns (total 8)
+            const visibleCols = [sNoCol, ...columns.slice(0, 8)]; // Prepend S.No. and keep up to 8 columns (total 9)
             const startX = 40;
 
             // Width allocation: S.No is 35 points wide, others share the rest equally
@@ -1319,8 +1319,45 @@ export class ReportService {
 
             // Footer
             doc.moveDown(1);
+            
+            if (doc.y > doc.page.height - 60) {
+                doc.addPage();
+                doc.y = 40;
+            }
+
+            const footerY = doc.y;
+
+            // Total Records
             doc.fontSize(8).fillColor('#9ca3af')
-                .text(`Total Records: ${data.length}`, startX, doc.y, { align: 'left' });
+                .text(`Total Records: ${data.length}`, startX, footerY, { align: 'left' });
+
+            // Calculate and display premium total if applicable
+            const hasTotalPremium = columns.some(c => c.key === 'totalPremium');
+            if (hasTotalPremium && data.length > 0) {
+                const totalPremiumSum = data.reduce((sum, row) => {
+                    const val = Number(row.totalPremium ?? 0);
+                    return sum + (isNaN(val) ? 0 : val);
+                }, 0);
+
+                // Dynamically find the exact X-end boundary of the totalPremium column
+                let targetColXEnd = startX;
+                for (const col of visibleCols) {
+                    const w = getColWidth(col.key);
+                    targetColXEnd += w;
+                    if (col.key === 'totalPremium') {
+                        break;
+                    }
+                }
+
+                // Align the 220pt card exactly to the right edge of the Total Premium column
+                const sumX = targetColXEnd - 220;
+                doc.rect(sumX - 10, footerY - 5, 230, 24).fill('#f1f5f9');
+                doc.lineWidth(0.5).rect(sumX - 10, footerY - 5, 230, 24).stroke('#cbd5e1');
+
+                doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e1b4b')
+                    .text('Total Premium Sum:', sumX, footerY + 2, { width: 110, align: 'left' })
+                    .text(`Rs.${totalPremiumSum.toLocaleString('en-IN')}`, sumX + 110, footerY + 2, { width: 100, align: 'right' });
+            }
 
             doc.end();
         });

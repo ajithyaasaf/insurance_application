@@ -196,13 +196,13 @@ const ReportBuilderTab: React.FC = () => {
             if (format === 'pdf' && source === 'policies') {
                 exportCols = [
                     { key: 'customerName', label: 'Customer' },
-                    { key: 'policyNumber', label: 'Policy No.' },
-                    { key: 'vehicleNumber', label: 'Vehicle No.' },
-                    { key: 'companyName', label: 'Company' },
-                    { key: 'vehicleClass', label: 'Vehicle Class' },
-                    { key: 'totalPremium', label: 'Total Premium' },
                     { key: 'make', label: 'Make' },
                     { key: 'model', label: 'Model' },
+                    { key: 'vehicleNumber', label: 'Vehicle No.' },
+                    { key: 'vehicleClass', label: 'Vehicle Class' },
+                    { key: 'companyName', label: 'Company' },
+                    { key: 'totalPremium', label: 'Total Premium' },
+                    { key: 'customerPhone', label: 'Mobile No.' },
                 ];
             }
 
