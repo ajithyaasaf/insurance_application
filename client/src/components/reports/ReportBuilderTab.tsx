@@ -460,7 +460,7 @@ const ReportBuilderTab: React.FC = () => {
                                 <div>
                                     <label className="label">Origin</label>
                                     <SearchableSelect
-                                        disabled={localFilters.policyType && localFilters.policyType !== 'motor'}
+                                        disabled={!!(localFilters.policyType && localFilters.policyType !== 'motor')}
                                         options={[
                                             { value: 'new_vehicle', label: 'New Vehicle' },
                                             { value: 'fresh', label: 'Fresh' },
@@ -480,7 +480,7 @@ const ReportBuilderTab: React.FC = () => {
                                 <div>
                                     <label className="label">Vehicle Class</label>
                                     <SearchableSelect
-                                        disabled={localFilters.policyType && localFilters.policyType !== 'motor'}
+                                        disabled={!!(localFilters.policyType && localFilters.policyType !== 'motor')}
                                         options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
                                         value={localFilters.vehicleClass || ''}
                                         onChange={val => updateLocalFilter('vehicleClass', val)}
