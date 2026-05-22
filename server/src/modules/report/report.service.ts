@@ -1210,7 +1210,7 @@ export class ReportService {
 
     // ── Export to PDF ─────────────────────────────────────
 
-    async exportPdf(data: any[], columns: { key: string; label: string }[], title?: string): Promise<Buffer> {
+    async exportPdf(data: any[], columns: { key: string; label: string }[], title?: string, filters?: any): Promise<Buffer> {
         return new Promise((resolve, reject) => {
             const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
             const chunks: Buffer[] = [];
@@ -1219,15 +1219,47 @@ export class ReportService {
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
+            // Date range formatting
+            let dateRangeStr = '';
+            if (filters?.dateFrom || filters?.dateTo || filters?.startDate || filters?.endDate) {
+                const formatFilterDate = (dStr?: string) => {
+                    if (!dStr) return '—';
+                    try {
+                        const date = new Date(dStr);
+                        if (isNaN(date.getTime())) return dStr;
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        return `${day}/${month}/${year}`;
+                    } catch {
+                        return dStr;
+                    }
+                };
+
+                const startRaw = filters.dateFrom || filters.startDate;
+                const endRaw = filters.dateTo || filters.endDate;
+                const startFormatted = formatFilterDate(startRaw);
+                const endFormatted = formatFilterDate(endRaw);
+                dateRangeStr = `Period: ${startFormatted} to ${endFormatted}`;
+            }
+
             // Title
             doc.fontSize(18).font('Helvetica-Bold')
                 .fillColor('#1e1b4b')
                 .text(title || 'Report', { align: 'center' });
-            doc.moveDown(0.3);
+            doc.moveDown(0.2);
+            
             doc.fontSize(9).font('Helvetica')
                 .fillColor('#6b7280')
                 .text(`Generated on ${new Date().toLocaleDateString('en-IN')} | InsureCRM Pro`, { align: 'center' });
-            doc.moveDown(1);
+            
+            if (dateRangeStr) {
+                doc.moveDown(0.15);
+                doc.fontSize(9).font('Helvetica-Bold')
+                    .fillColor('#374151')
+                    .text(dateRangeStr, { align: 'center' });
+            }
+            doc.moveDown(0.8);
 
             // Table
             const sNoCol = { key: 'sNo', label: 'S.No.' };

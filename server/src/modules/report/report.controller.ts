@@ -62,7 +62,7 @@ export class ReportController {
                 res.setHeader('Content-Disposition', `attachment; filename="${title || 'report'}.xlsx"`);
                 res.send(buffer);
             } else {
-                const buffer = await reportService.exportPdf(reportData, reportColumns, title);
+                const buffer = await reportService.exportPdf(reportData, reportColumns, title, filters);
                 res.setHeader('Content-Type', 'application/pdf');
                 res.setHeader('Content-Disposition', `attachment; filename="${title || 'report'}.pdf"`);
                 res.send(buffer);
