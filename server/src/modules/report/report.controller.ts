@@ -35,9 +35,25 @@ export class ReportController {
                 source, filters, groupBy, page: 1, limit: 10000,
             });
 
+            if (source === 'customer-snapshot-full') {
+                const fileTitle = title || `${result?.summary?.customerName || 'Customer'}_Portfolio_Statement`;
+                if (format === 'xlsx') {
+                    const buffer = await reportService.exportCustomerSnapshotXlsx(result, fileTitle);
+                    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                    res.setHeader('Content-Disposition', `attachment; filename="${fileTitle}.xlsx"`);
+                    res.send(buffer);
+                } else {
+                    const buffer = await reportService.exportCustomerSnapshotPdf(result, fileTitle);
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition', `attachment; filename="${fileTitle}.pdf"`);
+                    res.send(buffer);
+                }
+                return;
+            }
+
             const reportData = result.data || [];
             const reportColumns = columns
-                ? (result.columns || []).filter((c: any) => columns.includes(c.key))
+                ? columns.map((key: string) => (result.columns || []).find((c: any) => c.key === key)).filter(Boolean)
                 : result.columns || [];
 
             if (format === 'xlsx') {

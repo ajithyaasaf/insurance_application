@@ -84,6 +84,7 @@ const ReportBuilderTab: React.FC = () => {
     const [localGroupBy, setLocalGroupBy] = useState<GroupBy>('');
     const [appliedGroupBy, setAppliedGroupBy] = useState<GroupBy>('');
     const [source, setSource] = useState<Source>('policies');
+    const [subTab, setSubTab] = useState<'policies' | 'claims' | 'expiring'>('policies');
     const [page, setPage] = useState(1);
     const [showFilters, setShowFilters] = useState(false);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -158,27 +159,99 @@ const ReportBuilderTab: React.FC = () => {
     const handleExport = useCallback(async (format: 'xlsx' | 'pdf', cols: Column[]) => {
         try {
             toast.loading(`Generating ${format.toUpperCase()}...`, { id: 'export' });
+            
+            let exportSource: string = source;
+            let exportCols = cols;
+            let exportTitle = `${source.charAt(0).toUpperCase() + source.slice(1)} Report`;
+
+            if (source === 'customer-snapshot') {
+                if (subTab === 'claims') {
+                    exportSource = 'customer-snapshot-claims';
+                    exportCols = [
+                        { key: 'claimNumber', label: 'Claim No' },
+                        { key: 'policyNumber', label: 'Policy No' },
+                        { key: 'vehicleNumber', label: 'Vehicle No' },
+                        { key: 'claimDate', label: 'Claim Date' },
+                        { key: 'claimAmount', label: 'Claimed Amount (₹)' },
+                        { key: 'billAmount', label: 'Settled/Received Amount (₹)' },
+                        { key: 'status', label: 'Status' },
+                    ];
+                    exportTitle = `${report?.summary?.customerName || 'Customer'} - Claims Statement`;
+                } else if (subTab === 'expiring') {
+                    exportSource = 'customer-snapshot-expiring';
+                    exportCols = [
+                        { key: 'policyNumber', label: 'Policy No' },
+                        { key: 'companyName', label: 'Insurer' },
+                        { key: 'vehicleClass', label: 'Vehicle Class' },
+                        { key: 'vehicleNo', label: 'Vehicle No' },
+                        { key: 'expiryDate', label: 'Expiry Date' },
+                        { key: 'daysRemaining', label: 'Days Left' },
+                    ];
+                    exportTitle = `${report?.summary?.customerName || 'Customer'} - Expiring Policies`;
+                } else {
+                    exportTitle = `${report?.summary?.customerName || 'Customer'} - Insurance Statement`;
+                }
+            }
+
+            if (format === 'pdf' && source === 'policies') {
+                exportCols = [
+                    { key: 'customerName', label: 'Customer' },
+                    { key: 'policyNumber', label: 'Policy No.' },
+                    { key: 'vehicleNumber', label: 'Vehicle No.' },
+                    { key: 'companyName', label: 'Company' },
+                    { key: 'vehicleClass', label: 'Vehicle Class' },
+                    { key: 'totalPremium', label: 'Total Premium' },
+                    { key: 'make', label: 'Make' },
+                    { key: 'model', label: 'Model' },
+                ];
+            }
+
             const res = await api.post('/reports/export', {
-                source,
+                source: exportSource,
                 filters: Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v)),
                 groupBy: appliedGroupBy || undefined,
                 format,
-                columns: cols.map(c => c.key),
-                title: `${source.charAt(0).toUpperCase() + source.slice(1)} Report`,
+                columns: exportCols.map(c => c.key),
+                title: exportTitle,
             }, { responseType: 'blob' });
 
             const blob = new Blob([res.data]);
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `report_${source}_${new Date().toISOString().split('T')[0]}.${format}`;
+            a.download = `report_${exportSource}_${new Date().toISOString().split('T')[0]}.${format}`;
             a.click();
             window.URL.revokeObjectURL(url);
             toast.success(`${format.toUpperCase()} downloaded!`, { id: 'export' });
         } catch {
             toast.error('Export failed', { id: 'export' });
         }
-    }, [source, appliedFilters, appliedGroupBy]);
+    }, [source, appliedFilters, appliedGroupBy, subTab, report]);
+
+    const handleFullExport = useCallback(async (format: 'xlsx' | 'pdf') => {
+        try {
+            toast.loading(`Compiling Full ${format.toUpperCase()} Portfolio Statement...`, { id: 'full-export' });
+            
+            const fileTitle = `${report?.summary?.customerName || 'Customer'}_Portfolio_Statement`;
+            const res = await api.post('/reports/export', {
+                source: 'customer-snapshot-full',
+                filters: Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v)),
+                format,
+                title: fileTitle.replace(/_/g, ' '),
+            }, { responseType: 'blob' });
+
+            const blob = new Blob([res.data]);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileTitle}_${new Date().toISOString().split('T')[0]}.${format}`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            toast.success(`Full Portfolio ${format.toUpperCase()} downloaded successfully!`, { id: 'full-export' });
+        } catch {
+            toast.error('Failed to compile full statement export', { id: 'full-export' });
+        }
+    }, [appliedFilters, report]);
 
     const statuses = getStatusOptions(source);
     const groupOptions = getGroupOptions(source);
@@ -204,6 +277,7 @@ const ReportBuilderTab: React.FC = () => {
                             key={opt.value}
                             onClick={() => {
                                 setSource(opt.value);
+                                setSubTab('policies');
                                 setLocalGroupBy('');
                                 setAppliedGroupBy('');
                                 setLocalFilters({});
@@ -430,11 +504,11 @@ const ReportBuilderTab: React.FC = () => {
                     <HiOutlineRefresh className={`w-4 h-4 ${reportLoading ? 'animate-spin' : ''}`} />
                     {isDirty ? 'Apply & Generate' : 'Generate Report'}
                 </button>
-                <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                <div className={`grid ${isSnapshot ? 'grid-cols-2 md:flex md:items-center' : 'grid-cols-3'} gap-2 w-full sm:w-auto`}>
                     {report && !report.grouped && (
                         <button
                             onClick={() => setShowColumns(!showColumns)}
-                            className="btn-secondary w-full"
+                            className="btn-secondary w-full md:w-auto"
                         >
                             <HiOutlineAdjustments className="w-4 h-4" />
                             <span className="hidden xs:inline sm:hidden md:inline">Cols</span>
@@ -442,20 +516,42 @@ const ReportBuilderTab: React.FC = () => {
                     )}
                     <button
                         onClick={() => handleExport('xlsx', report?.columns?.filter((c: Column) => report.grouped ? true : !hiddenColumns.includes(c.key)) || [])}
-                        className="btn-secondary w-full"
+                        className="btn-secondary w-full md:w-auto"
                         disabled={!report || reportLoading}
                     >
                         <HiOutlineDocumentDownload className="w-4 h-4" />
-                        <span className="hidden xs:inline sm:hidden md:inline">Excel</span>
+                        <span>Export Tab (Excel)</span>
                     </button>
                     <button
                         onClick={() => handleExport('pdf', report?.columns?.filter((c: Column) => report.grouped ? true : !hiddenColumns.includes(c.key)) || [])}
-                        className="btn-secondary w-full"
+                        className="btn-secondary w-full md:w-auto"
                         disabled={!report || reportLoading}
                     >
                         <HiOutlineDocumentDownload className="w-4 h-4" />
-                        <span className="hidden xs:inline sm:hidden md:inline">PDF</span>
+                        <span>Export Tab (PDF)</span>
                     </button>
+                    {isSnapshot && (
+                        <>
+                            <button
+                                onClick={() => handleFullExport('xlsx')}
+                                className="btn bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-primary-500/20 transition-all w-full md:w-auto justify-center"
+                                disabled={!report || reportLoading}
+                            >
+                                <HiOutlineDocumentDownload className="w-4 h-4" />
+                                <span>Full Workbook (Excel)</span>
+                            </button>
+                            {/* Hidden for testing per user request:
+                            <button
+                                onClick={() => handleFullExport('pdf')}
+                                className="btn bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 shadow-md shadow-rose-500/20 transition-all w-full md:w-auto justify-center"
+                                disabled={!report || reportLoading}
+                            >
+                                <HiOutlineDocumentDownload className="w-4 h-4" />
+                                <span>Full Report (PDF)</span>
+                            </button>
+                            */}
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -631,13 +727,83 @@ const ReportBuilderTab: React.FC = () => {
                         )
                     )}
 
-                    <ReportTable 
-                        data={report.data} 
-                        columns={report.columns.filter((c: Column) => !report.grouped ? !hiddenColumns.includes(c.key) : true)} 
-                    />
+                    {/* Sub-Tab Navigation for Customer Statement */}
+                    {isSnapshot && (
+                        <div className="flex border-b border-surface-200 mt-6 mb-2">
+                            <button
+                                onClick={() => setSubTab('policies')}
+                                className={`py-2.5 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+                                    subTab === 'policies'
+                                        ? 'border-primary-600 text-primary-600'
+                                        : 'border-transparent text-surface-500 hover:text-surface-800'
+                                }`}
+                            >
+                                📋 Policies Written ({report.total})
+                            </button>
+                            <button
+                                onClick={() => setSubTab('claims')}
+                                className={`py-2.5 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+                                    subTab === 'claims'
+                                        ? 'border-primary-600 text-primary-600'
+                                        : 'border-transparent text-surface-500 hover:text-surface-800'
+                                }`}
+                            >
+                                ⚠️ Claims Filed ({report.claims?.length || 0})
+                            </button>
+                            <button
+                                onClick={() => setSubTab('expiring')}
+                                className={`py-2.5 px-4 font-bold text-sm border-b-2 transition-all flex items-center gap-2 ${
+                                    subTab === 'expiring'
+                                        ? 'border-primary-600 text-primary-600'
+                                        : 'border-transparent text-surface-500 hover:text-surface-800'
+                                }`}
+                            >
+                                ⏳ Expiring Soon (60 Days) ({report.expiring?.length || 0})
+                            </button>
+                        </div>
+                    )}
+
+                    {isSnapshot ? (
+                        subTab === 'claims' ? (
+                            <ReportTable 
+                                data={report.claims || []} 
+                                columns={[
+                                    { key: 'claimNumber', label: 'Claim No' },
+                                    { key: 'policyNumber', label: 'Policy No' },
+                                    { key: 'vehicleNumber', label: 'Vehicle No' },
+                                    { key: 'claimDate', label: 'Claim Date' },
+                                    { key: 'claimAmount', label: 'Claimed (₹)' },
+                                    { key: 'billAmount', label: 'Settled/Received (₹)' },
+                                    { key: 'status', label: 'Status' },
+                                ]} 
+                            />
+                        ) : subTab === 'expiring' ? (
+                            <ReportTable 
+                                data={report.expiring || []} 
+                                columns={[
+                                    { key: 'policyNumber', label: 'Policy No' },
+                                    { key: 'companyName', label: 'Insurer' },
+                                    { key: 'vehicleClass', label: 'Vehicle Class' },
+                                    { key: 'vehicleNo', label: 'Vehicle No' },
+                                    { key: 'expiryDate', label: 'Expiry Date' },
+                                    { key: 'daysRemaining', label: 'Days Left' },
+                                ]} 
+                            />
+                        ) : (
+                            <ReportTable 
+                                data={report.data} 
+                                columns={report.columns.filter((c: Column) => !hiddenColumns.includes(c.key))} 
+                            />
+                        )
+                    ) : (
+                        <ReportTable 
+                            data={report.data} 
+                            columns={report.columns.filter((c: Column) => !report.grouped ? !hiddenColumns.includes(c.key) : true)} 
+                        />
+                    )}
 
                     {/* Pagination for flat data */}
-                    {!report.grouped && report.totalPages > 1 && (
+                    {!report.grouped && source !== 'customer-snapshot' && report.totalPages > 1 && (
                         <Pagination
                             page={page}
                             totalPages={report.totalPages}

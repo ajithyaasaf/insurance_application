@@ -291,10 +291,26 @@ export class ReportService {
             if (filters.vehicleClass) claimWhere.policy.vehicleClass = filters.vehicleClass;
         }
 
-        const [customer, policies, claims] = await Promise.all([
+        const today = new Date();
+        const sixtyDaysFromNow = new Date();
+        sixtyDaysFromNow.setDate(sixtyDaysFromNow.getDate() + 60);
+
+        const [customer, policies, claims, expiringPolicies] = await Promise.all([
             prisma.customer.findFirst({ where: { id: filters.customerId, ...ow } }),
             prisma.policy.findMany({ where: policyWhere, include: { company: true } }),
-            prisma.claim.findMany({ where: claimWhere })
+            prisma.claim.findMany({ where: claimWhere, include: { policy: true } }),
+            prisma.policy.findMany({
+                where: {
+                    customerId: filters.customerId,
+                    deletedAt: null,
+                    status: 'active',
+                    expiryDate: {
+                        gte: today,
+                        lte: sixtyDaysFromNow
+                    }
+                },
+                include: { company: true }
+            })
         ]);
 
         if (!customer) throw new Error("Customer not found");
@@ -347,6 +363,32 @@ export class ReportService {
             status: p.status.charAt(0).toUpperCase() + p.status.slice(1),
         }));
 
+        const mappedClaims = claims.map((c: any) => ({
+            id: c.id,
+            claimNumber: c.claimNumber || '—',
+            policyNumber: c.policy?.policyNumber || '—',
+            vehicleNumber: c.policy?.vehicleNumber || '—',
+            claimDate: fmtDate(c.claimDate),
+            claimAmount: c.claimAmount || 0,
+            billAmount: c.billAmount || 0,
+            status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
+            reason: c.reason || '—'
+        }));
+
+        const mappedExpiring = expiringPolicies.map((p: any) => {
+            const diffTime = p.expiryDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return {
+                id: p.id,
+                policyNumber: p.policyNumber,
+                companyName: p.company?.name || '—',
+                vehicleClass: p.vehicleClass ? p.vehicleClass.replace(/_/g, ' ') : '—',
+                vehicleNo: p.vehicleNumber || '—',
+                expiryDate: fmtDate(p.expiryDate),
+                daysRemaining: diffDays > 0 ? `${diffDays} days` : 'Expiring today'
+            };
+        });
+
         return {
             columns: [
                 { key: 'policyNumber', label: 'Policy Number' },
@@ -362,6 +404,8 @@ export class ReportService {
             ],
             data: mappedPolicies,
             summary,
+            claims: mappedClaims,
+            expiring: mappedExpiring,
             total: mappedPolicies.length
         };
     }
@@ -932,6 +976,38 @@ export class ReportService {
             customers: () => this.queryCustomers(userId, role, filters, page, limit),
             followups: () => this.queryFollowUps(userId, role, filters, page, limit),
             'customer-snapshot': () => this.queryCustomerSnapshot(userId, role, filters),
+            'customer-snapshot-full': () => this.queryCustomerSnapshot(userId, role, filters),
+            'customer-snapshot-claims': async () => {
+                const res = await this.queryCustomerSnapshot(userId, role, filters);
+                return {
+                    columns: [
+                        { key: 'claimNumber', label: 'Claim No' },
+                        { key: 'policyNumber', label: 'Policy No' },
+                        { key: 'vehicleNumber', label: 'Vehicle No' },
+                        { key: 'claimDate', label: 'Claim Date' },
+                        { key: 'claimAmount', label: 'Claimed (₹)' },
+                        { key: 'billAmount', label: 'Settled/Received (₹)' },
+                        { key: 'status', label: 'Status' },
+                    ],
+                    data: res.claims || [],
+                    total: (res.claims || []).length
+                };
+            },
+            'customer-snapshot-expiring': async () => {
+                const res = await this.queryCustomerSnapshot(userId, role, filters);
+                return {
+                    columns: [
+                        { key: 'policyNumber', label: 'Policy No' },
+                        { key: 'companyName', label: 'Insurer' },
+                        { key: 'vehicleClass', label: 'Vehicle Class' },
+                        { key: 'vehicleNo', label: 'Vehicle No' },
+                        { key: 'expiryDate', label: 'Expiry Date' },
+                        { key: 'daysRemaining', label: 'Days Left' },
+                    ],
+                    data: res.expiring || [],
+                    total: (res.expiring || []).length
+                };
+            }
         };
 
         const result = await queryMap[source]();
@@ -1200,7 +1276,10 @@ export class ReportService {
                 const bgColor = rowIdx % 2 === 0 ? '#F9FAFB' : '#FFFFFF';
 
                 for (const col of visibleCols) {
-                    const val = String(row[col.key] ?? '—');
+                    let val = String(row[col.key] ?? '—');
+                    if (typeof row[col.key] === 'number' && (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax')) {
+                        val = `₹${row[col.key].toLocaleString('en-IN')}`;
+                    }
 
                     // Row background
                     doc.rect(x, rowY, colWidth, 18).fill(bgColor);
@@ -1228,6 +1307,310 @@ export class ReportService {
             doc.moveDown(1);
             doc.fontSize(8).fillColor('#9ca3af')
                 .text(`Total Records: ${data.length}`, startX, doc.y, { align: 'left' });
+
+            doc.end();
+        });
+    }
+
+    async exportCustomerSnapshotXlsx(result: any, title?: string): Promise<Buffer> {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'InsureCRM Pro';
+        workbook.created = new Date();
+
+        const summary = result.summary || {};
+        
+        // ─── Sheet 1: Summary ─────────────────────────────
+        const summarySheet = workbook.addWorksheet('Summary');
+        summarySheet.views = [{ showGridLines: true }];
+
+        summarySheet.addRow(['CUSTOMER INSURANCE PORTFOLIO STATEMENT']).font = { bold: true, size: 16, color: { argb: 'FF1E1B4B' } };
+        summarySheet.addRow([]);
+        
+        summarySheet.addRow(['Customer Name:', summary.customerName || '—']).font = { bold: true };
+        summarySheet.addRow(['Customer Phone:', summary.phone || '—']).font = { bold: true };
+        summarySheet.addRow(['Generated On:', new Date().toLocaleDateString('en-IN')]);
+        summarySheet.addRow([]);
+
+        // Metrics Table
+        summarySheet.addRow(['Key Portfolio Metrics']).font = { bold: true, size: 12 };
+        summarySheet.addRow(['Metric', 'Value']);
+        summarySheet.addRow(['Total Policies Written', summary.totalPolicies || 0]);
+        summarySheet.addRow(['Total Premium Paid', summary.totalPremium || 0]);
+        summarySheet.addRow(['Total Claims Made', summary.totalClaims || 0]);
+        summarySheet.addRow(['Total Claimed Amount', summary.totalClaimedAmount || 0]);
+        summarySheet.addRow(['Total Received/Settled', summary.totalBillAmount || 0]);
+        
+        // Style Metrics Table
+        const metricsHeaderRow = summarySheet.getRow(8);
+        metricsHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        metricsHeaderRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4338CA' } };
+        for (let i = 9; i <= 13; i++) {
+            summarySheet.getRow(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } };
+            summarySheet.getRow(i).getCell(2).numFmt = i === 9 || i === 11 ? '#,##0' : '"₹"#,##0';
+        }
+        summarySheet.addRow([]);
+
+        // Insurer breakdown
+        summarySheet.addRow(['Portfolio Share by Insurer']).font = { bold: true, size: 12 };
+        summarySheet.addRow(['Insurer', 'Policies', 'Premium']);
+        const insurerHeaderRow = summarySheet.getRow(16);
+        insurerHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        insurerHeaderRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D9488' } };
+        
+        let curInsRow = 17;
+        for (const ins of (summary.insurers || [])) {
+            summarySheet.addRow([ins.name, ins.count, ins.premium]);
+            summarySheet.getRow(curInsRow).getCell(3).numFmt = '"₹"#,##0';
+            curInsRow++;
+        }
+        summarySheet.addRow([]);
+
+        // Vehicle breakdown
+        summarySheet.addRow(['Portfolio Share by Vehicle']).font = { bold: true, size: 12 };
+        const vehHeaderIdx = curInsRow + 2;
+        summarySheet.addRow(['Vehicle Class', 'Policies', 'Premium']);
+        const vehHeaderRow = summarySheet.getRow(vehHeaderIdx);
+        vehHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        vehHeaderRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD97706' } };
+
+        let curVehRow = vehHeaderIdx + 1;
+        for (const veh of (summary.vehicles || [])) {
+            summarySheet.addRow([veh.name ? veh.name.replace(/_/g, ' ') : 'Other', veh.count, veh.premium]);
+            summarySheet.getRow(curVehRow).getCell(3).numFmt = '"₹"#,##0';
+            curVehRow++;
+        }
+        
+        // ─── Sheet 2: Policies Written ────────────────────
+        const policiesSheet = workbook.addWorksheet('Policies Written');
+        policiesSheet.columns = [
+            { header: 'Policy Number', key: 'policyNumber', width: 25 },
+            { header: 'Insurer', key: 'companyName', width: 25 },
+            { header: 'Type', key: 'policyType', width: 15 },
+            { header: 'Vehicle Class', key: 'vehicleClass', width: 20 },
+            { header: 'Vehicle No', key: 'vehicleNo', width: 18 },
+            { header: 'Gross Premium', key: 'totalPremium', width: 18 },
+            { header: 'Start Date', key: 'startDate', width: 15 },
+            { header: 'Expiry Date', key: 'expiryDate', width: 15 },
+            { header: 'Status', key: 'status', width: 15 },
+        ];
+        policiesSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        policiesSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4338CA' } };
+        for (const row of result.data || []) {
+            policiesSheet.addRow(row);
+        }
+        for (let i = 2; i <= policiesSheet.rowCount; i++) {
+            policiesSheet.getRow(i).getCell(6).numFmt = '"₹"#,##0';
+            if (i % 2 === 0) policiesSheet.getRow(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } };
+        }
+
+        // ─── Sheet 3: Claims Filed ────────────────────────
+        const claimsSheet = workbook.addWorksheet('Claims Filed');
+        claimsSheet.columns = [
+            { header: 'Claim Number', key: 'claimNumber', width: 25 },
+            { header: 'Policy Number', key: 'policyNumber', width: 25 },
+            { header: 'Vehicle No', key: 'vehicleNumber', width: 18 },
+            { header: 'Claim Date', key: 'claimDate', width: 15 },
+            { header: 'Claimed (₹)', key: 'claimAmount', width: 18 },
+            { header: 'Settled/Received (₹)', key: 'billAmount', width: 18 },
+            { header: 'Status', key: 'status', width: 15 },
+        ];
+        claimsSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        claimsSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFBE123C' } };
+        for (const row of result.claims || []) {
+            claimsSheet.addRow(row);
+        }
+        for (let i = 2; i <= claimsSheet.rowCount; i++) {
+            claimsSheet.getRow(i).getCell(5).numFmt = '"₹"#,##0';
+            claimsSheet.getRow(i).getCell(6).numFmt = '"₹"#,##0';
+            if (i % 2 === 0) claimsSheet.getRow(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } };
+        }
+
+        // ─── Sheet 4: Expiring Soon ───────────────────────
+        const expiringSheet = workbook.addWorksheet('Expiring Soon');
+        expiringSheet.columns = [
+            { header: 'Policy Number', key: 'policyNumber', width: 25 },
+            { header: 'Insurer', key: 'companyName', width: 25 },
+            { header: 'Vehicle Class', key: 'vehicleClass', width: 20 },
+            { header: 'Vehicle No', key: 'vehicleNo', width: 18 },
+            { header: 'Expiry Date', key: 'expiryDate', width: 15 },
+            { header: 'Days Remaining', key: 'daysRemaining', width: 18 },
+        ];
+        expiringSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        expiringSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD97706' } };
+        for (const row of result.expiring || []) {
+            expiringSheet.addRow(row);
+        }
+        for (let i = 2; i <= expiringSheet.rowCount; i++) {
+            if (i % 2 === 0) expiringSheet.getRow(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } };
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        return Buffer.from(buffer);
+    }
+
+    async exportCustomerSnapshotPdf(result: any, title?: string): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'portrait' });
+            const chunks: Buffer[] = [];
+
+            doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', reject);
+
+            const summary = result.summary || {};
+
+            // Cover Title
+            doc.fontSize(22).font('Helvetica-Bold').fillColor('#1e1b4b').text('INSURANCE PORTFOLIO STATEMENT', { align: 'center' });
+            doc.moveDown(0.2);
+            doc.fontSize(10).font('Helvetica').fillColor('#6b7280').text('COMPILED BY INSURECRM PRO', { align: 'center' });
+            doc.moveDown(1.5);
+
+            // Client Info Box
+            doc.rect(40, doc.y, 515, 75).fill('#f8fafc');
+            doc.fillColor('#1e1b4b').fontSize(11).font('Helvetica-Bold').text('CLIENT PORTFOLIO INFO', 55, doc.y + 10);
+            doc.fillColor('#475569').fontSize(10).font('Helvetica')
+                .text(`Customer Name: ${summary.customerName || '—'}`, 55, doc.y + 25)
+                .text(`Contact Phone: ${summary.phone || '—'}`, 55, doc.y + 5)
+                .text(`Statement Period: ${new Date().toLocaleDateString('en-IN')}`, 55, doc.y + 5);
+            doc.moveDown(2);
+
+            // KPI Grid
+            const gridY = doc.y + 40;
+            const cardWidth = 160;
+            const cardHeight = 50;
+
+            // Card 1
+            doc.rect(40, gridY, cardWidth, cardHeight).fill('#eff6ff');
+            doc.fillColor('#2563eb').fontSize(8).font('Helvetica-Bold').text('TOTAL POLICIES', 50, gridY + 10);
+            doc.fillColor('#1e3a8a').fontSize(14).font('Helvetica-Bold').text(String(summary.totalPolicies || 0), 50, gridY + 22);
+
+            // Card 2
+            doc.rect(40 + cardWidth + 15, gridY, cardWidth, cardHeight).fill('#ecfdf5');
+            doc.fillColor('#059669').fontSize(8).font('Helvetica-Bold').text('TOTAL PREMIUM PAID', 40 + cardWidth + 25, gridY + 10);
+            doc.fillColor('#064e3b').fontSize(14).font('Helvetica-Bold').text(`₹${(summary.totalPremium || 0).toLocaleString('en-IN')}`, 40 + cardWidth + 25, gridY + 22);
+
+            // Card 3
+            doc.rect(40 + (cardWidth + 15) * 2, gridY, cardWidth, cardHeight).fill('#fff1f2');
+            doc.fillColor('#e11d48').fontSize(8).font('Helvetica-Bold').text('TOTAL CLAIMS', 40 + (cardWidth + 15) * 2 + 10, gridY + 10);
+            doc.fillColor('#4c0519').fontSize(14).font('Helvetica-Bold').text(String(summary.totalClaims || 0), 40 + (cardWidth + 15) * 2 + 10, gridY + 22);
+
+            doc.y = gridY + 70;
+
+            // Add Insurer Breakdown Table on Page 1
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#1e1b4b').text('Portfolio Share by Insurer', 40, doc.y);
+            doc.moveDown(0.4);
+            
+            // Draw table
+            let tableY = doc.y;
+            doc.rect(40, tableY, 515, 20).fill('#4338ca');
+            doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold')
+                .text('Insurer', 50, tableY + 5)
+                .text('Policies', 300, tableY + 5, { width: 80, align: 'right' })
+                .text('Gross Premium', 430, tableY + 5, { width: 110, align: 'right' });
+            
+            tableY += 20;
+            doc.fontSize(9).font('Helvetica').fillColor('#334155');
+            for (const ins of (summary.insurers || [])) {
+                doc.rect(40, tableY, 515, 18).stroke('#e2e8f0');
+                doc.text(ins.name, 50, tableY + 4)
+                    .text(String(ins.count), 300, tableY + 4, { width: 80, align: 'right' })
+                    .text(`₹${ins.premium.toLocaleString('en-IN')}`, 430, tableY + 4, { width: 110, align: 'right' });
+                tableY += 18;
+            }
+
+            // ─── PAGE 2: Policies Ledger ─────────────────────
+            doc.addPage();
+            doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e1b4b').text('Policies Ledger', 40, 40);
+            doc.moveDown(0.5);
+            
+            let rowY = doc.y;
+            doc.rect(40, rowY, 515, 20).fill('#4338ca');
+            doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
+                .text('Policy No', 45, rowY + 6)
+                .text('Insurer', 150, rowY + 6)
+                .text('Vehicle No', 270, rowY + 6)
+                .text('Premium', 370, rowY + 6, { width: 80, align: 'right' })
+                .text('Expiry Date', 470, rowY + 6, { width: 80, align: 'right' });
+            
+            rowY += 20;
+            doc.fontSize(8).font('Helvetica').fillColor('#334155');
+            for (const p of result.data || []) {
+                if (rowY > doc.page.height - 60) {
+                    doc.addPage();
+                    rowY = 40;
+                }
+                doc.rect(40, rowY, 515, 16).stroke('#f1f5f9');
+                doc.text(p.policyNumber || '—', 45, rowY + 4)
+                    .text(p.companyName || '—', 150, rowY + 4)
+                    .text(p.vehicleNo || '—', 270, rowY + 4)
+                    .text(`₹${p.totalPremium.toLocaleString('en-IN')}`, 370, rowY + 4, { width: 80, align: 'right' })
+                    .text(p.expiryDate || '—', 470, rowY + 4, { width: 80, align: 'right' });
+                rowY += 16;
+            }
+
+            // ─── PAGE 3: Claims History ──────────────────────
+            if ((result.claims || []).length > 0) {
+                doc.addPage();
+                doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e1b4b').text('Claims History Statement', 40, 40);
+                doc.moveDown(0.5);
+
+                let claimRowY = doc.y;
+                doc.rect(40, claimRowY, 515, 20).fill('#be123c');
+                doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
+                    .text('Claim No', 45, claimRowY + 6)
+                    .text('Policy No', 150, claimRowY + 6)
+                    .text('Vehicle No', 270, claimRowY + 6)
+                    .text('Claimed (₹)', 360, claimRowY + 6, { width: 80, align: 'right' })
+                    .text('Received (₹)', 460, claimRowY + 6, { width: 80, align: 'right' });
+
+                claimRowY += 20;
+                doc.fontSize(8).font('Helvetica').fillColor('#334155');
+                for (const c of result.claims || []) {
+                    if (claimRowY > doc.page.height - 60) {
+                        doc.addPage();
+                        claimRowY = 40;
+                    }
+                    doc.rect(40, claimRowY, 515, 16).stroke('#f1f5f9');
+                    doc.text(c.claimNumber || '—', 45, claimRowY + 4)
+                        .text(c.policyNumber || '—', 150, claimRowY + 4)
+                        .text(c.vehicleNumber || '—', 270, claimRowY + 4)
+                        .text(`₹${c.claimAmount.toLocaleString('en-IN')}`, 360, claimRowY + 4, { width: 80, align: 'right' })
+                        .text(`₹${c.billAmount.toLocaleString('en-IN')}`, 460, claimRowY + 4, { width: 80, align: 'right' });
+                    claimRowY += 16;
+                }
+            }
+
+            // ─── PAGE 4: Expiring Forecast ───────────────────
+            if ((result.expiring || []).length > 0) {
+                doc.addPage();
+                doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e1b4b').text('Upcoming Expiry & Renewal Forecast', 40, 40);
+                doc.moveDown(0.5);
+
+                let expRowY = doc.y;
+                doc.rect(40, expRowY, 515, 20).fill('#b45309');
+                doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
+                    .text('Policy No', 45, expRowY + 6)
+                    .text('Insurer', 150, expRowY + 6)
+                    .text('Vehicle No', 270, expRowY + 6)
+                    .text('Expiry Date', 370, expRowY + 6)
+                    .text('Days Remaining', 470, expRowY + 6, { width: 80, align: 'right' });
+
+                expRowY += 20;
+                doc.fontSize(8).font('Helvetica').fillColor('#334155');
+                for (const e of result.expiring || []) {
+                    if (expRowY > doc.page.height - 60) {
+                        doc.addPage();
+                        expRowY = 40;
+                    }
+                    doc.rect(40, expRowY, 515, 16).stroke('#f1f5f9');
+                    doc.text(e.policyNumber || '—', 45, expRowY + 4)
+                        .text(e.companyName || '—', 150, expRowY + 4)
+                        .text(e.vehicleNo || '—', 270, expRowY + 4)
+                        .text(e.expiryDate || '—', 370, expRowY + 4)
+                        .text(e.daysRemaining, 470, expRowY + 4, { width: 80, align: 'right' });
+                    expRowY += 16;
+                }
+            }
 
             doc.end();
         });
