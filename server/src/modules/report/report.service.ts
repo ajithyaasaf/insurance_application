@@ -1323,7 +1323,7 @@ export class ReportService {
                     } else {
                         val = String(row[col.key] ?? '—');
                         if (typeof row[col.key] === 'number' && (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax')) {
-                            val = `Rs.${row[col.key].toLocaleString('en-IN')}`;
+                            val = row[col.key].toLocaleString('en-IN');
                         }
                     }
 
@@ -1388,7 +1388,7 @@ export class ReportService {
 
                 doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e1b4b')
                     .text('Total Premium Sum:', sumX, footerY + 2, { width: 110, align: 'left' })
-                    .text(`Rs.${totalPremiumSum.toLocaleString('en-IN')}`, sumX + 110, footerY + 2, { width: 100, align: 'right' });
+                    .text(totalPremiumSum.toLocaleString('en-IN'), sumX + 110, footerY + 2, { width: 100, align: 'right' });
             }
 
             doc.end();
