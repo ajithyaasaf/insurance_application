@@ -1230,12 +1230,15 @@ export class ReportService {
             doc.moveDown(1);
 
             // Table
-            const colWidth = Math.min(
-                (doc.page.width - 80) / Math.min(columns.length, 8),
-                120
-            );
-            const visibleCols = columns.slice(0, 8); // Max 8 columns in PDF
+            const sNoCol = { key: 'sNo', label: 'S.No.' };
+            const visibleCols = [sNoCol, ...columns.slice(0, 7)]; // Prepend S.No. and keep up to 7 columns (total 8)
             const startX = 40;
+
+            // Width allocation: S.No is 35 points wide, others share the rest equally
+            const otherColWidth = visibleCols.length > 1
+                ? Math.min(((doc.page.width - 80) - 35) / (visibleCols.length - 1), 120)
+                : 120;
+            const getColWidth = (colKey: string): number => colKey === 'sNo' ? 35 : otherColWidth;
 
             // Header row
             doc.fontSize(8).font('Helvetica-Bold');
@@ -1243,11 +1246,13 @@ export class ReportService {
             const headerY = doc.y; // Fix: lock Y coordinate for the entire row
 
             for (const col of visibleCols) {
+                const w = getColWidth(col.key);
+                
                 // Background color for header
-                doc.rect(x, headerY, colWidth, 22).fill('#1e1b4b');
+                doc.rect(x, headerY, w, 22).fill('#1e1b4b');
 
                 // Header Border
-                doc.lineWidth(0.2).rect(x, headerY, colWidth, 22).stroke('#ffffff');
+                doc.lineWidth(0.2).rect(x, headerY, w, 22).stroke('#ffffff');
 
                 // Replace Rupee symbol with Rs. to avoid PDFKit character rendering issues
                 const labelText = col.label.replace(/₹/g, 'Rs.');
@@ -1255,12 +1260,12 @@ export class ReportService {
                 // Draw header text centered
                 doc.fillColor('#FFFFFF')
                     .text(labelText, x, headerY + 7, {
-                        width: colWidth,
+                        width: w,
                         align: 'center',
                         lineBreak: false
                     });
 
-                x += colWidth;
+                x += w;
             }
 
             // Step cursor past header
@@ -1279,26 +1284,32 @@ export class ReportService {
                 const bgColor = rowIdx % 2 === 0 ? '#F9FAFB' : '#FFFFFF';
 
                 for (const col of visibleCols) {
-                    let val = String(row[col.key] ?? '—');
-                    if (typeof row[col.key] === 'number' && (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax')) {
-                        val = `Rs.${row[col.key].toLocaleString('en-IN')}`;
+                    const w = getColWidth(col.key);
+                    let val = '—';
+                    if (col.key === 'sNo') {
+                        val = String(rowIdx + 1);
+                    } else {
+                        val = String(row[col.key] ?? '—');
+                        if (typeof row[col.key] === 'number' && (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax')) {
+                            val = `Rs.${row[col.key].toLocaleString('en-IN')}`;
+                        }
                     }
 
                     // Row background
-                    doc.rect(x, rowY, colWidth, 18).fill(bgColor);
+                    doc.rect(x, rowY, w, 18).fill(bgColor);
 
                     // Cell Border (Darker for visibility)
-                    doc.lineWidth(0.2).rect(x, rowY, colWidth, 18).stroke('#d1d5db');
+                    doc.lineWidth(0.2).rect(x, rowY, w, 18).stroke('#d1d5db');
 
                     doc.font('Helvetica').fontSize(7).fillColor('#374151')
                         .text(val, x + 4, rowY + 5, {
-                            width: colWidth - 8,
-                            align: 'left',
+                            width: w - 8,
+                            align: col.key === 'sNo' ? 'center' : 'left',
                             height: 10,
                             lineBreak: false
                         });
 
-                    x += colWidth;
+                    x += w;
                 }
 
                 // Explicitly step down to the next row safely
