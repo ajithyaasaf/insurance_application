@@ -321,31 +321,48 @@ export class ReportService {
             return acc;
         }, {});
 
-        const data = [
-            {
-                customerName: customer.name,
-                phone: customer.phone,
-                totalPolicies: policies.length,
-                totalPremium,
-                totalClaims: claims.length,
-                totalClaimedAmount: totalClaimed,
-                totalBillAmount,
-                insurers: Object.values(byInsurer),
-                vehicles: Object.values(byVehicle)
-            }
-        ];
+        const summary = {
+            customerName: customer.name,
+            phone: customer.phone,
+            totalPolicies: policies.length,
+            totalPremium,
+            totalClaims: claims.length,
+            totalClaimedAmount: totalClaimed,
+            totalBillAmount,
+            insurers: Object.values(byInsurer),
+            vehicles: Object.values(byVehicle)
+        };
+
+        const mappedPolicies = policies.map((p: any) => ({
+            id: p.id,
+            policyNumber: p.policyNumber,
+            customerName: customer.name,
+            companyName: p.company?.name || '—',
+            policyType: p.policyType.charAt(0).toUpperCase() + p.policyType.slice(1),
+            vehicleClass: p.vehicleClass ? p.vehicleClass.replace(/_/g, ' ') : '—',
+            vehicleNo: p.vehicleNumber || '—',
+            totalPremium: p.totalPremium || p.premiumAmount || 0,
+            startDate: fmtDate(p.startDate),
+            expiryDate: fmtDate(p.expiryDate),
+            status: p.status.charAt(0).toUpperCase() + p.status.slice(1),
+        }));
 
         return {
             columns: [
-                { key: 'customerName', label: 'Customer Name' },
-                { key: 'totalPolicies', label: 'Total Policies' },
-                { key: 'totalPremium', label: 'Total Premium (₹)' },
-                { key: 'totalClaims', label: 'Total Claims' },
-                { key: 'totalBillAmount', label: 'Billed Amount (₹)' },
-                { key: 'totalClaimedAmount', label: 'Claimed Amount (₹)' }
+                { key: 'policyNumber', label: 'Policy Number' },
+                { key: 'customerName', label: 'Customer' },
+                { key: 'companyName', label: 'Insurer' },
+                { key: 'policyType', label: 'Type' },
+                { key: 'vehicleClass', label: 'Vehicle Class' },
+                { key: 'vehicleNo', label: 'Vehicle No' },
+                { key: 'totalPremium', label: 'Gross Premium (₹)' },
+                { key: 'startDate', label: 'Start Date' },
+                { key: 'expiryDate', label: 'Expiry Date' },
+                { key: 'status', label: 'Status' }
             ],
-            data,
-            total: 1
+            data: mappedPolicies,
+            summary,
+            total: mappedPolicies.length
         };
     }
 

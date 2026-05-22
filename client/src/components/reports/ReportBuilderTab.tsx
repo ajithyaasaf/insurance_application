@@ -526,28 +526,28 @@ const ReportBuilderTab: React.FC = () => {
                     </div>
 
                     {/* Dynamic Charts Section */}
-                    {isSnapshot && report.data?.[0] ? (
+                    {isSnapshot && report.summary ? (
                         <div className="space-y-6">
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                 <div className="card p-4 bg-primary-50 border border-primary-100">
                                     <p className="text-xs text-primary-600 font-bold uppercase">Total Policies</p>
-                                    <p className="text-2xl font-bold text-primary-900">{report.data[0].totalPolicies}</p>
+                                    <p className="text-2xl font-bold text-primary-900">{report.summary.totalPolicies}</p>
                                 </div>
                                 <div className="card p-4 bg-emerald-50 border border-emerald-100">
                                     <p className="text-xs text-emerald-600 font-bold uppercase">Total Premium Paid</p>
-                                    <p className="text-2xl font-bold text-emerald-900">₹{report.data[0].totalPremium.toLocaleString('en-IN')}</p>
+                                    <p className="text-2xl font-bold text-emerald-900">₹{report.summary.totalPremium.toLocaleString('en-IN')}</p>
                                 </div>
                                 <div className="card p-4 bg-rose-50 border border-rose-100">
                                     <p className="text-xs text-rose-600 font-bold uppercase">Total Claims Made</p>
-                                    <p className="text-2xl font-bold text-rose-900">{report.data[0].totalClaims}</p>
+                                    <p className="text-2xl font-bold text-rose-900">{report.summary.totalClaims}</p>
                                 </div>
                                 <div className="card p-4 bg-orange-50 border border-orange-100">
                                     <p className="text-xs text-orange-600 font-bold uppercase">Total Billed Amount</p>
-                                    <p className="text-2xl font-bold text-orange-900">₹{report.data[0].totalBillAmount.toLocaleString('en-IN')}</p>
+                                    <p className="text-2xl font-bold text-orange-900">₹{report.summary.totalBillAmount.toLocaleString('en-IN')}</p>
                                 </div>
                                 <div className="card p-4 bg-purple-50 border border-purple-100">
                                     <p className="text-xs text-purple-600 font-bold uppercase">Total Claimed Amount</p>
-                                    <p className="text-2xl font-bold text-purple-900">₹{report.data[0].totalClaimedAmount.toLocaleString('en-IN')}</p>
+                                    <p className="text-2xl font-bold text-purple-900">₹{report.summary.totalClaimedAmount.toLocaleString('en-IN')}</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -556,7 +556,7 @@ const ReportBuilderTab: React.FC = () => {
                                     <table className="table">
                                         <thead><tr><th>Insurer</th><th className="text-right">Policies</th><th className="text-right">Premium</th></tr></thead>
                                         <tbody>
-                                            {report.data[0].insurers.map((ins: any, i: number) => (
+                                            {report.summary.insurers.map((ins: any, i: number) => (
                                                 <tr key={i}>
                                                     <td className="font-medium text-surface-900">{ins.name}</td>
                                                     <td className="text-right">{ins.count}</td>
@@ -571,7 +571,7 @@ const ReportBuilderTab: React.FC = () => {
                                     <table className="table">
                                         <thead><tr><th>Vehicle Type</th><th className="text-right">Policies</th><th className="text-right">Premium</th></tr></thead>
                                         <tbody>
-                                            {report.data[0].vehicles.map((veh: any, i: number) => (
+                                            {report.summary.vehicles.map((veh: any, i: number) => (
                                                 <tr key={i}>
                                                     <td className="font-medium text-surface-900">{formatVehicleClass(veh.name)}</td>
                                                     <td className="text-right">{veh.count}</td>
