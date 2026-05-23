@@ -1360,8 +1360,8 @@ export class ReportService {
 
             // Table
             const sNoCol = { key: 'sNo', label: 'S.No.' };
-            const isExpiredReport = title?.includes('Expire') || title?.includes('expired');
-            const limitCols = isExpiredReport ? columns.length : 8;
+            const isPolicyOrExpired = title?.includes('Policies') || title?.includes('Expire') || title?.includes('expired');
+            const limitCols = isPolicyOrExpired ? columns.length : 8;
             const visibleCols = [sNoCol, ...columns.slice(0, limitCols)]; // Prepend S.No.
             const startX = 40;
 

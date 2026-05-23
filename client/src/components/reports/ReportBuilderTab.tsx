@@ -200,8 +200,9 @@ const ReportBuilderTab: React.FC = () => {
 
             if (format === 'pdf' && source === 'policies') {
                 exportCols = [
-                    { key: 'policyNumber', label: 'Policy No.' },
+                    { key: 'startDate', label: 'Start Date' },
                     { key: 'customerName', label: 'Customer' },
+                    { key: 'policyNumber', label: 'Policy No.' },
                     { key: 'make', label: 'Make' },
                     { key: 'model', label: 'Model' },
                     { key: 'vehicleNumber', label: 'Vehicle No.' },
@@ -214,18 +215,18 @@ const ReportBuilderTab: React.FC = () => {
 
             if (format === 'pdf' && source === 'policies-expired') {
                 exportCols = [
-                    { key: 'policyNumber', label: 'Policy No.' },
                     { key: 'startDate', label: 'Start Date' },
                     { key: 'expiryDate', label: 'Expiry Date' },
                     { key: 'customerName', label: 'Customer' },
+                    { key: 'policyNumber', label: 'Policy No.' },
                     { key: 'make', label: 'Make' },
                     { key: 'model', label: 'Model' },
                     { key: 'vehicleNumber', label: 'Vehicle No.' },
                     { key: 'vehicleClass', label: 'Vehicle Class' },
                     { key: 'companyName', label: 'Company' },
+                    { key: 'ncbPercentage', label: 'NCB' },
                     { key: 'totalPremium', label: 'Total Premium' },
                     { key: 'customerPhone', label: 'Mobile No.' },
-                    { key: 'ncbPercentage', label: 'NCB' },
                 ];
             }
 
