@@ -1345,11 +1345,11 @@ export class ReportService {
                 .fillColor('#1e1b4b')
                 .text(title || 'Report', { align: 'center' });
             doc.moveDown(0.2);
-            
+
             doc.fontSize(9).font('Helvetica')
                 .fillColor('#6b7280')
                 .text(`Generated on ${new Date().toLocaleDateString('en-IN')} | InsureCRM Pro`, { align: 'center' });
-            
+
             if (dateRangeStr) {
                 doc.moveDown(0.15);
                 doc.fontSize(9).font('Helvetica-Bold')
@@ -1378,7 +1378,7 @@ export class ReportService {
 
             for (const col of visibleCols) {
                 const w = getColWidth(col.key);
-                
+
                 // Background color for header
                 doc.rect(x, headerY, w, 22).fill('#1e1b4b');
 
@@ -1450,7 +1450,7 @@ export class ReportService {
 
             // Footer
             doc.moveDown(1);
-            
+
             if (doc.y > doc.page.height - 60) {
                 doc.addPage();
                 doc.y = 40;
@@ -1490,14 +1490,14 @@ export class ReportService {
         workbook.created = new Date();
 
         const summary = result.summary || {};
-        
+
         // ─── Sheet 1: Summary ─────────────────────────────
         const summarySheet = workbook.addWorksheet('Summary');
         summarySheet.views = [{ showGridLines: true }];
 
         summarySheet.addRow(['CUSTOMER INSURANCE PORTFOLIO STATEMENT']).font = { bold: true, size: 16, color: { argb: 'FF1E1B4B' } };
         summarySheet.addRow([]);
-        
+
         summarySheet.addRow(['Customer Name:', summary.customerName || '—']).font = { bold: true };
         summarySheet.addRow(['Customer Phone:', summary.phone || '—']).font = { bold: true };
         summarySheet.addRow(['Generated On:', new Date().toLocaleDateString('en-IN')]);
@@ -1511,7 +1511,7 @@ export class ReportService {
         summarySheet.addRow(['Total Claims Made', summary.totalClaims || 0]);
         summarySheet.addRow(['Total Claimed Amount', summary.totalClaimedAmount || 0]);
         summarySheet.addRow(['Total Received/Settled', summary.totalBillAmount || 0]);
-        
+
         // Style Metrics Table
         const metricsHeaderRow = summarySheet.getRow(8);
         metricsHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1528,7 +1528,7 @@ export class ReportService {
         const insurerHeaderRow = summarySheet.getRow(16);
         insurerHeaderRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         insurerHeaderRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0D9488' } };
-        
+
         let curInsRow = 17;
         for (const ins of (summary.insurers || [])) {
             summarySheet.addRow([ins.name, ins.count, ins.premium]);
@@ -1551,7 +1551,7 @@ export class ReportService {
             summarySheet.getRow(curVehRow).getCell(3).numFmt = '"₹"#,##0';
             curVehRow++;
         }
-        
+
         // ─── Sheet 2: Policies Written ────────────────────
         const policiesSheet = workbook.addWorksheet('Policies Written');
         policiesSheet.columns = [
@@ -1671,7 +1671,7 @@ export class ReportService {
             // Add Insurer Breakdown Table on Page 1
             doc.fontSize(12).font('Helvetica-Bold').fillColor('#1e1b4b').text('Portfolio Share by Insurer', 40, doc.y);
             doc.moveDown(0.4);
-            
+
             // Draw table
             let tableY = doc.y;
             doc.rect(40, tableY, 515, 20).fill('#4338ca');
@@ -1679,7 +1679,7 @@ export class ReportService {
                 .text('Insurer', 50, tableY + 5)
                 .text('Policies', 300, tableY + 5, { width: 80, align: 'right' })
                 .text('Gross Premium', 430, tableY + 5, { width: 110, align: 'right' });
-            
+
             tableY += 20;
             doc.fontSize(9).font('Helvetica').fillColor('#334155');
             for (const ins of (summary.insurers || [])) {
@@ -1694,7 +1694,7 @@ export class ReportService {
             doc.addPage();
             doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e1b4b').text('Policies Ledger', 40, 40);
             doc.moveDown(0.5);
-            
+
             let rowY = doc.y;
             doc.rect(40, rowY, 515, 20).fill('#4338ca');
             doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
@@ -1703,7 +1703,7 @@ export class ReportService {
                 .text('Vehicle No', 270, rowY + 6)
                 .text('Premium', 370, rowY + 6, { width: 80, align: 'right' })
                 .text('Expiry Date', 470, rowY + 6, { width: 80, align: 'right' });
-            
+
             rowY += 20;
             doc.fontSize(8).font('Helvetica').fillColor('#334155');
             for (const p of result.data || []) {
