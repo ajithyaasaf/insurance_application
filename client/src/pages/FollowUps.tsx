@@ -220,7 +220,24 @@ const FollowUps: React.FC = () => {
                                 label: `${p.productName || p.policyType} ${p.vehicleNumber ? `(${p.vehicleNumber})` : ''} - ${p.customer?.name}`
                             }))}
                             value={form.policyId}
-                            onChange={(val) => setForm({ ...form, policyId: val })}
+                            onChange={(val) => {
+                                const selectedPolicy = policies.find(p => p.id === val);
+                                const resolvedCustomerId = selectedPolicy?.customerId || selectedPolicy?.customer?.id || '';
+
+                                if (selectedPolicy?.customer) {
+                                    const customerExists = customers.some(c => c.id === resolvedCustomerId);
+                                    if (!customerExists) {
+                                        setCustomers(prev => [...prev, selectedPolicy.customer]);
+                                    }
+                                }
+
+                                setForm({
+                                    ...form,
+                                    policyId: val,
+                                    customerId: resolvedCustomerId || form.customerId
+                                });
+                                setErrors(prev => ({ ...prev, policyId: '', customerId: '' }));
+                            }}
                             allLabel="None"
                         />
                     </div>

@@ -327,10 +327,19 @@ const Payments: React.FC = () => {
                                     value={form.policyId}
                                     onChange={(val) => {
                                         const selectedPolicy = policies.find(p => p.id === val);
+                                        const resolvedCustomerId = selectedPolicy?.customerId || selectedPolicy?.customer?.id || '';
+
+                                        if (selectedPolicy?.customer) {
+                                            const customerExists = customers.some(c => c.id === resolvedCustomerId);
+                                            if (!customerExists) {
+                                                setCustomers(prev => [...prev, selectedPolicy.customer]);
+                                            }
+                                        }
+
                                         setForm({
                                             ...form,
                                             policyId: val,
-                                            customerId: selectedPolicy ? selectedPolicy.customerId : form.customerId,
+                                            customerId: resolvedCustomerId || form.customerId,
                                             amount: selectedPolicy ? (selectedPolicy.totalPremium || selectedPolicy.premiumAmount).toString() : form.amount,
                                             dueDate: selectedPolicy ? selectedPolicy.startDate.split('T')[0] : form.dueDate
                                         });
