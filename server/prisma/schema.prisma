@@ -183,7 +183,7 @@ model Claim {
   policyId        String
   customerId      String
   claimNumber     String?
-  claimAmount     Float
+  claimAmount     Float?
   estimatedAmount Float?
   billAmount      Float?
   claimDate       DateTime

@@ -77,7 +77,7 @@ const Claims: React.FC = () => {
         const errs: Record<string, string> = {};
         if (!form.customerId) errs.customerId = 'Please select a customer';
         if (!form.policyId) errs.policyId = 'Please select a policy';
-        if (!form.claimAmount || parseFloat(form.claimAmount) <= 0) errs.claimAmount = 'Valid claim amount is required';
+        if (form.claimAmount && parseFloat(form.claimAmount) < 0) errs.claimAmount = 'Claim amount cannot be negative';
         if (form.estimatedAmount && parseFloat(form.estimatedAmount) < 0) errs.estimatedAmount = 'Estimated amount cannot be negative';
         if (form.billAmount && parseFloat(form.billAmount) < 0) errs.billAmount = 'Bill amount cannot be negative';
         if (!form.claimDate) errs.claimDate = 'Claim date is required';
@@ -98,7 +98,7 @@ const Claims: React.FC = () => {
             customerId: claim.customerId,
             policyId: claim.policyId,
             claimNumber: claim.claimNumber || '',
-            claimAmount: String(claim.claimAmount),
+            claimAmount: claim.claimAmount != null ? String(claim.claimAmount) : '',
             estimatedAmount: claim.estimatedAmount != null ? String(claim.estimatedAmount) : '',
             billAmount: claim.billAmount != null ? String(claim.billAmount) : '',
             claimDate: claim.claimDate?.split('T')[0] || '',
@@ -121,7 +121,7 @@ const Claims: React.FC = () => {
 
         const payload = {
             ...form,
-            claimAmount: parseFloat(form.claimAmount),
+            claimAmount: form.claimAmount ? parseFloat(form.claimAmount) : null,
             estimatedAmount: form.estimatedAmount ? parseFloat(form.estimatedAmount) : null,
             billAmount: form.billAmount ? parseFloat(form.billAmount) : null,
         };
@@ -246,7 +246,11 @@ const Claims: React.FC = () => {
                                                 <p className="text-surface-400 text-[10px] mt-0.5">Policy: {c.policy.policyNumber}</p>
                                             )}
                                         </td>
-                                        <td className="font-medium">{formatCurrency(c.claimAmount)}</td>
+                                        <td className="text-sm font-medium text-surface-900">
+                                            {c.claimAmount != null
+                                                ? formatCurrency(c.claimAmount)
+                                                : <span className="text-surface-400 font-normal">—</span>}
+                                        </td>
                                         <td className="text-sm">
                                             {c.estimatedAmount != null
                                                 ? <span className="text-amber-700 font-medium">{formatCurrency(c.estimatedAmount)}</span>
@@ -299,7 +303,7 @@ const Claims: React.FC = () => {
                                 <div className="grid grid-cols-3 gap-2 text-xs mt-2">
                                     <div className="bg-surface-50 rounded-lg p-2">
                                         <p className="text-[10px] text-surface-400 uppercase font-bold mb-0.5">Claim</p>
-                                        <p className="font-semibold text-surface-900">{formatCurrency(c.claimAmount)}</p>
+                                        <p className="font-semibold text-surface-900">{c.claimAmount != null ? formatCurrency(c.claimAmount) : '—'}</p>
                                     </div>
                                     <div className="bg-amber-50 rounded-lg p-2">
                                         <p className="text-[10px] text-amber-600 uppercase font-bold mb-0.5">Estimated</p>
@@ -391,12 +395,12 @@ const Claims: React.FC = () => {
                     {/* Amounts row */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                            <label className="label">Claim Amount *</label>
+                            <label className="label">Claim Amount</label>
                             <input
                                 type="number" min="0" step="0.01"
                                 className={`input ${errors.claimAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
                                 data-error-field={errors.claimAmount ? 'true' : undefined}
-                                placeholder="0.00"
+                                placeholder="0.00 (optional)"
                                 value={form.claimAmount}
                                 onChange={(e) => setField('claimAmount', e.target.value)}
                             />

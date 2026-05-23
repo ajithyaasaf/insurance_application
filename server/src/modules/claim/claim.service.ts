@@ -5,7 +5,7 @@ interface CreateClaimInput {
     policyId: string;
     customerId: string;
     claimNumber?: string;
-    claimAmount: number;
+    claimAmount?: number | null;
     estimatedAmount?: number | null;
     billAmount?: number | null;
     claimDate: string;
@@ -38,7 +38,7 @@ export class ClaimService {
                 policyId: data.policyId,
                 customerId: data.customerId,
                 claimNumber: data.claimNumber,
-                claimAmount: data.claimAmount,
+                claimAmount: data.claimAmount ?? null,
                 estimatedAmount: data.estimatedAmount ?? null,
                 billAmount: data.billAmount ?? null,
                 claimDate: new Date(data.claimDate),
