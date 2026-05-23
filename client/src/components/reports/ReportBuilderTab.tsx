@@ -23,7 +23,7 @@ import {
     PAYMENT_STATUSES, CLAIM_STATUSES, FOLLOWUP_STATUSES 
 } from '../../utils/constants';
 
-type Source = 'policies' | 'payments' | 'claims' | 'customers' | 'followups' | 'customer-snapshot';
+type Source = 'policies' | 'policies-expired' | 'payments' | 'claims' | 'customers' | 'followups' | 'customer-snapshot';
 type GroupBy = 'company' | 'dealer' | 'policyType' | 'vehicleClass' | 'status' | 'month' | 'policyOrigin' | '';
 
 interface Column { key: string; label: string }
@@ -42,6 +42,7 @@ interface ReportFilters {
 
 const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[] = [
     { value: 'policies', label: 'Policies', icon: HiOutlineTable },
+    { value: 'policies-expired', label: 'Policy Expire Register', icon: HiOutlineTable },
     { value: 'payments', label: 'Payments', icon: HiOutlineRefresh },
     { value: 'claims', label: 'Claims', icon: HiOutlineDocumentDownload },
     { value: 'customers', label: 'Customers', icon: HiOutlineTable },
@@ -51,7 +52,8 @@ const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[
 
 function getStatusOptions(source: Source): string[] {
     switch (source) {
-        case 'policies': return POLICY_STATUSES;
+        case 'policies':
+        case 'policies-expired': return POLICY_STATUSES;
         case 'payments': return PAYMENT_STATUSES;
         case 'claims': return CLAIM_STATUSES;
         case 'followups': return FOLLOWUP_STATUSES;
@@ -61,7 +63,8 @@ function getStatusOptions(source: Source): string[] {
 
 function getGroupOptions(source: Source): { value: GroupBy; label: string }[] {
     switch (source) {
-        case 'policies': return [
+        case 'policies':
+        case 'policies-expired': return [
             { value: 'company', label: 'By Company' },
             { value: 'dealer', label: 'By Dealer' },
             { value: 'policyType', label: 'By Policy Type' },
@@ -162,7 +165,9 @@ const ReportBuilderTab: React.FC = () => {
             
             let exportSource: string = source;
             let exportCols = cols;
-            let exportTitle = `${source.charAt(0).toUpperCase() + source.slice(1)} Report`;
+            let exportTitle = source === 'policies-expired' 
+                ? 'Policy Expire Register' 
+                : `${source.charAt(0).toUpperCase() + source.slice(1)} Report`;
 
             if (source === 'customer-snapshot') {
                 if (subTab === 'claims') {
@@ -203,6 +208,22 @@ const ReportBuilderTab: React.FC = () => {
                     { key: 'companyName', label: 'Company' },
                     { key: 'totalPremium', label: 'Total Premium' },
                     { key: 'customerPhone', label: 'Mobile No.' },
+                ];
+            }
+
+            if (format === 'pdf' && source === 'policies-expired') {
+                exportCols = [
+                    { key: 'startDate', label: 'Start Date' },
+                    { key: 'expiryDate', label: 'Expiry Date' },
+                    { key: 'customerName', label: 'Customer' },
+                    { key: 'make', label: 'Make' },
+                    { key: 'model', label: 'Model' },
+                    { key: 'vehicleNumber', label: 'Vehicle No.' },
+                    { key: 'vehicleClass', label: 'Vehicle Class' },
+                    { key: 'companyName', label: 'Company' },
+                    { key: 'totalPremium', label: 'Total Premium' },
+                    { key: 'customerPhone', label: 'Mobile No.' },
+                    { key: 'ncbPercentage', label: 'NCB' },
                 ];
             }
 
@@ -255,11 +276,11 @@ const ReportBuilderTab: React.FC = () => {
 
     const statuses = getStatusOptions(source);
     const groupOptions = getGroupOptions(source);
-    const showCompanyFilter = ['policies', 'payments', 'claims', 'followups', 'customer-snapshot'].includes(source);
-    const showDealerFilter = ['policies', 'payments'].includes(source);
-    const showCustomerFilter = ['policies', 'payments', 'claims', 'followups', 'leads', 'customer-snapshot'].includes(source);
-    const showPolicyTypeFilter = ['policies', 'payments', 'claims', 'followups', 'customer-snapshot'].includes(source);
-    const showVehicleClassFilter = ['policies', 'payments', 'claims', 'customer-snapshot'].includes(source);
+    const showCompanyFilter = ['policies', 'policies-expired', 'payments', 'claims', 'followups', 'customer-snapshot'].includes(source);
+    const showDealerFilter = ['policies', 'policies-expired', 'payments'].includes(source);
+    const showCustomerFilter = ['policies', 'policies-expired', 'payments', 'claims', 'followups', 'leads', 'customer-snapshot'].includes(source);
+    const showPolicyTypeFilter = ['policies', 'policies-expired', 'payments', 'claims', 'followups', 'customer-snapshot'].includes(source);
+    const showVehicleClassFilter = ['policies', 'policies-expired', 'payments', 'claims', 'customer-snapshot'].includes(source);
     const isSnapshot = source === 'customer-snapshot';
     const hasAdvancedFilters = showCompanyFilter || showCustomerFilter || showDealerFilter || showPolicyTypeFilter || showVehicleClassFilter;
 

@@ -61,6 +61,27 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'status', label: 'Status' },
         { key: 'policyOrigin', label: 'Origin' },
     ],
+    'policies-expired': [
+        { key: 'policyNumber', label: 'Policy No.' },
+        { key: 'customerName', label: 'Customer' },
+        { key: 'customerPhone', label: 'Phone' },
+        { key: 'companyName', label: 'Company' },
+        { key: 'policyType', label: 'Type' },
+        { key: 'make', label: 'Make' },
+        { key: 'model', label: 'Model' },
+        { key: 'vehicleNumber', label: 'Vehicle No.' },
+        { key: 'vehicleClass', label: 'Vehicle Class' },
+        { key: 'od', label: 'OD Premium (₹)' },
+        { key: 'tp', label: 'TP Premium (₹)' },
+        { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
+        { key: 'tax', label: 'Tax (₹)' },
+        { key: 'totalPremium', label: 'Total Premium (₹)' },
+        { key: 'startDate', label: 'Start Date' },
+        { key: 'expiryDate', label: 'Expiry Date' },
+        { key: 'status', label: 'Status' },
+        { key: 'policyOrigin', label: 'Origin' },
+        { key: 'ncbPercentage', label: 'NCB (%)' },
+    ],
     payments: [
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy No.' },
@@ -138,6 +159,33 @@ function buildPolicyWhere(userId: string, role: string, filters?: ReportFilters)
         where.startDate = {};
         if (filters?.dateFrom) where.startDate.gte = getStartOfDayIST(filters.dateFrom);
         if (filters?.dateTo) where.startDate.lte = getEndOfDayIST(filters.dateTo);
+    }
+    return where;
+}
+
+function buildPolicyExpiredWhere(userId: string, role: string, filters?: ReportFilters) {
+    const where: any = { ...ownerFilter(userId, role), deletedAt: null };
+    if (filters?.companyId) where.companyId = filters.companyId;
+    if (filters?.companyIds) {
+        const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
+        where.companyId = { in: ids };
+    }
+    if (filters?.dealerId === 'direct') {
+        where.dealerId = null;
+    } else if (filters?.dealerId) {
+        where.dealerId = filters.dealerId;
+    }
+    if (filters?.customerId) where.customerId = filters.customerId;
+    if (filters?.policyType) where.policyType = filters.policyType;
+    if (filters?.vehicleClass) where.vehicleClass = filters.vehicleClass;
+    if (filters?.policyOrigin) where.policyOrigin = filters.policyOrigin;
+    if (filters?.status) {
+        Object.assign(where, buildStatusFilter(filters.status));
+    }
+    if (filters?.dateFrom || filters?.dateTo) {
+        where.expiryDate = {};
+        if (filters?.dateFrom) where.expiryDate.gte = getStartOfDayIST(filters.dateFrom);
+        if (filters?.dateTo) where.expiryDate.lte = getEndOfDayIST(filters.dateTo);
     }
     return where;
 }
@@ -453,6 +501,50 @@ export class ReportService {
         return { data, total, columns: SOURCE_COLUMNS.policies };
     }
 
+    private async queryPoliciesExpired(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
+        const where = buildPolicyExpiredWhere(userId, role, filters);
+        const [rows, total] = await Promise.all([
+            prisma.policy.findMany({
+                where,
+                include: { customer: true, company: true, dealer: true },
+                orderBy: { expiryDate: 'asc' },
+                skip: (page - 1) * limit,
+                take: limit,
+            }),
+            prisma.policy.count({ where }),
+        ]);
+
+        const data = rows.map(mapPolicyStatus).map((r: any) => ({
+            policyNumber: r.policyNumber || '—',
+            customerName: r.customer?.name || '—',
+            customerPhone: r.customer?.phone || '—',
+            companyName: r.company?.name || '—',
+            dealerName: r.dealer?.name || '—',
+            policyType: r.policyType,
+            productName: r.policyType === 'motor' ? `${r.make || ''} ${r.model || ''}`.trim() || 'Motor' : r.productName || '—',
+            make: r.make || '—',
+            model: r.model || '—',
+            vehicleNumber: r.vehicleNumber || '—',
+            vehicleClass: r.vehicleClass?.replace(/_/g, ' ') || '—',
+            od: r.od || 0,
+            tp: r.tp || 0,
+            premiumAmount: r.premiumAmount,
+            tax: r.tax || 0,
+            totalPremium: r.totalPremium || r.premiumAmount,
+            sumInsured: r.policyType === 'motor' ? (r.idv || 0) : (r.sumInsured || 0),
+            startDate: fmtDate(r.startDate),
+            expiryDate: fmtDate(r.expiryDate),
+            status: r.status,
+            ncbPercentage: r.ncbPercentage !== null && r.ncbPercentage !== undefined ? `${r.ncbPercentage}%` : '0%',
+            policyOrigin: r.policyOrigin === 'new_vehicle' ? 'New Vehicle'
+                : r.policyOrigin === 'external_renewal' ? 'External Renewal'
+                    : r.policyOrigin === 'in_system_renewal' ? 'Own Renewal'
+                        : 'Fresh',
+        }));
+
+        return { data, total, columns: SOURCE_COLUMNS['policies-expired'] };
+    }
+
     private async queryPayments(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
         const where = buildPaymentWhere(userId, role, filters);
         const [rows, total] = await Promise.all([
@@ -584,6 +676,9 @@ export class ReportService {
         if (source === 'policies') {
             return this.groupPolicies(userId, role, filters, groupBy);
         }
+        if (source === 'policies-expired') {
+            return this.groupPolicies(userId, role, filters, groupBy, true);
+        }
         if (source === 'payments') {
             return this.groupPayments(userId, role, filters, groupBy);
         }
@@ -594,8 +689,8 @@ export class ReportService {
         return null;
     }
 
-    private async groupPolicies(userId: string, role: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
-        const where = buildPolicyWhere(userId, role, filters);
+    private async groupPolicies(userId: string, role: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy, useExpiredWhere = false) {
+        const where = useExpiredWhere ? buildPolicyExpiredWhere(userId, role, filters) : buildPolicyWhere(userId, role, filters);
 
         if (groupBy === 'company') {
             const groups = await prisma.policy.groupBy({
@@ -971,6 +1066,7 @@ export class ReportService {
         // Flat data query
         const queryMap: Record<string, Function> = {
             policies: () => this.queryPolicies(userId, role, filters, page, limit),
+            'policies-expired': () => this.queryPoliciesExpired(userId, role, filters, page, limit),
             payments: () => this.queryPayments(userId, role, filters, page, limit),
             claims: () => this.queryClaims(userId, role, filters, page, limit),
             customers: () => this.queryCustomers(userId, role, filters, page, limit),
@@ -1014,10 +1110,11 @@ export class ReportService {
 
         let chartsData = null;
         if (!groupBy) {
-            if (source === 'policies') {
+            if (source === 'policies' || source === 'policies-expired') {
+                const useExpired = source === 'policies-expired';
                 const [statusGroup, typeGroup] = await Promise.all([
-                    this.groupPolicies(userId, role, filters, 'status'),
-                    this.groupPolicies(userId, role, filters, 'policyType')
+                    this.groupPolicies(userId, role, filters, 'status', useExpired),
+                    this.groupPolicies(userId, role, filters, 'policyType', useExpired)
                 ]);
                 chartsData = {
                     status: statusGroup?.data || [],
@@ -1263,7 +1360,9 @@ export class ReportService {
 
             // Table
             const sNoCol = { key: 'sNo', label: 'S.No.' };
-            const visibleCols = [sNoCol, ...columns.slice(0, 8)]; // Prepend S.No. and keep up to 8 columns (total 9)
+            const isExpiredReport = title?.includes('Expire') || title?.includes('expired');
+            const limitCols = isExpiredReport ? columns.length : 8;
+            const visibleCols = [sNoCol, ...columns.slice(0, limitCols)]; // Prepend S.No.
             const startX = 40;
 
             // Width allocation: S.No is 35 points wide, others share the rest equally

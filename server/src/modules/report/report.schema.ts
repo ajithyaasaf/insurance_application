@@ -3,6 +3,7 @@ import { z } from 'zod';
 // ─── Allowed enums ───────────────────────────────────────
 export const ReportSource = z.enum([
     'policies',
+    'policies-expired',
     'payments',
     'claims',
     'customers',
