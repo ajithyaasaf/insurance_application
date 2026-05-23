@@ -333,7 +333,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
 
             <div><label className="label">Payment Method</label>
                 <SearchableSelect
-                    options={['Cash', 'UPI', 'Cheque', 'Online', 'NEFT'].map(m => ({ value: m, label: m }))}
+                    options={['Cash', 'UPI', 'Cheque', 'Online', 'NEFT', 'APD'].map(m => ({ value: m, label: m }))}
                     value={form.paymentMethod || ''}
                     onChange={(val) => handleChange('paymentMethod', val)}
                     placeholder="Select Method"
