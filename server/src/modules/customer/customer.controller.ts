@@ -9,8 +9,9 @@ export class CustomerController {
             sendSuccess({
                 res,
                 statusCode: 201,
-                message: result.warning ? `Customer created. Warning: ${result.warning}` : 'Customer created',
+                message: 'Customer created',
                 data: result.customer,
+                ...(result.warning && { warning: result.warning }),
             });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }

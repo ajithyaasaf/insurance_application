@@ -81,7 +81,14 @@ const Customers: React.FC = () => {
                 toast.success(response.data?.message || 'Customer updated');
             } else {
                 const response = await api.post('/customers', form);
-                toast.success(response.data?.message || 'Customer created', { duration: 5000 });
+                toast.success(response.data?.message || 'Customer created');
+                if (response.data?.warning) {
+                    toast(response.data.warning, {
+                        icon: '⚠️',
+                        duration: 8000,
+                        style: { background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b' },
+                    });
+                }
             }
             setModalOpen(false);
             fetchCustomers(meta.page);

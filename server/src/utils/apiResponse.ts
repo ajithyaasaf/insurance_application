@@ -5,6 +5,7 @@ interface ApiResponseOptions {
     statusCode: number;
     message: string;
     data?: unknown;
+    warning?: string;
     meta?: {
         page?: number;
         limit?: number;
@@ -18,11 +19,13 @@ export const sendSuccess = ({
     statusCode = 200,
     message,
     data,
+    warning,
     meta,
 }: ApiResponseOptions) => {
     return res.status(statusCode).json({
         success: true,
         message,
+        ...(warning && { warning }),
         data,
         meta,
     });
