@@ -200,6 +200,7 @@ const ReportBuilderTab: React.FC = () => {
 
             if (format === 'pdf' && source === 'policies') {
                 exportCols = [
+                    { key: 'policyNumber', label: 'Policy No.' },
                     { key: 'customerName', label: 'Customer' },
                     { key: 'make', label: 'Make' },
                     { key: 'model', label: 'Model' },
@@ -213,6 +214,7 @@ const ReportBuilderTab: React.FC = () => {
 
             if (format === 'pdf' && source === 'policies-expired') {
                 exportCols = [
+                    { key: 'policyNumber', label: 'Policy No.' },
                     { key: 'startDate', label: 'Start Date' },
                     { key: 'expiryDate', label: 'Expiry Date' },
                     { key: 'customerName', label: 'Customer' },
