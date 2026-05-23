@@ -1458,10 +1458,6 @@ export class ReportService {
 
             const footerY = doc.y;
 
-            // Total Records
-            doc.fontSize(8).fillColor('#9ca3af')
-                .text(`Total Records: ${data.length}`, startX, footerY, { align: 'left' });
-
             // Calculate and display premium total if applicable
             const hasTotalPremium = columns.some(c => c.key === 'totalPremium');
             if (hasTotalPremium && data.length > 0) {
@@ -1470,24 +1466,18 @@ export class ReportService {
                     return sum + (isNaN(val) ? 0 : val);
                 }, 0);
 
-                // Dynamically find the exact X-end boundary of the totalPremium column
-                let targetColXEnd = startX;
+                // Calculate the exact full width of the table
+                let tableWidth = 0;
                 for (const col of visibleCols) {
-                    const w = getColWidth(col.key);
-                    targetColXEnd += w;
-                    if (col.key === 'totalPremium') {
-                        break;
-                    }
+                    tableWidth += getColWidth(col.key);
                 }
 
-                // Align the 220pt card exactly to the right edge of the Total Premium column
-                const sumX = targetColXEnd - 220;
-                doc.rect(sumX - 10, footerY - 5, 230, 24).fill('#f1f5f9');
-                doc.lineWidth(0.5).rect(sumX - 10, footerY - 5, 230, 24).stroke('#cbd5e1');
+                // Draw the full-width Total Premium Sum footer bar
+                doc.rect(startX, footerY - 5, tableWidth, 24).fill('#f1f5f9');
+                doc.lineWidth(0.5).rect(startX, footerY - 5, tableWidth, 24).stroke('#cbd5e1');
 
                 doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e1b4b')
-                    .text('Total Premium Sum:', sumX, footerY + 2, { width: 110, align: 'left' })
-                    .text(totalPremiumSum.toLocaleString('en-IN'), sumX + 110, footerY + 2, { width: 100, align: 'right' });
+                    .text(`Total Premium: ${totalPremiumSum.toLocaleString('en-IN')}`, startX + tableWidth - 310, footerY + 2, { width: 300, align: 'right' });
             }
 
             doc.end();

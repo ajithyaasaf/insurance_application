@@ -208,8 +208,8 @@ const ReportBuilderTab: React.FC = () => {
                     { key: 'vehicleNumber', label: 'Vehicle No.' },
                     { key: 'vehicleClass', label: 'Vehicle Class' },
                     { key: 'companyName', label: 'Company' },
-                    { key: 'totalPremium', label: 'Total Premium' },
                     { key: 'customerPhone', label: 'Mobile No.' },
+                    { key: 'totalPremium', label: 'Total Premium' },
                 ];
             }
 
@@ -225,8 +225,8 @@ const ReportBuilderTab: React.FC = () => {
                     { key: 'vehicleClass', label: 'Vehicle Class' },
                     { key: 'companyName', label: 'Company' },
                     { key: 'ncbPercentage', label: 'NCB' },
-                    { key: 'totalPremium', label: 'Total Premium' },
                     { key: 'customerPhone', label: 'Mobile No.' },
+                    { key: 'totalPremium', label: 'Total Premium' },
                 ];
             }
 
