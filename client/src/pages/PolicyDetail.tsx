@@ -443,7 +443,7 @@ const PolicyDetail: React.FC = () => {
                                     {policy.claims.map((claim: any) => (
                                         <div key={claim.id} className="text-xs border-b border-surface-50 pb-2 last:border-0 last:pb-0">
                                             <div className="flex justify-between items-center mb-1">
-                                                <p className="font-medium text-surface-900">{formatCurrency(claim.claimAmount)}</p>
+                                                <p className="font-medium text-surface-900">{claim.claimAmount != null ? formatCurrency(claim.claimAmount) : '—'}</p>
                                                 <span className={`text-[10px] uppercase font-bold ${getStatusColor(claim.status)}`}>
                                                     {claim.status}
                                                 </span>

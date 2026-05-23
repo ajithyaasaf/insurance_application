@@ -324,7 +324,7 @@ const Dashboard: React.FC = () => {
                                         <p className="text-xs text-surface-500 truncate">{claim.policyNumber} • {formatDate(claim.claimDate)}</p>
                                     </div>
                                     <div className="text-right flex-shrink-0 ml-4">
-                                        <p className="text-sm font-semibold text-surface-900">{formatCurrency(claim.claimAmount)}</p>
+                                        <p className="text-sm font-semibold text-surface-900">{claim.claimAmount != null ? formatCurrency(claim.claimAmount) : '—'}</p>
                                         <span className={getStatusColor(claim.status)}>{claim.status}</span>
                                     </div>
                                 </div>

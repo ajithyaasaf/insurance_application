@@ -1746,8 +1746,8 @@ export class ReportService {
                     doc.text(c.claimNumber || '—', 45, claimRowY + 4)
                         .text(c.policyNumber || '—', 150, claimRowY + 4)
                         .text(c.vehicleNumber || '—', 270, claimRowY + 4)
-                        .text(`₹${c.claimAmount.toLocaleString('en-IN')}`, 360, claimRowY + 4, { width: 80, align: 'right' })
-                        .text(`₹${c.billAmount.toLocaleString('en-IN')}`, 460, claimRowY + 4, { width: 80, align: 'right' });
+                        .text(c.claimAmount != null ? `₹${c.claimAmount.toLocaleString('en-IN')}` : '—', 360, claimRowY + 4, { width: 80, align: 'right' })
+                        .text(c.billAmount != null ? `₹${c.billAmount.toLocaleString('en-IN')}` : '—', 460, claimRowY + 4, { width: 80, align: 'right' });
                     claimRowY += 16;
                 }
             }
