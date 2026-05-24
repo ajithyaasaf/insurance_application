@@ -97,20 +97,18 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'status', label: 'Status' },
     ],
     claims: [
-        { key: 'claimNumber', label: 'Claim No. / Policy No.' },
+        { key: 'claimDate', label: 'Claim Intimation Date' },
+        { key: 'claimNumber', label: 'Claim No.' },
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy No.' },
         { key: 'vehicleNumber', label: 'Vehicle No.' },
-        { key: 'startDate', label: 'Start Date' },
-        { key: 'expiryDate', label: 'Expiry Date' },
-        { key: 'companyName', label: 'Company' },
+        { key: 'make', label: 'Make' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
-        { key: 'claimAmount', label: 'Claim Amount (₹)' },
-        { key: 'estimatedAmount', label: 'Estimated Amount (₹)' },
-        { key: 'billAmount', label: 'Bill Amount (₹)' },
-        { key: 'claimDate', label: 'Claim Date' },
+        { key: 'companyName', label: 'Company' },
+        { key: 'claimAmount', label: 'Claimed (₹)' },
         { key: 'status', label: 'Status' },
         { key: 'reason', label: 'Reason' },
+        { key: 'billAmount', label: 'Claim Settled Amount' },
     ],
     customers: [
         { key: 'name', label: 'Name' },
@@ -599,20 +597,18 @@ export class ReportService {
         ]);
 
         const data = rows.map((r: any) => ({
+            claimDate: fmtDate(r.claimDate),
             claimNumber: r.claimNumber || '—',
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
             vehicleNumber: r.policy?.vehicleNumber || '—',
-            startDate: fmtDate(r.policy?.startDate),
-            expiryDate: fmtDate(r.policy?.expiryDate),
-            companyName: r.policy?.company?.name || '—',
+            make: r.policy?.make || '—',
             vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
+            companyName: r.policy?.company?.name || '—',
             claimAmount: r.claimAmount,
-            estimatedAmount: r.estimatedAmount ?? '—',
-            billAmount: r.billAmount ?? '—',
-            claimDate: fmtDate(r.claimDate),
-            status: r.status,
+            status: r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : '—',
             reason: r.reason || '—',
+            billAmount: r.billAmount ?? '—',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.claims };
@@ -1369,9 +1365,13 @@ export class ReportService {
 
             // Table
             const sNoCol = { key: 'sNo', label: 'S.No.' };
-            const isFullWidthReport = title?.includes('Policies') || title?.includes('Expire') || title?.includes('expired') || title?.includes('Payments') || title?.includes('payments');
+            const isFullWidthReport = title?.includes('Policies') || title?.includes('Expire') || title?.includes('expired') || title?.includes('Payments') || title?.includes('payments') || title?.includes('Claims') || title?.includes('claims');
             const limitCols = isFullWidthReport ? columns.length : 8;
-            const visibleCols = [sNoCol, ...columns.slice(0, limitCols)]; // Prepend S.No.
+            let pdfCols = columns.slice(0, limitCols);
+            if (title?.includes('Claims') || title?.includes('claims')) {
+                pdfCols = pdfCols.filter(c => c.key !== 'status' && c.key !== 'reason');
+            }
+            const visibleCols = [sNoCol, ...pdfCols]; // Prepend S.No.
             const startX = 40;
 
             // Width allocation: S.No is 35 points wide, others share the rest equally
