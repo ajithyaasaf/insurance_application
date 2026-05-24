@@ -325,24 +325,27 @@ const Commissions: React.FC = () => {
         // Policy table
         autoTable(doc, {
             startY: 75,
-            head: [['Customer', 'Vehicle No', 'Make', 'Model', 'Class', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
-            body: policies.map((p: any) => [
+            head: [['S.No.', 'Start Date', 'Customer', 'Policy No', 'Vehicle No', 'Make', 'Model', 'Class', 'OD', 'TP', 'Premium', 'OD Comm.', 'TP Comm.', 'Total']],
+            body: policies.map((p: any, i: number) => [
+                i + 1,
+                formatDate(p.startDate || p.policy?.startDate),
                 p.customerName || p.policy?.customer?.name || '-',
-                p.vehicleNumber || '-',
-                p.make || '-',
-                p.model || '-',
-                formatVehicleClass(p.vehicleClass),
-                (p.od || 0).toLocaleString('en-IN'),
-                (p.tp || 0).toLocaleString('en-IN'),
-                (p.premiumAmount || 0).toLocaleString('en-IN'),
+                p.policyNumber || p.policy?.policyNumber || '-',
+                p.vehicleNumber || p.policy?.vehicleNumber || '-',
+                p.make || p.policy?.make || '-',
+                p.model || p.policy?.model || '-',
+                formatVehicleClass(p.vehicleClass || p.policy?.vehicleClass),
+                (p.od || p.policy?.od || 0).toLocaleString('en-IN'),
+                (p.tp || p.policy?.tp || 0).toLocaleString('en-IN'),
+                (p.premiumAmount || p.policy?.premiumAmount || 0).toLocaleString('en-IN'),
                 (p.odCommission || 0).toLocaleString('en-IN'),
                 (p.tpCommission || 0).toLocaleString('en-IN'),
                 ((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN'),
             ]),
             theme: 'grid',
             styles: {
-                fontSize: 7,
-                cellPadding: 3,
+                fontSize: 6.5,
+                cellPadding: 2,
                 valign: 'middle',
                 lineWidth: 0.2,
                 lineColor: [209, 213, 219] // Darker Gray (Gray 300)
@@ -356,12 +359,12 @@ const Commissions: React.FC = () => {
                 lineColor: [255, 255, 255] // White borders for header
             },
             columnStyles: {
-                5: { halign: 'right' },
-                6: { halign: 'right' },
-                7: { halign: 'right' },
-                8: { halign: 'right', textColor: [22, 163, 74] },
-                9: { halign: 'right', textColor: [22, 163, 74] },
-                10: { halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
+                8: { halign: 'right' },
+                9: { halign: 'right' },
+                10: { halign: 'right' },
+                11: { halign: 'right', textColor: [22, 163, 74] },
+                12: { halign: 'right', textColor: [22, 163, 74] },
+                13: { halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
             }
         });
 
