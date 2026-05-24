@@ -83,18 +83,17 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'ncbPercentage', label: 'NCB (%)' },
     ],
     payments: [
+        { key: 'startDate', label: 'Start Date' },
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy No.' },
-        { key: 'dealerName', label: 'Dealer' },
         { key: 'vehicleNumber', label: 'Vehicle No.' },
-        { key: 'startDate', label: 'Start Date' },
-        { key: 'companyName', label: 'Company' },
+        { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'paidAmount', label: 'Paid (₹)' },
         { key: 'pendingAmount', label: 'Pending (₹)' },
-        { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'amount', label: 'Premium (₹)' },
+        { key: 'dealerName', label: 'Dealer' },
         { key: 'dueDate', label: 'Due Date' },
-        { key: 'paidDate', label: 'Paid Date' },
+        { key: 'companyName', label: 'Company' },
         { key: 'status', label: 'Status' },
     ],
     claims: [
@@ -1372,11 +1371,7 @@ export class ReportService {
             const sNoCol = { key: 'sNo', label: 'S.No.' };
             const isFullWidthReport = title?.includes('Policies') || title?.includes('Expire') || title?.includes('expired') || title?.includes('Payments') || title?.includes('payments');
             const limitCols = isFullWidthReport ? columns.length : 8;
-            let pdfCols = columns.slice(0, limitCols);
-            if (title?.includes('Payments') || title?.includes('payments')) {
-                pdfCols = pdfCols.filter(c => c.key !== 'paidDate');
-            }
-            const visibleCols = [sNoCol, ...pdfCols]; // Prepend S.No.
+            const visibleCols = [sNoCol, ...columns.slice(0, limitCols)]; // Prepend S.No.
             const startX = 40;
 
             // Width allocation: S.No is 35 points wide, others share the rest equally
@@ -1463,9 +1458,11 @@ export class ReportService {
             }
 
             // Footer
-            doc.moveDown(1);
+            doc.moveDown(0.5);
 
-            if (doc.y > doc.page.height - 60) {
+            const isPaymentsReport = title?.includes('Payments') || title?.includes('payments');
+            const neededSpace = isPaymentsReport ? 100 : 60;
+            if (doc.y > doc.page.height - neededSpace) {
                 doc.addPage();
                 doc.y = 40;
             }
@@ -1474,24 +1471,60 @@ export class ReportService {
 
             // Calculate and display premium total if applicable
             const hasTotalPremium = columns.some(c => c.key === 'totalPremium');
-            if (hasTotalPremium && data.length > 0) {
-                const totalPremiumSum = data.reduce((sum, row) => {
-                    const val = Number(row.totalPremium ?? 0);
-                    return sum + (isNaN(val) ? 0 : val);
-                }, 0);
 
+            if (data.length > 0) {
                 // Calculate the exact full width of the table
                 let tableWidth = 0;
                 for (const col of visibleCols) {
                     tableWidth += getColWidth(col.key);
                 }
 
-                // Draw the full-width Total Premium Sum footer bar
-                doc.rect(startX, footerY - 5, tableWidth, 24).fill('#f1f5f9');
-                doc.lineWidth(0.5).rect(startX, footerY - 5, tableWidth, 24).stroke('#cbd5e1');
+                if (hasTotalPremium) {
+                    const totalPremiumSum = data.reduce((sum, row) => {
+                        const val = Number(row.totalPremium ?? 0);
+                        return sum + (isNaN(val) ? 0 : val);
+                    }, 0);
 
-                doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e1b4b')
-                    .text(`Total Premium: ${totalPremiumSum.toLocaleString('en-IN')}`, startX + tableWidth - 310, footerY + 2, { width: 300, align: 'right' });
+                    // Draw the full-width Total Premium Sum footer bar
+                    doc.rect(startX, footerY - 5, tableWidth, 24).fill('#f1f5f9');
+                    doc.lineWidth(0.5).rect(startX, footerY - 5, tableWidth, 24).stroke('#cbd5e1');
+
+                    doc.fontSize(9).font('Helvetica-Bold').fillColor('#1e1b4b')
+                        .text(`Total Premium: ${totalPremiumSum.toLocaleString('en-IN')}`, startX + tableWidth - 310, footerY + 2, { width: 300, align: 'right' });
+                } else if (isPaymentsReport) {
+                    const totalPaid = data.reduce((sum, row) => sum + Number(row.paidAmount ?? 0), 0);
+                    const totalPending = data.reduce((sum, row) => sum + Number(row.pendingAmount ?? 0), 0);
+                    const totalPremium = data.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+
+                    const cardWidth = 240;
+                    const cardHeight = 65;
+
+                    // Draw a standalone summary card on the bottom-left
+                    doc.rect(startX, footerY + 5, cardWidth, cardHeight).fill('#f8fafc');
+                    doc.lineWidth(0.5).rect(startX, footerY + 5, cardWidth, cardHeight).stroke('#cbd5e1');
+
+                    // Card Title
+                    doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e1b4b')
+                        .text('PAYMENTS SUMMARY', startX + 10, footerY + 12);
+
+                    // Row 1: Total Premium
+                    doc.fontSize(8).font('Helvetica').fillColor('#475569')
+                        .text('Total Premium:', startX + 10, footerY + 26);
+                    doc.font('Helvetica-Bold').fillColor('#1e1b4b')
+                        .text(`Rs. ${totalPremium.toLocaleString('en-IN')}`, startX + 100, footerY + 26, { width: cardWidth - 110, align: 'right' });
+
+                    // Row 2: Total Paid
+                    doc.fontSize(8).font('Helvetica').fillColor('#475569')
+                        .text('Total Paid:', startX + 10, footerY + 38);
+                    doc.font('Helvetica-Bold').fillColor('#16a34a')
+                        .text(`Rs. ${totalPaid.toLocaleString('en-IN')}`, startX + 100, footerY + 38, { width: cardWidth - 110, align: 'right' });
+
+                    // Row 3: Total Pending (Red, bold, high contrast)
+                    doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#b91c1c')
+                        .text('Total Pending:', startX + 10, footerY + 50);
+                    doc.font('Helvetica-Bold').fillColor('#b91c1c')
+                        .text(`Rs. ${totalPending.toLocaleString('en-IN')}`, startX + 100, footerY + 50, { width: cardWidth - 110, align: 'right' });
+                }
             }
 
             doc.end();
