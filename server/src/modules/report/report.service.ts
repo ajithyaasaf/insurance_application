@@ -437,16 +437,13 @@ export class ReportService {
 
         return {
             columns: [
+                { key: 'startDate', label: 'Start Date' },
                 { key: 'policyNumber', label: 'Policy Number' },
+                { key: 'vehicleNo', label: 'Vehicle No' },
+                { key: 'vehicleClass', label: 'Vehicle Class' },
                 { key: 'customerName', label: 'Customer' },
                 { key: 'companyName', label: 'Insurer' },
-                { key: 'policyType', label: 'Type' },
-                { key: 'vehicleClass', label: 'Vehicle Class' },
-                { key: 'vehicleNo', label: 'Vehicle No' },
-                { key: 'totalPremium', label: 'Gross Premium (₹)' },
-                { key: 'startDate', label: 'Start Date' },
-                { key: 'expiryDate', label: 'Expiry Date' },
-                { key: 'status', label: 'Status' }
+                { key: 'totalPremium', label: 'Gross Premium (₹)' }
             ],
             data: mappedPolicies,
             summary,
