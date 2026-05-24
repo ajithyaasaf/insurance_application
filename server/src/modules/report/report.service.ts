@@ -85,13 +85,14 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
     payments: [
         { key: 'customerName', label: 'Customer' },
         { key: 'policyNumber', label: 'Policy No.' },
+        { key: 'dealerName', label: 'Dealer' },
         { key: 'vehicleNumber', label: 'Vehicle No.' },
         { key: 'startDate', label: 'Start Date' },
-        { key: 'expiryDate', label: 'Expiry Date' },
         { key: 'companyName', label: 'Company' },
+        { key: 'paidAmount', label: 'Paid (₹)' },
+        { key: 'pendingAmount', label: 'Pending (₹)' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
-        { key: 'amount', label: 'Amount (₹)' },
-        { key: 'paidAmount', label: 'Paid Amount (₹)' },
+        { key: 'amount', label: 'Premium (₹)' },
         { key: 'dueDate', label: 'Due Date' },
         { key: 'paidDate', label: 'Paid Date' },
         { key: 'status', label: 'Status' },
@@ -550,7 +551,15 @@ export class ReportService {
         const [rows, total] = await Promise.all([
             prisma.payment.findMany({
                 where,
-                include: { customer: true, policy: { include: { company: true } } },
+                include: { 
+                    customer: true, 
+                    policy: { 
+                        include: { 
+                            company: true,
+                            dealer: true
+                        } 
+                    } 
+                },
                 orderBy: { createdAt: 'desc' },
                 skip: (page - 1) * limit,
                 take: limit,
@@ -561,16 +570,17 @@ export class ReportService {
         const data = rows.map((r: any) => ({
             customerName: r.customer?.name || '—',
             policyNumber: r.policy?.policyNumber || '—',
+            dealerName: r.policy?.dealer?.name || '—',
             vehicleNumber: r.policy?.vehicleNumber || '—',
             startDate: fmtDate(r.policy?.startDate),
-            expiryDate: fmtDate(r.policy?.expiryDate),
             companyName: r.policy?.company?.name || '—',
+            paidAmount: r.paidAmount ?? 0,
+            pendingAmount: Math.max(0, Number(r.amount ?? 0) - Number(r.paidAmount ?? 0)),
             vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
             amount: r.amount,
-            paidAmount: r.paidAmount ?? 0,
             dueDate: fmtDate(r.dueDate),
             paidDate: (r.paidAmount > 0 && r.paidDate) ? fmtDate(r.paidDate) : '—',
-            status: r.status,
+            status: r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : '—',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.payments };
@@ -1360,9 +1370,13 @@ export class ReportService {
 
             // Table
             const sNoCol = { key: 'sNo', label: 'S.No.' };
-            const isPolicyOrExpired = title?.includes('Policies') || title?.includes('Expire') || title?.includes('expired');
-            const limitCols = isPolicyOrExpired ? columns.length : 8;
-            const visibleCols = [sNoCol, ...columns.slice(0, limitCols)]; // Prepend S.No.
+            const isFullWidthReport = title?.includes('Policies') || title?.includes('Expire') || title?.includes('expired') || title?.includes('Payments') || title?.includes('payments');
+            const limitCols = isFullWidthReport ? columns.length : 8;
+            let pdfCols = columns.slice(0, limitCols);
+            if (title?.includes('Payments') || title?.includes('payments')) {
+                pdfCols = pdfCols.filter(c => c.key !== 'paidDate');
+            }
+            const visibleCols = [sNoCol, ...pdfCols]; // Prepend S.No.
             const startX = 40;
 
             // Width allocation: S.No is 35 points wide, others share the rest equally

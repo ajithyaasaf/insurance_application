@@ -96,9 +96,9 @@ export class ClaimService {
             where: { id },
             data: {
                 ...(data.claimNumber !== undefined && { claimNumber: data.claimNumber }),
-                ...(data.claimAmount !== undefined && { claimAmount: data.claimAmount }),
-                ...(data.estimatedAmount !== undefined && { estimatedAmount: data.estimatedAmount }),
-                ...(data.billAmount !== undefined && { billAmount: data.billAmount }),
+                ...(data.claimAmount !== undefined && { claimAmount: data.claimAmount as any }),
+                ...(data.estimatedAmount !== undefined && { estimatedAmount: data.estimatedAmount as any }),
+                ...(data.billAmount !== undefined && { billAmount: data.billAmount as any }),
                 ...(data.claimDate !== undefined && { claimDate: new Date(data.claimDate) }),
                 ...(data.status !== undefined && { status: data.status }),
                 ...(data.reason !== undefined && { reason: data.reason }),
