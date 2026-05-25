@@ -545,14 +545,14 @@ export class ReportService {
         const [rows, total] = await Promise.all([
             prisma.payment.findMany({
                 where,
-                include: { 
-                    customer: true, 
-                    policy: { 
-                        include: { 
+                include: {
+                    customer: true,
+                    policy: {
+                        include: {
                             company: true,
                             dealer: true
-                        } 
-                    } 
+                        }
+                    }
                 },
                 orderBy: { createdAt: 'desc' },
                 skip: (page - 1) * limit,
