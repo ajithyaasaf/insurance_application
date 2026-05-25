@@ -1427,6 +1427,22 @@ export class ReportService {
                     };
                     return widths[colKey] || otherColWidth;
                 }
+                if (source === 'policies') {
+                    const widths: Record<string, number> = {
+                        sNo: 25,
+                        startDate: 50,
+                        customerName: 130,
+                        policyNumber: 115,
+                        make: 45,
+                        model: 45,
+                        vehicleNumber: 65,
+                        vehicleClass: 45,
+                        companyName: 80,
+                        customerPhone: 55,
+                        totalPremium: 75
+                    };
+                    return widths[colKey] || otherColWidth;
+                }
                 return colKey === 'sNo' ? 35 : otherColWidth;
             };
 
@@ -1463,6 +1479,8 @@ export class ReportService {
 
             // Data rows
             let rowIdx = 0;
+            const isPolicyReport = source === 'policies' || source === 'policies-expired';
+            const rowHeight = isPolicyReport ? 22 : 18;
             for (const row of data) {
                 if (doc.y > doc.page.height - 60) {
                     doc.addPage();
@@ -1486,24 +1504,25 @@ export class ReportService {
                     }
 
                     // Row background
-                    doc.rect(x, rowY, w, 18).fill(bgColor);
+                    doc.rect(x, rowY, w, rowHeight).fill(bgColor);
 
                     // Cell Border (Darker for visibility)
-                    doc.lineWidth(0.2).rect(x, rowY, w, 18).stroke('#d1d5db');
+                    doc.lineWidth(0.2).rect(x, rowY, w, rowHeight).stroke('#d1d5db');
 
+                    const isCustomerNameWrap = isPolicyReport && col.key === 'customerName';
                     doc.font('Helvetica').fontSize(7).fillColor('#374151')
-                        .text(val, x + 4, rowY + 5, {
+                        .text(val, x + 4, rowY + (isCustomerNameWrap ? 3 : 5), {
                             width: w - 8,
                             align: col.key === 'sNo' ? 'center' : 'left',
-                            height: 10,
-                            lineBreak: false
+                            height: isCustomerNameWrap ? 16 : 10,
+                            lineBreak: isCustomerNameWrap
                         });
 
                     x += w;
                 }
 
                 // Explicitly step down to the next row safely
-                doc.y = rowY + 18;
+                doc.y = rowY + rowHeight;
                 rowIdx++;
             }
 
