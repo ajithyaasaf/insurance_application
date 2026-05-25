@@ -9,6 +9,7 @@ export class DashboardService {
         const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
         const todayStart = getStartOfTodayIST();
         const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+        const sevenDaysFromNow = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         const results = await Promise.all([
             // 0: Policies expiring in next 30 days
@@ -33,23 +34,23 @@ export class DashboardService {
                 } as any,
             }),
 
-            // 2: Today's follow-ups
+            // 2: Overdue + Upcoming 7 Days follow-ups
             prisma.followUp.findMany({
                 where: {
                     ...ow,
                     status: 'pending',
-                    nextFollowUpDate: { gte: todayStart, lt: todayEnd },
+                    nextFollowUpDate: { lte: sevenDaysFromNow },
                 },
                 include: { customer: true, policy: true },
                 orderBy: { nextFollowUpDate: 'asc' },
                 take: 10,
             }),
-            // 3: Count of follow-ups
+            // 3: Count of overdue + today's follow-ups
             prisma.followUp.count({
                 where: {
                     ...ow,
                     status: 'pending',
-                    nextFollowUpDate: { gte: todayStart, lt: todayEnd },
+                    nextFollowUpDate: { lt: todayEnd },
                 },
             }),
 
@@ -106,22 +107,24 @@ export class DashboardService {
                 _sum: { premiumAmount: true, totalPremium: true },
             }),
 
-            // 13: Today's lead follow-ups
+            // 13: Overdue + Upcoming 7 Days lead follow-ups
             prisma.lead.findMany({
                 where: {
                     ...ow,
                     deletedAt: null,
-                    nextFollowUpDate: { gte: todayStart, lt: todayEnd },
+                    status: { not: 'converted' },
+                    nextFollowUpDate: { lte: sevenDaysFromNow },
                 },
                 orderBy: { nextFollowUpDate: 'asc' },
                 take: 10,
             }),
-            // 14: Count lead follow-ups
+            // 14: Count overdue + today's lead follow-ups
             prisma.lead.count({
                 where: {
                     ...ow,
                     deletedAt: null,
-                    nextFollowUpDate: { gte: todayStart, lt: todayEnd },
+                    status: { not: 'converted' },
+                    nextFollowUpDate: { lt: todayEnd },
                 },
             }),
 

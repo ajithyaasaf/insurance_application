@@ -326,20 +326,26 @@ const Commissions: React.FC = () => {
         autoTable(doc, {
             startY: 75,
             head: [['S.No.', 'Start Date', 'Customer', 'Policy No', 'Vehicle No', 'Make', 'Model', 'Class', 'OD', 'TP', 'Premium', 'Total']],
-            body: policies.map((p: any, i: number) => [
-                i + 1,
-                formatDate(p.startDate || p.policy?.startDate),
-                p.customerName || p.policy?.customer?.name || '-',
-                p.policyNumber || p.policy?.policyNumber || '-',
-                p.vehicleNumber || p.policy?.vehicleNumber || '-',
-                p.make || p.policy?.make || '-',
-                p.model || p.policy?.model || '-',
-                formatVehicleClass(p.vehicleClass || p.policy?.vehicleClass),
-                (p.od || p.policy?.od || 0).toLocaleString('en-IN'),
-                (p.tp || p.policy?.tp || 0).toLocaleString('en-IN'),
-                (p.premiumAmount || p.policy?.premiumAmount || 0).toLocaleString('en-IN'),
-                ((p.odCommission || 0) + (p.tpCommission || 0)).toLocaleString('en-IN'),
-            ]),
+            body: policies.map((p: any, i: number) => {
+                const roundedOdComm = Math.round(p.odCommission || 0);
+                const roundedTpComm = Math.round(p.tpCommission || 0);
+                const rowTotal = roundedOdComm + roundedTpComm;
+
+                return [
+                    i + 1,
+                    formatDate(p.startDate || p.policy?.startDate),
+                    p.customerName || p.policy?.customer?.name || '-',
+                    p.policyNumber || p.policy?.policyNumber || '-',
+                    p.vehicleNumber || p.policy?.vehicleNumber || '-',
+                    p.make || p.policy?.make || '-',
+                    p.model || p.policy?.model || '-',
+                    formatVehicleClass(p.vehicleClass || p.policy?.vehicleClass),
+                    (p.od || p.policy?.od || 0).toLocaleString('en-IN'),
+                    (p.tp || p.policy?.tp || 0).toLocaleString('en-IN'),
+                    (p.premiumAmount || p.policy?.premiumAmount || 0).toLocaleString('en-IN'),
+                    rowTotal.toLocaleString('en-IN'),
+                ];
+            }),
             theme: 'grid',
             styles: {
                 fontSize: 7,
@@ -373,16 +379,21 @@ const Commissions: React.FC = () => {
             }
         });
 
+        // Calculate perfect, discrepancy-free sums
+        const totalOd = policies.reduce((sum: number, p: any) => sum + Math.round(p.odCommission || 0), 0);
+        const totalTp = policies.reduce((sum: number, p: any) => sum + Math.round(p.tpCommission || 0), 0);
+        const grandTotal = totalOd + totalTp;
+
         // Summary
         const finalY = (doc as any).lastAutoTable?.finalY || 120;
         doc.setFontSize(11);
         doc.setTextColor(107, 114, 128);
-        doc.text(`Total OD Commission: ${(data.totalOdCommission || data.summary?.totalOdCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 12);
-        doc.text(`Total TP Commission: ${(data.totalTpCommission || data.summary?.totalTpCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 19);
+        doc.text(`Total OD Commission: ${totalOd.toLocaleString('en-IN')}`, 14, finalY + 12);
+        doc.text(`Total TP Commission: ${totalTp.toLocaleString('en-IN')}`, 14, finalY + 19);
 
         doc.setFontSize(14);
         doc.setTextColor(21, 128, 61); // Emerald 700
-        doc.text(`Grand Total: ${(data.totalCommission || data.summary?.totalCommission || 0).toLocaleString('en-IN')}`, 14, finalY + 30);
+        doc.text(`Grand Total: ${grandTotal.toLocaleString('en-IN')}`, 14, finalY + 30);
 
         doc.save(`commission_${dealerName}_${data.periodStart?.split('T')[0] || 'report'}.pdf`);
     };

@@ -73,11 +73,31 @@ const Dashboard: React.FC = () => {
         { label: 'Active Policies', value: data.stats.totalActivePolicies, icon: HiOutlineDocumentText, color: 'text-emerald-600 bg-emerald-50' },
         { label: 'Total Leads', value: data.stats.totalLeads, icon: HiOutlineTrendingUp, color: 'text-violet-600 bg-violet-50' },
         { label: 'Expiring in 30d', value: data.stats.expiringPoliciesCount, icon: HiOutlineClock, color: 'text-amber-600 bg-amber-50' },
-        { label: "Today's Follow-ups", value: data.stats.todayFollowUpsCount, icon: HiOutlinePhone, color: 'text-cyan-600 bg-cyan-50' },
+        { label: 'Follow-ups (Due/Overdue)', value: data.stats.todayFollowUpsCount, icon: HiOutlinePhone, color: 'text-cyan-600 bg-cyan-50' },
         { label: 'Pending Payments', value: data.stats.pendingPaymentsCount, icon: HiOutlineCreditCard, color: 'text-orange-600 bg-orange-50' },
         { label: 'Overdue Payments', value: data.stats.overduePaymentsCount, icon: HiOutlineExclamation, color: 'text-red-600 bg-red-50' },
         { label: "Today's Birthdays", value: data.stats.todayBirthdaysCount || 0, icon: HiOutlineCake, color: 'text-pink-600 bg-pink-50' },
     ];
+
+    const getFollowUpUrgency = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        
+        const compareDate = new Date(date);
+        compareDate.setHours(0,0,0,0);
+        
+        if (compareDate.getTime() < today.getTime()) {
+            return { label: 'Overdue', color: 'bg-red-50 text-red-600 border-red-200' };
+        } else if (compareDate.getTime() === today.getTime()) {
+            return { label: 'Today', color: 'bg-blue-50 text-blue-600 border-blue-200' };
+        } else if (compareDate.getTime() === tomorrow.getTime()) {
+            return { label: 'Tomorrow', color: 'bg-amber-50 text-amber-600 border-amber-200' };
+        } else {
+            return { label: formatDate(dateStr), color: 'bg-slate-50 text-slate-600 border-slate-200' };
+        }
+    };
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -190,18 +210,19 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Follow-up Agenda (7 Days) */}
                 <div className="card">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
-                        <h2 className="font-semibold text-surface-900">Today's Follow-ups</h2>
+                        <h2 className="font-semibold text-surface-900">Follow-up Agenda (7 Days)</h2>
                         <button onClick={() => navigate('/follow-ups')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
                             View All <HiOutlineChevronRight className="w-3 h-3" />
                         </button>
                     </div>
                     <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
                         {data.todayFollowUps.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-surface-400">No follow-ups today</p>
+                            <p className="px-5 py-8 text-center text-sm text-surface-400 font-medium">All caught up! No overdue or upcoming follow-ups for this week. 🎉</p>
                         ) : (
-                                data.todayFollowUps.map((item: any) => (
+                            data.todayFollowUps.map((item: any) => (
                                 <div key={item.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50 cursor-pointer" onClick={() => navigate(item.type === 'lead' ? '/leads' : '/follow-ups')}>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2">
@@ -210,9 +231,18 @@ const Dashboard: React.FC = () => {
                                                 {item.type === 'lead' ? 'Lead' : 'Customer'}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-surface-500 truncate">{item.notes || 'No notes'}</p>
+                                        <p className="text-xs text-surface-500 truncate mt-0.5">{item.notes || 'No notes'}</p>
                                     </div>
-                                    <span className={getStatusColor(item.status)}>{item.status}</span>
+                                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-4">
+                                        {item.nextFollowUpDate && (() => {
+                                            const urgency = getFollowUpUrgency(item.nextFollowUpDate);
+                                            return (
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${urgency.color}`}>
+                                                    {urgency.label}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
                                 </div>
                             ))
                         )}

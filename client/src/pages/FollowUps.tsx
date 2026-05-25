@@ -68,6 +68,7 @@ const FollowUps: React.FC = () => {
     };
 
     const openEdit = (f: any) => {
+        setEditing(f);
         setForm({
             customerId: f.customerId, policyId: f.policyId || '', nextFollowUpDate: f.nextFollowUpDate.split('T')[0],
             notes: f.notes || '', status: f.status,
