@@ -1309,7 +1309,7 @@ export class ReportService {
 
     // ── Export to PDF ─────────────────────────────────────
 
-    async exportPdf(data: any[], columns: { key: string; label: string }[], title?: string, filters?: any): Promise<Buffer> {
+    async exportPdf(data: any[], columns: { key: string; label: string }[], title?: string, filters?: any, source?: string): Promise<Buffer> {
         return new Promise((resolve, reject) => {
             const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
             const chunks: Buffer[] = [];
@@ -1362,10 +1362,10 @@ export class ReportService {
 
             // Table
             const sNoCol = { key: 'sNo', label: 'S.No.' };
-            const isFullWidthReport = title?.includes('Policies') || title?.includes('Expire') || title?.includes('expired') || title?.includes('Payments') || title?.includes('payments') || title?.includes('Claims') || title?.includes('claims');
+            const isFullWidthReport = source === 'policies' || source === 'policies-expired' || source === 'payments' || source === 'claims';
             const limitCols = isFullWidthReport ? columns.length : 8;
             let pdfCols = columns.slice(0, limitCols);
-            if (title?.includes('Claims') || title?.includes('claims')) {
+            if (source === 'claims') {
                 pdfCols = pdfCols.filter(c => c.key !== 'status' && c.key !== 'reason');
             }
             const visibleCols = [sNoCol, ...pdfCols]; // Prepend S.No.
@@ -1376,7 +1376,7 @@ export class ReportService {
                 ? Math.min(((doc.page.width - 80) - 35) / (visibleCols.length - 1), 120)
                 : 120;
             const getColWidth = (colKey: string): number => {
-                if (title?.includes('Claims') || title?.includes('claims')) {
+                if (source === 'claims') {
                     const widths: Record<string, number> = {
                         sNo: 20,
                         claimDate: 65,
@@ -1392,7 +1392,7 @@ export class ReportService {
                     };
                     return widths[colKey] || otherColWidth;
                 }
-                if (title?.includes('Payments') || title?.includes('payments')) {
+                if (source === 'payments') {
                     const widths: Record<string, number> = {
                         sNo: 25,
                         startDate: 60,
@@ -1409,7 +1409,7 @@ export class ReportService {
                     };
                     return widths[colKey] || otherColWidth;
                 }
-                if (title?.includes('Policies') || title?.includes('policies') || title?.includes('Expire') || title?.includes('expired')) {
+                if (source === 'policies-expired') {
                     const widths: Record<string, number> = {
                         sNo: 25,
                         startDate: 50,
