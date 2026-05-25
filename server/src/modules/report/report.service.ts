@@ -1310,6 +1310,13 @@ export class ReportService {
     // ── Export to PDF ─────────────────────────────────────
 
     async exportPdf(data: any[], columns: { key: string; label: string }[], title?: string, filters?: any, source?: string): Promise<Buffer> {
+        if (source === 'payments') {
+            const order = ['startDate', 'customerName', 'policyNumber', 'vehicleNumber', 'vehicleClass', 'companyName', 'dealerName', 'status', 'paidAmount', 'amount', 'pendingAmount'];
+            columns = order
+                .map(key => columns.find(c => c.key === key))
+                .filter((c): c is { key: string; label: string } => !!c);
+        }
+
         return new Promise((resolve, reject) => {
             const doc = new PDFDocument({ margin: 40, size: 'A4', layout: 'landscape' });
             const chunks: Buffer[] = [];
