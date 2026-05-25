@@ -1412,18 +1412,18 @@ export class ReportService {
                 if (title?.includes('Policies') || title?.includes('policies') || title?.includes('Expire') || title?.includes('expired')) {
                     const widths: Record<string, number> = {
                         sNo: 25,
-                        startDate: 60,
-                        expiryDate: 60,
-                        customerName: 135,
-                        policyNumber: 115,
+                        startDate: 50,
+                        expiryDate: 50,
+                        customerName: 120,
+                        policyNumber: 100,
                         make: 45,
                         model: 45,
-                        vehicleNumber: 65,
+                        vehicleNumber: 60,
                         vehicleClass: 45,
-                        companyName: 80,
+                        companyName: 75,
                         customerPhone: 55,
-                        totalPremium: 65,
-                        ncbPercentage: 40
+                        totalPremium: 75,
+                        ncbPercentage: 30
                     };
                     return widths[colKey] || otherColWidth;
                 }
