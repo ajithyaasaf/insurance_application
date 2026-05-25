@@ -1484,8 +1484,38 @@ export class ReportService {
 
             // Data rows
             let rowIdx = 0;
-            const rowHeight = isPolicyReport ? 22 : 18;
+            const defaultRowHeight = isPolicyReport ? 22 : 18;
             for (const row of data) {
+                // Determine horizontal alignment and columns that can wrap
+                const wrapColumns = ['customerName', 'make', 'model', 'companyName', 'policyNumber', 'claimNumber', 'vehicleNumber'];
+
+                // First pass: pre-calculate row height dynamically based on the maximum wrapped text height
+                let maxTextHeight = 8;
+                for (const col of visibleCols) {
+                    const w = getColWidth(col.key);
+                    let val = '—';
+                    if (col.key === 'sNo') {
+                        val = String(rowIdx + 1);
+                    } else {
+                        val = String(row[col.key] ?? '—');
+                        if (typeof row[col.key] === 'number' && (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax')) {
+                            val = row[col.key].toLocaleString('en-IN');
+                        }
+                    }
+
+                    const isWrapColumn = wrapColumns.includes(col.key);
+                    const textHeight = doc.heightOfString(val, {
+                        width: w - 8,
+                        lineBreak: isWrapColumn
+                    });
+                    if (textHeight > maxTextHeight) {
+                        maxTextHeight = textHeight;
+                    }
+                }
+
+                const currentRowHeight = Math.max(defaultRowHeight, Math.round(maxTextHeight + 8));
+
+                // Page overflow check (using dynamic row height)
                 if (doc.y > doc.page.height - 60) {
                     doc.addPage();
                     doc.y = 40;
@@ -1508,39 +1538,39 @@ export class ReportService {
                     }
 
                     // Row background
-                    doc.rect(x, rowY, w, rowHeight).fill(bgColor);
+                    doc.rect(x, rowY, w, currentRowHeight).fill(bgColor);
 
                     // Cell Border (Darker for visibility)
-                    doc.lineWidth(0.2).rect(x, rowY, w, rowHeight).stroke('#d1d5db');
+                    doc.lineWidth(0.2).rect(x, rowY, w, currentRowHeight).stroke('#d1d5db');
 
                     // Determine horizontal alignment based on data type
                     let align: 'center' | 'left' | 'right' = 'left';
-                    if (col.key === 'sNo' || col.key === 'startDate' || col.key === 'expiryDate' || col.key === 'vehicleClass' || col.key === 'ncbPercentage' || col.key === 'customerPhone') {
+                    if (col.key === 'sNo' || col.key === 'startDate' || col.key === 'expiryDate' || col.key === 'vehicleClass' || col.key === 'ncbPercentage' || col.key === 'customerPhone' || col.key === 'claimDate') {
                         align = 'center';
                     } else if (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax') {
                         align = 'right';
                     }
 
-                    // Calculate text height for vertical centering
-                    const isCustomerName = col.key === 'customerName';
+                    // Calculate text height for vertical centering in the dynamically expanded row
+                    const isWrapColumn = wrapColumns.includes(col.key);
                     const textHeight = doc.heightOfString(val, {
                         width: w - 8,
-                        lineBreak: isCustomerName
+                        lineBreak: isWrapColumn
                     });
-                    const yOffset = (rowHeight - textHeight) / 2;
+                    const yOffset = (currentRowHeight - textHeight) / 2;
 
                     doc.font('Helvetica').fontSize(7).fillColor('#374151')
                         .text(val, x + 4, rowY + yOffset, {
                             width: w - 8,
                             align: align,
-                            lineBreak: isCustomerName
+                            lineBreak: isWrapColumn
                         });
 
                     x += w;
                 }
 
-                // Explicitly step down to the next row safely
-                doc.y = rowY + rowHeight;
+                // Explicitly step down to the next row safely using the dynamic height
+                doc.y = rowY + currentRowHeight;
                 rowIdx++;
             }
 

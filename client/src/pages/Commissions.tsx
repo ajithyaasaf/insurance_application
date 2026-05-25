@@ -343,8 +343,9 @@ const Commissions: React.FC = () => {
             theme: 'grid',
             styles: {
                 fontSize: 7,
-                cellPadding: 2.5,
+                cellPadding: 2,
                 valign: 'middle',
+                overflow: 'linebreak', // Enable word wrapping and dynamic row height scaling
                 lineWidth: 0.2,
                 lineColor: [209, 213, 219] // Darker Gray (Gray 300)
             },
@@ -357,10 +358,18 @@ const Commissions: React.FC = () => {
                 lineColor: [255, 255, 255] // White borders for header
             },
             columnStyles: {
-                8: { halign: 'right' },
-                9: { halign: 'right' },
-                10: { halign: 'right' },
-                11: { halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
+                0: { cellWidth: 8, halign: 'center' },
+                1: { cellWidth: 18, halign: 'center' },
+                2: { cellWidth: 35, halign: 'left' },
+                3: { cellWidth: 25, halign: 'left' },
+                4: { cellWidth: 16, halign: 'center' },
+                5: { cellWidth: 11, halign: 'center' },
+                6: { cellWidth: 11, halign: 'center' },
+                7: { cellWidth: 10, halign: 'center' },
+                8: { cellWidth: 12, halign: 'right' },
+                9: { cellWidth: 12, halign: 'right' },
+                10: { cellWidth: 12, halign: 'right' },
+                11: { cellWidth: 12, halign: 'right', fontStyle: 'bold', textColor: [21, 128, 61] }
             }
         });
 
