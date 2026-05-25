@@ -1375,7 +1375,25 @@ export class ReportService {
             const otherColWidth = visibleCols.length > 1
                 ? Math.min(((doc.page.width - 80) - 35) / (visibleCols.length - 1), 120)
                 : 120;
-            const getColWidth = (colKey: string): number => colKey === 'sNo' ? 35 : otherColWidth;
+            const getColWidth = (colKey: string): number => {
+                if (title?.includes('Claims') || title?.includes('claims')) {
+                    const widths: Record<string, number> = {
+                        sNo: 20,
+                        claimDate: 65,
+                        claimNumber: 95,
+                        customerName: 100,
+                        policyNumber: 110,
+                        vehicleNumber: 65,
+                        make: 50,
+                        vehicleClass: 45,
+                        companyName: 90,
+                        claimAmount: 60,
+                        billAmount: 60
+                    };
+                    return widths[colKey] || otherColWidth;
+                }
+                return colKey === 'sNo' ? 35 : otherColWidth;
+            };
 
             // Header row
             doc.fontSize(8).font('Helvetica-Bold');
