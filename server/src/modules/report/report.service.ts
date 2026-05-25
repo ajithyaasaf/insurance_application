@@ -1450,36 +1450,40 @@ export class ReportService {
             doc.fontSize(8).font('Helvetica-Bold');
             let x = startX;
             const headerY = doc.y; // Fix: lock Y coordinate for the entire row
+            const isPolicyReport = source === 'policies' || source === 'policies-expired';
+            const headerHeight = isPolicyReport ? 28 : 22;
 
             for (const col of visibleCols) {
                 const w = getColWidth(col.key);
 
                 // Background color for header
-                doc.rect(x, headerY, w, 22).fill('#1e1b4b');
+                doc.rect(x, headerY, w, headerHeight).fill('#1e1b4b');
 
                 // Header Border
-                doc.lineWidth(0.2).rect(x, headerY, w, 22).stroke('#ffffff');
+                doc.lineWidth(0.2).rect(x, headerY, w, headerHeight).stroke('#ffffff');
 
                 // Replace Rupee symbol with Rs. to avoid PDFKit character rendering issues
                 const labelText = col.label.replace(/₹/g, 'Rs.');
 
+                // Dynamically calculate height of text to center it perfectly vertically
+                const textHeight = doc.heightOfString(labelText, { width: w - 4 });
+                const yOffset = (headerHeight - textHeight) / 2;
+
                 // Draw header text centered
                 doc.fillColor('#FFFFFF')
-                    .text(labelText, x, headerY + 7, {
-                        width: w,
-                        align: 'center',
-                        lineBreak: false
+                    .text(labelText, x + 2, headerY + yOffset, {
+                        width: w - 4,
+                        align: 'center'
                     });
 
                 x += w;
             }
 
             // Step cursor past header
-            doc.y = headerY + 22;
+            doc.y = headerY + headerHeight;
 
             // Data rows
             let rowIdx = 0;
-            const isPolicyReport = source === 'policies' || source === 'policies-expired';
             const rowHeight = isPolicyReport ? 22 : 18;
             for (const row of data) {
                 if (doc.y > doc.page.height - 60) {
@@ -1509,13 +1513,27 @@ export class ReportService {
                     // Cell Border (Darker for visibility)
                     doc.lineWidth(0.2).rect(x, rowY, w, rowHeight).stroke('#d1d5db');
 
-                    const isCustomerNameWrap = isPolicyReport && col.key === 'customerName';
+                    // Determine horizontal alignment based on data type
+                    let align: 'center' | 'left' | 'right' = 'left';
+                    if (col.key === 'sNo' || col.key === 'startDate' || col.key === 'expiryDate' || col.key === 'vehicleClass' || col.key === 'ncbPercentage' || col.key === 'customerPhone') {
+                        align = 'center';
+                    } else if (col.key.toLowerCase().includes('premium') || col.key.toLowerCase().includes('amount') || col.key === 'od' || col.key === 'tp' || col.key === 'tax') {
+                        align = 'right';
+                    }
+
+                    // Calculate text height for vertical centering
+                    const isCustomerName = col.key === 'customerName';
+                    const textHeight = doc.heightOfString(val, {
+                        width: w - 8,
+                        lineBreak: isCustomerName
+                    });
+                    const yOffset = (rowHeight - textHeight) / 2;
+
                     doc.font('Helvetica').fontSize(7).fillColor('#374151')
-                        .text(val, x + 4, rowY + (isCustomerNameWrap ? 3 : 5), {
+                        .text(val, x + 4, rowY + yOffset, {
                             width: w - 8,
-                            align: col.key === 'sNo' ? 'center' : 'left',
-                            height: isCustomerNameWrap ? 16 : 10,
-                            lineBreak: isCustomerNameWrap
+                            align: align,
+                            lineBreak: isCustomerName
                         });
 
                     x += w;
