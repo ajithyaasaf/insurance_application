@@ -1392,6 +1392,41 @@ export class ReportService {
                     };
                     return widths[colKey] || otherColWidth;
                 }
+                if (title?.includes('Payments') || title?.includes('payments')) {
+                    const widths: Record<string, number> = {
+                        sNo: 25,
+                        startDate: 60,
+                        customerName: 100,
+                        policyNumber: 115,
+                        vehicleNumber: 65,
+                        vehicleClass: 45,
+                        paidAmount: 55,
+                        pendingAmount: 55,
+                        amount: 55,
+                        dealerName: 65,
+                        companyName: 75,
+                        status: 45
+                    };
+                    return widths[colKey] || otherColWidth;
+                }
+                if (title?.includes('Policies') || title?.includes('policies') || title?.includes('Expire') || title?.includes('expired')) {
+                    const widths: Record<string, number> = {
+                        sNo: 25,
+                        startDate: 60,
+                        expiryDate: 60,
+                        customerName: 135,
+                        policyNumber: 115,
+                        make: 45,
+                        model: 45,
+                        vehicleNumber: 65,
+                        vehicleClass: 45,
+                        companyName: 80,
+                        customerPhone: 55,
+                        totalPremium: 65,
+                        ncbPercentage: 40
+                    };
+                    return widths[colKey] || otherColWidth;
+                }
                 return colKey === 'sNo' ? 35 : otherColWidth;
             };
 

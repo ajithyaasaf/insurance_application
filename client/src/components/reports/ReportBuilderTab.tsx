@@ -230,6 +230,22 @@ const ReportBuilderTab: React.FC = () => {
                 ];
             }
 
+            if (format === 'pdf' && source === 'payments') {
+                exportCols = [
+                    { key: 'startDate', label: 'Start Date' },
+                    { key: 'customerName', label: 'Customer' },
+                    { key: 'policyNumber', label: 'Policy No.' },
+                    { key: 'vehicleNumber', label: 'Vehicle No.' },
+                    { key: 'vehicleClass', label: 'Vehicle Class' },
+                    { key: 'paidAmount', label: 'Paid (₹)' },
+                    { key: 'pendingAmount', label: 'Pending (₹)' },
+                    { key: 'amount', label: 'Premium (₹)' },
+                    { key: 'dealerName', label: 'Dealer' },
+                    { key: 'companyName', label: 'Company' },
+                    { key: 'status', label: 'Status' },
+                ];
+            }
+
             const res = await api.post('/reports/export', {
                 source: exportSource,
                 filters: Object.fromEntries(Object.entries(appliedFilters).filter(([_, v]) => v)),
