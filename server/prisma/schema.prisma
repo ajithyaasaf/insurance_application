@@ -356,6 +356,7 @@ enum PolicyVehicleClass {
   SAOD_TW
   SAOD_PVT
   CPA
+  Home_Insurance
   Others
 }
 
