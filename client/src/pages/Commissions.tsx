@@ -384,7 +384,7 @@ const Commissions: React.FC = () => {
         const totalTp = policies.reduce((sum: number, p: any) => sum + Math.round(p.tpCommission || 0), 0);
         const grandTotal = totalOd + totalTp;
 
-        // Summaryy
+        // Summary
         const finalY = (doc as any).lastAutoTable?.finalY || 120;
         doc.setFontSize(11);
         doc.setTextColor(107, 114, 128);
