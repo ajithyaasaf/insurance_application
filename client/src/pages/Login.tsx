@@ -38,33 +38,33 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-surface-950 text-white font-sans overflow-hidden">
+        <div className="min-h-screen flex flex-col md:flex-row bg-white text-surface-900 font-sans overflow-hidden">
             
-            {/* Left Column: Premium Login Form */}
-            <div className="w-full md:w-1/2 min-h-screen flex flex-col justify-between p-8 lg:p-16 relative overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-primary-950/30">
+            {/* Left Column: Premium Light Login Form */}
+            <div className="w-full md:w-1/2 min-h-screen flex flex-col justify-between p-8 lg:p-16 relative overflow-hidden bg-surface-50">
                 
                 {/* Subtle background glow effects */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-primary-500/5 rounded-full blur-[120px]" />
-                    <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary-600/5 rounded-full blur-[120px]" />
+                    <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-primary-500/[0.04] rounded-full blur-[120px]" />
+                    <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary-600/[0.03] rounded-full blur-[120px]" />
                 </div>
 
-                {/* Mobile background photo overlay (Watermark effect) */}
+                {/* Mobile background photo overlay (Watermark effect - light mode) */}
                 <div className="absolute inset-0 block md:hidden pointer-events-none z-0">
                     <img 
                         src={loginHero} 
                         alt="Mobile Background" 
-                        className="w-full h-full object-cover opacity-[0.06] filter saturate-[0.6] blur-[1px]"
+                        className="w-full h-full object-cover opacity-[0.28] filter saturate-[0.8]"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/90 to-surface-950/50" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-surface-50 via-surface-50/75 to-surface-50/30" />
                 </div>
 
                 {/* Top Logo / Branding */}
                 <div className="relative z-10 flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-600 shadow-md shadow-primary-600/20">
-                        <HiOutlineShieldCheck className="w-5 h-5 text-white animate-pulse" />
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-600 shadow-md shadow-primary-600/10">
+                        <HiOutlineShieldCheck className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-white">InsureFlow</span>
+                    <span className="text-xl font-bold tracking-tight text-surface-900">InsureFlow</span>
                 </div>
 
                 {/* Central Form Container */}
@@ -72,33 +72,33 @@ const Login: React.FC = () => {
                     
                     {/* Header */}
                     <div className="mb-8">
-                        <h2 className="text-3xl font-extrabold tracking-tight text-white">
+                        <h2 className="text-3xl font-extrabold tracking-tight text-surface-900">
                             {isRegister ? 'Get Started' : 'Welcome Back'}
                         </h2>
-                        <p className="text-surface-400 mt-2 text-sm">
+                        <p className="text-surface-500 mt-2 text-sm">
                             {isRegister 
                                 ? 'Create your professional account to manage client portfolios.' 
                                 : 'Sign in to access your dashboard, policies, and commissions.'}
                         </p>
                     </div>
 
-                    {/* Form Card (Glassmorphic Panel) */}
-                    <div className="bg-white/[0.03] backdrop-blur-md rounded-2xl border border-white/5 p-6 shadow-2xl">
+                    {/* Form Card (Crisp White Panel) */}
+                    <div className="bg-white rounded-2xl border border-surface-200/80 p-6 shadow-xl shadow-surface-200/30">
                         <form onSubmit={handleSubmit} className="space-y-5">
                             {isRegister && (
                                 <div>
-                                    <label className="block text-xs font-semibold text-surface-300 uppercase tracking-wider mb-1.5">
+                                    <label className="block text-xs font-bold text-surface-700 uppercase tracking-wider mb-1.5">
                                         Full Name
                                     </label>
                                     <div className="relative">
-                                        <HiOutlineUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-450 transition-colors group-focus-within:text-primary-450" />
+                                        <HiOutlineUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
                                         <input
                                             type="text"
                                             required={isRegister}
                                             value={form.name}
                                             onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 
-                                                text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface-50 border border-surface-200 
+                                                text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 
                                                 focus:ring-primary-500/20 focus:border-primary-500/40 transition-all text-sm"
                                             placeholder="John Doe"
                                         />
@@ -107,7 +107,7 @@ const Login: React.FC = () => {
                             )}
 
                             <div>
-                                <label className="block text-xs font-semibold text-surface-300 uppercase tracking-wider mb-1.5">
+                                <label className="block text-xs font-bold text-surface-700 uppercase tracking-wider mb-1.5">
                                     Email Address
                                 </label>
                                 <div className="relative">
@@ -117,8 +117,8 @@ const Login: React.FC = () => {
                                         required
                                         value={form.email}
                                         onChange={(e) => setForm({ ...form, email: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 
-                                            text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface-50 border border-surface-200 
+                                            text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 
                                             focus:ring-primary-500/20 focus:border-primary-500/40 transition-all text-sm"
                                         placeholder="agent@example.com"
                                     />
@@ -126,7 +126,7 @@ const Login: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-semibold text-surface-300 uppercase tracking-wider mb-1.5">
+                                <label className="block text-xs font-bold text-surface-700 uppercase tracking-wider mb-1.5">
                                     Password
                                 </label>
                                 <div className="relative">
@@ -136,8 +136,8 @@ const Login: React.FC = () => {
                                         required
                                         value={form.password}
                                         onChange={(e) => setForm({ ...form, password: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 
-                                            text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface-50 border border-surface-200 
+                                            text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 
                                             focus:ring-primary-500/20 focus:border-primary-500/40 transition-all text-sm"
                                         placeholder="••••••••"
                                         minLength={6}
@@ -151,7 +151,7 @@ const Login: React.FC = () => {
                                 loadingText="Processing..."
                                 className="w-full py-3.5 rounded-xl bg-primary-600 text-white font-semibold text-sm
                                     hover:bg-primary-700 active:bg-primary-800 transition-all duration-200
-                                    shadow-lg shadow-primary-600/30 hover:shadow-xl hover:shadow-primary-600/40"
+                                    shadow-lg shadow-primary-600/20 hover:shadow-xl hover:shadow-primary-600/30"
                             >
                                 {isRegister ? 'Create Account' : 'Sign In'}
                             </Button>
@@ -163,7 +163,7 @@ const Login: React.FC = () => {
                 <div className="relative z-10 flex items-center justify-between text-xs text-surface-500">
                     <p>© {new Date().getFullYear()} InsureFlow CRM.</p>
                     <p className="tracking-wide">
-                        Developed by <span className="text-white/60 font-semibold">Ajith</span>
+                        Developed by <span className="text-surface-700 font-semibold">Ajith</span>
                     </p>
                 </div>
             </div>
@@ -175,7 +175,7 @@ const Login: React.FC = () => {
                 <img 
                     src={loginHero} 
                     alt="Insurance Client Collaboration" 
-                    className="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-10000 hover:scale-105"
+                    className="absolute inset-0 w-full h-full object-cover opacity-90"
                 />
 
                 {/* Dark Vignette Overlay for Premium Readability */}
