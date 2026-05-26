@@ -49,6 +49,16 @@ const Login: React.FC = () => {
                     <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary-600/5 rounded-full blur-[120px]" />
                 </div>
 
+                {/* Mobile background photo overlay (Watermark effect) */}
+                <div className="absolute inset-0 block md:hidden pointer-events-none z-0">
+                    <img 
+                        src={loginHero} 
+                        alt="Mobile Background" 
+                        className="w-full h-full object-cover opacity-[0.06] filter saturate-[0.6] blur-[1px]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/90 to-surface-950/50" />
+                </div>
+
                 {/* Top Logo / Branding */}
                 <div className="relative z-10 flex items-center gap-3">
                     <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-600 shadow-md shadow-primary-600/20">
@@ -58,26 +68,11 @@ const Login: React.FC = () => {
                 </div>
 
                 {/* Central Form Container */}
-                <div className="w-full max-w-md mx-auto my-auto py-8 md:py-12 relative z-10 animate-fade-in">
+                <div className="w-full max-w-md mx-auto my-auto py-12 relative z-10 animate-fade-in">
                     
-                    {/* Mobile-Only Hero Banner */}
-                    <div className="block md:hidden w-full h-36 rounded-2xl overflow-hidden relative mb-6 border border-white/10 shadow-lg shadow-primary-950/20">
-                        <img 
-                            src={loginHero} 
-                            alt="Insurance Client Collaboration" 
-                            className="w-full h-full object-cover opacity-80"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/20 to-transparent pointer-events-none" />
-                        <div className="absolute bottom-3 left-4 right-4 z-10">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-400 bg-primary-950/80 px-2 py-0.5 rounded border border-primary-500/20">
-                                Trusted Security
-                            </span>
-                        </div>
-                    </div>
-
                     {/* Header */}
-                    <div className="mb-6 md:mb-8">
-                        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-extrabold tracking-tight text-white">
                             {isRegister ? 'Get Started' : 'Welcome Back'}
                         </h2>
                         <p className="text-surface-400 mt-2 text-sm">
