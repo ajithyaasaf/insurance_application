@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { HiOutlineShieldCheck, HiOutlineMail, HiOutlineLockClosed, HiOutlineUser } from 'react-icons/hi';
 import Button from '../components/ui/Button';
+import loginHero from '../assets/login-hero.png';
 
 const Login: React.FC = () => {
     const { login, register } = useAuth();
@@ -37,117 +38,170 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-surface-900 via-surface-800 to-primary-900 px-4">
-            {/* Background decoration */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-600/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary-600/10 rounded-full blur-3xl" />
-            </div>
-
-            <div className="relative w-full max-w-md animate-fade-in">
-                {/* Logo */}
-                <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary-600 shadow-lg shadow-primary-600/30 mb-4">
-                        <HiOutlineShieldCheck className="w-8 h-8 text-white" />
-                    </div>
-                    <h1 className="text-3xl font-bold text-white">InsureCRM</h1>
-                    <p className="text-surface-400 mt-1">
-                        {isRegister ? 'Create your account' : 'Sign in to your account'}
-                    </p>
-                    {/* BETA_VERSION_NOTICE_START - Remove this block after beta */}
-                    <p className="text-primary-400 mt-2 font-bold text-sm">
-                        Note : this is a beta version
-                    </p>
-                    {/* BETA_VERSION_NOTICE_END */}
+        <div className="min-h-screen flex flex-col md:flex-row bg-surface-950 text-white font-sans overflow-hidden">
+            
+            {/* Left Column: Premium Login Form */}
+            <div className="w-full md:w-1/2 min-h-screen flex flex-col justify-between p-8 lg:p-16 relative overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-primary-950/30">
+                
+                {/* Subtle background glow effects */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] bg-primary-500/5 rounded-full blur-[120px]" />
+                    <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary-600/5 rounded-full blur-[120px]" />
                 </div>
 
-                {/* Form Card */}
-                <div className="bg-white/[0.08] backdrop-blur-xl rounded-3xl border border-white/10 p-8">
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        {isRegister && (
+                {/* Top Logo / Branding */}
+                <div className="relative z-10 flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-600 shadow-md shadow-primary-600/20">
+                        <HiOutlineShieldCheck className="w-5 h-5 text-white animate-pulse" />
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-white">InsureFlow</span>
+                </div>
+
+                {/* Central Form Container */}
+                <div className="w-full max-w-md mx-auto my-auto py-8 md:py-12 relative z-10 animate-fade-in">
+                    
+                    {/* Mobile-Only Hero Banner */}
+                    <div className="block md:hidden w-full h-36 rounded-2xl overflow-hidden relative mb-6 border border-white/10 shadow-lg shadow-primary-950/20">
+                        <img 
+                            src={loginHero} 
+                            alt="Insurance Client Collaboration" 
+                            className="w-full h-full object-cover opacity-80"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/20 to-transparent pointer-events-none" />
+                        <div className="absolute bottom-3 left-4 right-4 z-10">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-400 bg-primary-950/80 px-2 py-0.5 rounded border border-primary-500/20">
+                                Trusted Security
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Header */}
+                    <div className="mb-6 md:mb-8">
+                        <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white">
+                            {isRegister ? 'Get Started' : 'Welcome Back'}
+                        </h2>
+                        <p className="text-surface-400 mt-2 text-sm">
+                            {isRegister 
+                                ? 'Create your professional account to manage client portfolios.' 
+                                : 'Sign in to access your dashboard, policies, and commissions.'}
+                        </p>
+                    </div>
+
+                    {/* Form Card (Glassmorphic Panel) */}
+                    <div className="bg-white/[0.03] backdrop-blur-md rounded-2xl border border-white/5 p-6 shadow-2xl">
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            {isRegister && (
+                                <div>
+                                    <label className="block text-xs font-semibold text-surface-300 uppercase tracking-wider mb-1.5">
+                                        Full Name
+                                    </label>
+                                    <div className="relative">
+                                        <HiOutlineUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-450 transition-colors group-focus-within:text-primary-450" />
+                                        <input
+                                            type="text"
+                                            required={isRegister}
+                                            value={form.name}
+                                            onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 
+                                                text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 
+                                                focus:ring-primary-500/20 focus:border-primary-500/40 transition-all text-sm"
+                                            placeholder="John Doe"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
-                                <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                                    Full Name
+                                <label className="block text-xs font-semibold text-surface-300 uppercase tracking-wider mb-1.5">
+                                    Email Address
                                 </label>
                                 <div className="relative">
-                                    <HiOutlineUser className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                                    <HiOutlineMail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
                                     <input
-                                        type="text"
-                                        required={isRegister}
-                                        value={form.name}
-                                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 
-                      text-white placeholder:text-surface-500 focus:outline-none focus:ring-2 
-                      focus:ring-primary-500/30 focus:border-primary-500/50 transition-all text-sm"
-                                        placeholder="John Doe"
+                                        type="email"
+                                        required
+                                        value={form.email}
+                                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 
+                                            text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 
+                                            focus:ring-primary-500/20 focus:border-primary-500/40 transition-all text-sm"
+                                        placeholder="agent@example.com"
                                     />
                                 </div>
                             </div>
-                        )}
 
-                        <div>
-                            <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                                Email Address
-                            </label>
-                            <div className="relative">
-                                <HiOutlineMail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                                <input
-                                    type="email"
-                                    required
-                                    value={form.email}
-                                    onChange={(e) => setForm({ ...form, email: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 
-                    text-white placeholder:text-surface-500 focus:outline-none focus:ring-2 
-                    focus:ring-primary-500/30 focus:border-primary-500/50 transition-all text-sm"
-                                    placeholder="agent@example.com"
-                                />
+                            <div>
+                                <label className="block text-xs font-semibold text-surface-300 uppercase tracking-wider mb-1.5">
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <HiOutlineLockClosed className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={form.password}
+                                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 
+                                            text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 
+                                            focus:ring-primary-500/20 focus:border-primary-500/40 transition-all text-sm"
+                                        placeholder="••••••••"
+                                        minLength={6}
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-surface-300 mb-1.5">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <HiOutlineLockClosed className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                                <input
-                                    type="password"
-                                    required
-                                    value={form.password}
-                                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 
-                    text-white placeholder:text-surface-500 focus:outline-none focus:ring-2 
-                    focus:ring-primary-500/30 focus:border-primary-500/50 transition-all text-sm"
-                                    placeholder="••••••••"
-                                    minLength={6}
-                                />
-                            </div>
-                        </div>
+                            <Button
+                                type="submit"
+                                isLoading={loading}
+                                loadingText="Processing..."
+                                className="w-full py-3.5 rounded-xl bg-primary-600 text-white font-semibold text-sm
+                                    hover:bg-primary-700 active:bg-primary-800 transition-all duration-200
+                                    shadow-lg shadow-primary-600/30 hover:shadow-xl hover:shadow-primary-600/40"
+                            >
+                                {isRegister ? 'Create Account' : 'Sign In'}
+                            </Button>
+                        </form>
+                    </div>
+                </div>
 
-                        <Button
-                            type="submit"
-                            isLoading={loading}
-                            loadingText="Processing..."
-                            className="w-full py-3 rounded-xl bg-primary-600 text-white font-semibold text-sm
-                hover:bg-primary-700 active:bg-primary-800 transition-all duration-200
-                shadow-lg shadow-primary-600/30 hover:shadow-xl hover:shadow-primary-600/40"
-                        >
-                            {isRegister ? 'Create Account' : 'Sign In'}
-                        </Button>
-                    </form>
-
-                    {/* Registration link removed for security in private app */}
+                {/* Footer Attribution */}
+                <div className="relative z-10 flex items-center justify-between text-xs text-surface-500">
+                    <p>© {new Date().getFullYear()} InsureFlow CRM.</p>
+                    <p className="tracking-wide">
+                        Developed by <span className="text-white/60 font-semibold">Ajith</span>
+                    </p>
                 </div>
             </div>
 
-            {/* Attribution */}
-            <div className="fixed bottom-8 left-0 right-0 text-center pointer-events-none animate-fade-in" style={{ animationDelay: '500ms' }}>
-                <p className="text-[10px] text-white/20 uppercase tracking-[0.4em] font-light">
-                    Designed & Developed by <span className="text-white/40 font-medium">Ajith</span>
-                </p>
+            {/* Right Column: Dynamic Architectural Photographic Asset */}
+            <div className="hidden md:flex md:w-1/2 relative bg-surface-950 items-end justify-start p-16 overflow-hidden">
+                
+                {/* Main Hero Photo Asset */}
+                <img 
+                    src={loginHero} 
+                    alt="Insurance Client Collaboration" 
+                    className="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-10000 hover:scale-105"
+                />
+
+                {/* Dark Vignette Overlay for Premium Readability */}
+                <div className="absolute inset-0 bg-gradient-to-t from-surface-950 via-surface-950/40 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-r from-surface-950/30 via-transparent to-transparent pointer-events-none" />
+
+                {/* Glassmorphic Slogan Panel */}
+                <div className="relative z-10 max-w-lg bg-white/[0.04] backdrop-blur-lg rounded-2xl border border-white/10 p-8 shadow-2xl animate-fade-in" style={{ animationDelay: '200ms' }}>
+                    <div className="w-8 h-1 bg-primary-500 rounded-full mb-4" />
+                    <h3 className="text-2xl font-bold tracking-tight text-white mb-2 leading-tight">
+                        Securing Futures, Simplifying Portfolios.
+                    </h3>
+                    <p className="text-sm text-surface-300 leading-relaxed font-light">
+                        Empelling insurance professionals with next-generation analytics, automated commission calculations, and comprehensive policy management tools. 
+                    </p>
+                </div>
             </div>
+            
         </div>
     );
 };
 
 export default Login;
+
