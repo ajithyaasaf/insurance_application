@@ -121,6 +121,73 @@ const Dashboard: React.FC = () => {
                 ))}
             </div>
 
+            {/* Priority Section: Follow-up & Overdue Payments */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Follow-up (7 Days) */}
+                <div className="card">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
+                        <h2 className="font-semibold text-surface-900">Follow-up (7 Days)</h2>
+                        <button onClick={() => navigate('/follow-ups')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                            View All <HiOutlineChevronRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
+                        {data.todayFollowUps.length === 0 ? (
+                            <p className="px-5 py-8 text-center text-sm text-surface-400 font-medium">All caught up! No overdue or upcoming follow-ups for this week. 🎉</p>
+                        ) : (
+                            data.todayFollowUps.map((item: any) => (
+                                <div key={item.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50 cursor-pointer" onClick={() => navigate(item.type === 'lead' ? '/leads' : '/follow-ups')}>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-medium text-surface-900 truncate">{item.customer?.name}</p>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${item.type === 'lead' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                {item.type === 'lead' ? 'Lead' : 'Customer'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-surface-500 truncate mt-0.5">{item.notes || 'No notes'}</p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-4">
+                                        {item.nextFollowUpDate && (() => {
+                                            const urgency = getFollowUpUrgency(item.nextFollowUpDate);
+                                            return (
+                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${urgency.color}`}>
+                                                    {urgency.label}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Overdue Payments */}
+                <div className="card">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
+                        <h2 className="font-semibold text-surface-900 text-red-700">Overdue Payments</h2>
+                        <button onClick={() => navigate('/payments')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                            View All <HiOutlineChevronRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
+                        {data.overduePayments.length === 0 ? (
+                            <p className="px-5 py-8 text-center text-sm text-surface-400">No overdue payments 🎉</p>
+                        ) : (
+                            data.overduePayments.map((payment: any) => (
+                                <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
+                                        <p className="text-xs text-red-500">Due: {formatDate(payment.dueDate)}</p>
+                                    </div>
+                                    <p className="text-sm font-semibold text-red-600">{formatCurrency(payment.amount)}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {/* Company-wise Stats */}
             <div className="card overflow-hidden">
                 <div className="px-5 py-4 border-b border-surface-100 flex items-center gap-2">
@@ -210,45 +277,6 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Follow-up Agenda (7 Days) */}
-                <div className="card">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
-                        <h2 className="font-semibold text-surface-900">Follow-up Agenda (7 Days)</h2>
-                        <button onClick={() => navigate('/follow-ups')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                            View All <HiOutlineChevronRight className="w-3 h-3" />
-                        </button>
-                    </div>
-                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
-                        {data.todayFollowUps.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-surface-400 font-medium">All caught up! No overdue or upcoming follow-ups for this week. 🎉</p>
-                        ) : (
-                            data.todayFollowUps.map((item: any) => (
-                                <div key={item.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50 cursor-pointer" onClick={() => navigate(item.type === 'lead' ? '/leads' : '/follow-ups')}>
-                                    <div className="min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-sm font-medium text-surface-900 truncate">{item.customer?.name}</p>
-                                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${item.type === 'lead' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                {item.type === 'lead' ? 'Lead' : 'Customer'}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-surface-500 truncate mt-0.5">{item.notes || 'No notes'}</p>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-4">
-                                        {item.nextFollowUpDate && (() => {
-                                            const urgency = getFollowUpUrgency(item.nextFollowUpDate);
-                                            return (
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${urgency.color}`}>
-                                                    {urgency.label}
-                                                </span>
-                                            );
-                                        })()}
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
                 {/* Pending Payments */}
                 <div className="card">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
@@ -268,31 +296,6 @@ const Dashboard: React.FC = () => {
                                         <p className="text-xs text-surface-500">Due: {formatDate(payment.dueDate)}</p>
                                     </div>
                                     <p className="text-sm font-semibold text-surface-900">{formatCurrency(payment.amount)}</p>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Overdue Payments */}
-                <div className="card">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
-                        <h2 className="font-semibold text-surface-900 text-red-700">Overdue Payments</h2>
-                        <button onClick={() => navigate('/payments')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                            View All <HiOutlineChevronRight className="w-3 h-3" />
-                        </button>
-                    </div>
-                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
-                        {data.overduePayments.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-surface-400">No overdue payments 🎉</p>
-                        ) : (
-                            data.overduePayments.map((payment: any) => (
-                                <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
-                                        <p className="text-xs text-red-500">Due: {formatDate(payment.dueDate)}</p>
-                                    </div>
-                                    <p className="text-sm font-semibold text-red-600">{formatCurrency(payment.amount)}</p>
                                 </div>
                             ))
                         )}
