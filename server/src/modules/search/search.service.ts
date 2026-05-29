@@ -11,6 +11,15 @@ export class SearchService {
         }
 
         const normalizedQuery = query.toUpperCase().replace(/\s+/g, '_');
+        const VALID_VEHICLE_CLASSES = [
+            'TW', 'PCV', 'PVT', 'GCV', 'Misc_D', 'CPM', 'Fire', 
+            'Public_Liability', 'SAOD_TW', 'SAOD_PVT', 'CPA', 
+            'Home_Insurance', 'Others'
+        ];
+        const matchedClasses = [query.toUpperCase(), normalizedQuery].filter(
+            val => val && VALID_VEHICLE_CLASSES.includes(val)
+        );
+
         const [customers, leads, policies] = await Promise.all([
             prisma.customer.findMany({
                 where: {
@@ -35,7 +44,7 @@ export class SearchService {
                         { vehicleNumber: { contains: query, mode: 'insensitive' } },
                         { make: { contains: query, mode: 'insensitive' } },
                         { model: { contains: query, mode: 'insensitive' } },
-                        { vehicleClass: { in: [query.toUpperCase(), normalizedQuery] as any } }
+                        ...(matchedClasses.length > 0 ? [{ vehicleClass: { in: matchedClasses as any } }] : [])
                     ],
                 },
                 take: 5,
@@ -50,7 +59,7 @@ export class SearchService {
                         { productName: { contains: query, mode: 'insensitive' } },
                         { make: { contains: query, mode: 'insensitive' } },
                         { model: { contains: query, mode: 'insensitive' } },
-                        { vehicleClass: { in: [query.toUpperCase(), normalizedQuery] as any } }
+                        ...(matchedClasses.length > 0 ? [{ vehicleClass: { in: matchedClasses as any } }] : [])
                     ],
                 },
                 include: { customer: true, company: true },

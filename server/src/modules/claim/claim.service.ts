@@ -52,6 +52,15 @@ export class ClaimService {
 
     async findAll(userId: string, role: string, page = 1, limit = 10, search?: string, status?: string, vehicleClass?: string) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
+        const VALID_VEHICLE_CLASSES = [
+            'TW', 'PCV', 'PVT', 'GCV', 'Misc_D', 'CPM', 'Fire', 
+            'Public_Liability', 'SAOD_TW', 'SAOD_PVT', 'CPA', 
+            'Home_Insurance', 'Others'
+        ];
+        const matchedClasses = [search?.toUpperCase(), normalizedSearch].filter(
+            val => val && VALID_VEHICLE_CLASSES.includes(val)
+        );
+
         const where: any = {
             ...ownerFilter(userId, role),
             ...(search && {
@@ -60,7 +69,7 @@ export class ClaimService {
                     { claimNumber: { contains: search, mode: 'insensitive' } },
                     { policy: { policyNumber: { contains: search, mode: 'insensitive' } } },
                     { policy: { vehicleNumber: { contains: search, mode: 'insensitive' } } },
-                    { policy: { vehicleClass: { in: [search.toUpperCase(), normalizedSearch] as any } } }
+                    ...(matchedClasses.length > 0 ? [{ policy: { vehicleClass: { in: matchedClasses as any } } }] : [])
                 ],
             }),
             ...(status && { status: status as any }),
