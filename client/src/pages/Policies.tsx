@@ -9,7 +9,7 @@ import TableSkeleton from '../components/ui/TableSkeleton';
 import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDate, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, EDITABLE_POLICY_STATUSES, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye, HiOutlineFilter } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 
@@ -30,6 +30,7 @@ const Policies: React.FC = () => {
     const [vehicleClassFilter, setVehicleClassFilter] = useState('');
     const [dateFromFilter, setDateFromFilter] = useState('');
     const [dateToFilter, setDateToFilter] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [renewModalOpen, setRenewModalOpen] = useState(false);
@@ -278,81 +279,138 @@ const Policies: React.FC = () => {
                 <button onClick={openCreate} className="btn-primary"><HiOutlinePlus className="w-4 h-4" /> Add Policy</button>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                    <input className="input pl-10" placeholder="Search by customer, policy no, vehicle..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            {/* Search and Filters Container */}
+            <div className="card card-body bg-white border border-surface-200 shadow-sm p-4 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                    <div className="relative flex-1 max-w-xl">
+                        <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
+                        <input 
+                            className="input pl-10 w-full" 
+                            placeholder="Search by customer, policy no, vehicle..." 
+                            value={search} 
+                            onChange={(e) => setSearch(e.target.value)} 
+                        />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`btn-secondary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
+                                showFilters 
+                                    ? 'bg-primary-50 border-primary-300 text-primary-700 shadow-inner' 
+                                    : 'bg-white border-surface-200 text-surface-700 hover:bg-surface-50 shadow-sm'
+                            }`}
+                        >
+                            <HiOutlineFilter className="w-4 h-4" />
+                            <span>Filters</span>
+                            {((statusFilter ? 1 : 0) + (typeFilter ? 1 : 0) + (companyFilter.length > 0 ? 1 : 0) + (dealerFilter ? 1 : 0) + (vehicleClassFilter ? 1 : 0) + (dateFromFilter ? 1 : 0) + (dateToFilter ? 1 : 0)) > 0 && (
+                                <span className="ml-1.5 bg-primary-600 text-white px-2 py-0.5 rounded-full text-xs font-black">
+                                    {(statusFilter ? 1 : 0) + (typeFilter ? 1 : 0) + (companyFilter.length > 0 ? 1 : 0) + (dealerFilter ? 1 : 0) + (vehicleClassFilter ? 1 : 0) + (dateFromFilter ? 1 : 0) + (dateToFilter ? 1 : 0)}
+                                </span>
+                            )}
+                        </button>
+                        {((search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter || dateFromFilter || dateToFilter)) && (
+                            <button 
+                                onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setCompanyFilter([]); setDealerFilter(''); setVehicleClassFilter(''); setDateFromFilter(''); setDateToFilter(''); }} 
+                                className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors uppercase tracking-wider px-2 py-1"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </div>
                 </div>
-                <SearchableSelect
-                    className="w-full sm:w-48"
-                    options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    allLabel="All Status"
-                    placeholder="Search status..."
-                />
-                <SearchableSelect
-                    className="w-full sm:w-48"
-                    options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
-                    value={typeFilter}
-                    onChange={setTypeFilter}
-                    allLabel="All Types"
-                    placeholder="Search type..."
-                />
-                <SearchableSelect
-                    className="w-full sm:w-48"
-                    options={companies
-                        .filter(c => {
-                            if (!typeFilter) return true;
-                            if (typeFilter === 'life') return c.name === 'LIC';
-                            if (typeFilter === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
-                            if (typeFilter === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
-                            return true;
-                        })
-                        .map(c => ({ value: c.id, label: c.name }))
-                    }
-                    value={companyFilter}
-                    onChange={setCompanyFilter}
-                    multiple={true}
-                    placeholder="Search insurers..."
-                />
-                <SearchableSelect
-                    className="w-full sm:w-48"
-                    options={[
-                        { value: 'direct', label: '⭐ Direct' },
-                        ...dealers.map(d => ({ value: d.id, label: d.name }))
-                    ]}
-                    value={dealerFilter}
-                    onChange={setDealerFilter}
-                    allLabel="All Dealers"
-                    placeholder="Search dealer..."
-                />
-                <SearchableSelect
-                    className="w-full sm:w-40"
-                    options={VEHICLE_CLASSES.map(v => ({ value: v, label: formatVehicleClass(v) }))}
-                    value={vehicleClassFilter}
-                    onChange={setVehicleClassFilter}
-                    allLabel="All Classes"
-                    placeholder="Search class..."
-                />
-                <input
-                    type="date"
-                    className="input w-full sm:w-40"
-                    value={dateFromFilter}
-                    onChange={(e) => setDateFromFilter(e.target.value)}
-                    title="Start Date From"
-                />
-                <input
-                    type="date"
-                    className="input w-full sm:w-40"
-                    value={dateToFilter}
-                    onChange={(e) => setDateToFilter(e.target.value)}
-                    title="Start Date To"
-                />
-                {(search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter || dateFromFilter || dateToFilter) && (
-                    <button onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setCompanyFilter([]); setDealerFilter(''); setVehicleClassFilter(''); setDateFromFilter(''); setDateToFilter(''); }} className="btn-ghost btn-sm self-start sm:self-auto text-red-500 font-bold uppercase tracking-wider text-[10px]">
-                        Clear All
-                    </button>
+
+                {/* Collapsible Advanced Filters Section */}
+                {showFilters && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 pt-4 border-t border-dashed border-surface-200 animate-fade-in">
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Status</label>
+                            <SearchableSelect
+                                className="w-full"
+                                options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                                allLabel="All Status"
+                                placeholder="Search status..."
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Type</label>
+                            <SearchableSelect
+                                className="w-full"
+                                options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                                value={typeFilter}
+                                onChange={setTypeFilter}
+                                allLabel="All Types"
+                                placeholder="Search type..."
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Insurers</label>
+                            <SearchableSelect
+                                className="w-full"
+                                options={companies
+                                    .filter(c => {
+                                        if (!typeFilter) return true;
+                                        if (typeFilter === 'life') return c.name === 'LIC';
+                                        if (typeFilter === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
+                                        if (typeFilter === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
+                                        return true;
+                                    })
+                                    .map(c => ({ value: c.id, label: c.name }))
+                                }
+                                value={companyFilter}
+                                onChange={setCompanyFilter}
+                                multiple={true}
+                                placeholder="Search insurers..."
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Dealer</label>
+                            <SearchableSelect
+                                className="w-full"
+                                options={[
+                                    { value: 'direct', label: '⭐ Direct' },
+                                    ...dealers.map(d => ({ value: d.id, label: d.name }))
+                                ]}
+                                value={dealerFilter}
+                                onChange={setDealerFilter}
+                                allLabel="All Dealers"
+                                placeholder="Search dealer..."
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Vehicle Class</label>
+                            <SearchableSelect
+                                className="w-full"
+                                options={VEHICLE_CLASSES.map(v => ({ value: v, label: formatVehicleClass(v) }))}
+                                value={vehicleClassFilter}
+                                onChange={setVehicleClassFilter}
+                                allLabel="All Classes"
+                                placeholder="Search class..."
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">From Date</label>
+                            <input
+                                type="date"
+                                className="input w-full"
+                                value={dateFromFilter}
+                                onChange={(e) => setDateFromFilter(e.target.value)}
+                                title="Start Date From"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">To Date</label>
+                            <input
+                                type="date"
+                                className="input w-full"
+                                value={dateToFilter}
+                                onChange={(e) => setDateToFilter(e.target.value)}
+                                title="Start Date To"
+                            />
+                        </div>
+                    </div>
                 )}
             </div>
 
