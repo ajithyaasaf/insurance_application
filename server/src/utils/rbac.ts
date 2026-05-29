@@ -25,7 +25,9 @@ export type UserRoleType = typeof UserRole[keyof typeof UserRole];
  * const where = { ...ownerFilter(userId, role), deletedAt: null };
  */
 export function ownerFilter(userId: string, role: string): { userId?: string } {
-    if (role === UserRole.staff || role === UserRole.admin) {
+    // In this agency application, the 'agent' is the owner/admin, and 'staff' are the employees.
+    // Both must have global database visibility so the Agent (boss) can see and manage all records entered by their Staff.
+    if (role === UserRole.agent || role === UserRole.staff || role === UserRole.admin) {
         return {};
     }
     return { userId };
