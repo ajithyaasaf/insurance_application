@@ -69,14 +69,70 @@ const Dashboard: React.FC = () => {
     if (!data) return <div className="text-center text-surface-500 py-20">Failed to load dashboard</div>;
 
     const statCards = [
-        { label: 'Total Customers', value: data.stats.totalCustomers, icon: HiOutlineUsers, color: 'text-blue-600 bg-blue-50' },
-        { label: 'Active Policies', value: data.stats.totalActivePolicies, icon: HiOutlineDocumentText, color: 'text-emerald-600 bg-emerald-50' },
-        { label: 'Total Leads', value: data.stats.totalLeads, icon: HiOutlineTrendingUp, color: 'text-violet-600 bg-violet-50' },
-        { label: 'Expiring in 30d', value: data.stats.expiringPoliciesCount, icon: HiOutlineClock, color: 'text-amber-600 bg-amber-50' },
-        { label: 'Follow-ups (Due/Overdue)', value: data.stats.todayFollowUpsCount, icon: HiOutlinePhone, color: 'text-cyan-600 bg-cyan-50' },
-        { label: 'Pending Payments', value: data.stats.pendingPaymentsCount, icon: HiOutlineCreditCard, color: 'text-orange-600 bg-orange-50' },
-        { label: 'Overdue Payments', value: data.stats.overduePaymentsCount, icon: HiOutlineExclamation, color: 'text-red-600 bg-red-50' },
-        { label: "Today's Birthdays", value: data.stats.todayBirthdaysCount || 0, icon: HiOutlineCake, color: 'text-pink-600 bg-pink-50' },
+        {
+            label: 'Total Customers',
+            value: data.stats.totalCustomers,
+            icon: HiOutlineUsers,
+            iconBg: 'text-blue-600 bg-blue-50 group-hover:bg-blue-100',
+            cardBg: 'border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50/10 to-white hover:shadow-md hover:border-l-blue-600',
+            valueColor: 'text-blue-600'
+        },
+        {
+            label: 'Active Policies',
+            value: data.stats.totalActivePolicies,
+            icon: HiOutlineDocumentText,
+            iconBg: 'text-emerald-600 bg-emerald-50 group-hover:bg-emerald-100',
+            cardBg: 'border-l-4 border-l-emerald-500 bg-gradient-to-r from-emerald-50/10 to-white hover:shadow-md hover:border-l-emerald-600',
+            valueColor: 'text-emerald-600'
+        },
+        {
+            label: 'Total Leads',
+            value: data.stats.totalLeads,
+            icon: HiOutlineTrendingUp,
+            iconBg: 'text-violet-600 bg-violet-50 group-hover:bg-violet-100',
+            cardBg: 'border-l-4 border-l-violet-500 bg-gradient-to-r from-violet-50/10 to-white hover:shadow-md hover:border-l-violet-600',
+            valueColor: 'text-violet-600'
+        },
+        {
+            label: 'Expiring in 30d',
+            value: data.stats.expiringPoliciesCount,
+            icon: HiOutlineClock,
+            iconBg: 'text-amber-600 bg-amber-50 group-hover:bg-amber-100',
+            cardBg: 'border-l-4 border-l-amber-500 bg-gradient-to-r from-amber-50/10 to-white hover:shadow-md hover:border-l-amber-600',
+            valueColor: 'text-amber-600'
+        },
+        {
+            label: 'Follow-ups (Due/Overdue)',
+            value: data.stats.todayFollowUpsCount,
+            icon: HiOutlinePhone,
+            iconBg: 'text-cyan-600 bg-cyan-50 group-hover:bg-cyan-100',
+            cardBg: 'border-l-4 border-l-cyan-500 bg-gradient-to-r from-cyan-50/10 to-white hover:shadow-md hover:border-l-cyan-600',
+            valueColor: 'text-cyan-600'
+        },
+        {
+            label: 'Pending Payments',
+            value: data.stats.pendingPaymentsCount,
+            icon: HiOutlineCreditCard,
+            iconBg: 'text-orange-600 bg-orange-50 group-hover:bg-orange-100',
+            cardBg: 'border-l-4 border-l-orange-500 bg-gradient-to-r from-orange-50/10 to-white hover:shadow-md hover:border-l-orange-600',
+            valueColor: 'text-orange-600'
+        },
+        {
+            label: 'Overdue Payments',
+            value: data.stats.overduePaymentsCount,
+            icon: HiOutlineExclamation,
+            iconBg: 'text-red-600 bg-red-50 group-hover:bg-red-100',
+            cardBg: 'border-l-4 border-l-red-500 bg-gradient-to-r from-red-50/10 to-white hover:shadow-md hover:border-l-red-600',
+            valueColor: 'text-red-600'
+        },
+        {
+            label: "Today's Birthdays",
+            value: data.stats.todayBirthdaysCount || 0,
+            icon: HiOutlineCake,
+            iconBg: 'text-pink-600 bg-pink-50 group-hover:bg-pink-100',
+            cardBg: 'border-l-4 border-l-pink-500 bg-gradient-to-r from-pink-50/10 to-white hover:shadow-md hover:border-l-pink-600',
+            valueColor: 'text-pink-600'
+        },
     ];
 
     const getFollowUpUrgency = (dateStr: string) => {
@@ -111,11 +167,11 @@ const Dashboard: React.FC = () => {
             {/* Stat Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
                 {statCards.map((stat) => (
-                    <div key={stat.label} className="card card-body group hover:scale-[1.02] transition-transform">
-                        <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center mb-3`}>
+                    <div key={stat.label} className={`card card-body group hover:scale-[1.02] transition-all duration-200 ${stat.cardBg}`}>
+                        <div className={`w-10 h-10 rounded-xl ${stat.iconBg} flex items-center justify-center mb-3 transition-colors`}>
                             <stat.icon className="w-5 h-5" />
                         </div>
-                        <p className="stat-value">{stat.value}</p>
+                        <p className={`text-2xl font-bold ${stat.valueColor}`}>{stat.value}</p>
                         <p className="stat-label text-xs">{stat.label}</p>
                     </div>
                 ))}
