@@ -120,7 +120,7 @@ const Login: React.FC = () => {
                                         className="w-full pl-10 pr-4 py-3 rounded-xl bg-surface-50 border border-surface-200 
                                             text-surface-900 placeholder:text-surface-400 focus:outline-none focus:ring-2 
                                             focus:ring-primary-500/20 focus:border-primary-500/40 transition-all text-sm"
-                                        placeholder="agent@example.com"
+                                        placeholder="Enter email"
                                     />
                                 </div>
                             </div>
