@@ -211,7 +211,29 @@ export class LeadService {
         userId: string,
         role: string,
         id: string,
-        extra: { address?: string; email?: string; policyOrigin?: string; ncbPercentage?: number | null }
+        extra: { 
+            address?: string; 
+            email?: string; 
+            policyOrigin?: string; 
+            ncbPercentage?: number | null;
+            policyNumber?: string;
+            policyType?: PolicyType;
+            companyId?: string;
+            premiumAmount?: number;
+            startDate?: string;
+            expiryDate?: string;
+            vehicleNumber?: string | null;
+            make?: string | null;
+            model?: string | null;
+            registrationDate?: string | null;
+            vehicleClass?: PolicyVehicleClass | null;
+            idv?: number | null;
+            od?: number | null;
+            tp?: number | null;
+            tax?: number | null;
+            totalPremium?: number | null;
+            dealerId?: string | null;
+        }
     ) {
         const lead = await this.findById(userId, role, id);
 
@@ -240,41 +262,56 @@ export class LeadService {
             });
 
             // 3. Auto-create Policy and initial Payment if quote data exists
-            if (lead.policyType && lead.premiumAmount !== null && lead.startDate && lead.expiryDate && lead.companyId) {
-                // --- Smart Premium Pre-calculation for Conversion ---
-                let finalNet = lead.premiumAmount!;
-                let finalTotal = lead.totalPremium;
+            const policyType = lead.policyType || extra.policyType;
+            const companyId = lead.companyId || extra.companyId;
+            const premiumAmount = lead.premiumAmount !== null ? lead.premiumAmount : extra.premiumAmount;
+            
+            const rawStartDate = lead.startDate || (extra.startDate ? new Date(extra.startDate) : null);
+            const rawExpiryDate = lead.expiryDate || (extra.expiryDate ? new Date(extra.expiryDate) : null);
 
-                if (!finalNet && (lead.od || lead.tp)) {
-                    finalNet = (Number(lead.od) || 0) + (Number(lead.tp) || 0);
+            if (policyType && premiumAmount !== undefined && premiumAmount !== null && rawStartDate && rawExpiryDate && companyId) {
+                // --- Smart Premium Pre-calculation for Conversion ---
+                const od = lead.od !== null ? Number(lead.od) : (extra.od !== undefined && extra.od !== null ? Number(extra.od) : 0);
+                const tp = lead.tp !== null ? Number(lead.tp) : (extra.tp !== undefined && extra.tp !== null ? Number(extra.tp) : 0);
+                const tax = lead.tax !== null ? Number(lead.tax) : (extra.tax !== undefined && extra.tax !== null ? Number(extra.tax) : 0);
+                
+                let finalNet = premiumAmount;
+                let finalTotal = lead.totalPremium !== null ? lead.totalPremium : (extra.totalPremium !== undefined && extra.totalPremium !== null ? extra.totalPremium : 0);
+
+                if (!finalNet && (od || tp)) {
+                    finalNet = od + tp;
                 }
-                if (!finalTotal && (finalNet || lead.tax)) {
-                    finalTotal = (finalNet || 0) + (Number(lead.tax) || 0);
+                if (!finalTotal && (finalNet || tax)) {
+                    finalTotal = finalNet + tax;
                 }
+
+                const startDate = new Date(rawStartDate);
+                const expiryDate = new Date(rawExpiryDate);
 
                 const policy = await tx.policy.create({
                     data: {
                         userId,
                         customerId: customer.id,
-                        companyId: lead.companyId,
-                        policyType: lead.policyType,
+                        companyId,
+                        policyType,
+                        policyNumber: extra.policyNumber || null,
                         premiumAmount: finalNet,
-                        startDate: lead.startDate,
-                        expiryDate: lead.expiryDate,
-                        noOfYears: Math.max(1, Math.round(Math.abs(lead.expiryDate.getTime() - lead.startDate.getTime()) / (1000 * 60 * 60 * 24 * 365))),
+                        startDate,
+                        expiryDate,
+                        noOfYears: Math.max(1, Math.round(Math.abs(expiryDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 365))),
 
                         // Motor fields
-                        vehicleNumber: lead.vehicleNumber,
-                        make: lead.make,
-                        model: lead.model,
-                        registrationDate: lead.registrationDate,
-                        vehicleClass: lead.vehicleClass,
-                        idv: lead.idv,
-                        od: lead.od,
-                        tp: lead.tp,
-                        tax: lead.tax,
-                        totalPremium: finalTotal,
-                        dealerId: lead.dealerId,
+                        vehicleNumber: lead.vehicleNumber || extra.vehicleNumber || null,
+                        make: lead.make || extra.make || null,
+                        model: lead.model || extra.model || null,
+                        registrationDate: lead.registrationDate || (extra.registrationDate ? new Date(extra.registrationDate) : null),
+                        vehicleClass: lead.vehicleClass || extra.vehicleClass || null,
+                        idv: lead.idv !== null ? lead.idv : (extra.idv ?? null),
+                        od: od || null,
+                        tp: tp || null,
+                        tax: tax || null,
+                        totalPremium: finalTotal || null,
+                        dealerId: lead.dealerId || extra.dealerId || null,
                         policyOrigin: (extra.policyOrigin || lead.policyOrigin || 'fresh') as any,
                         ncbPercentage: extra.ncbPercentage ?? lead.ncbPercentage ?? null,
 

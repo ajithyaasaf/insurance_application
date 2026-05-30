@@ -35,7 +35,22 @@ const Leads: React.FC = () => {
     };
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [convertForm, setConvertForm] = useState({ address: '', email: '', policyOrigin: 'fresh', ncbPercentage: '' });
+    const [convertForm, setConvertForm] = useState({
+        address: '',
+        email: '',
+        policyOrigin: 'fresh',
+        ncbPercentage: '',
+        policyNumber: '',
+        policyType: '',
+        companyId: '',
+        premiumAmount: '',
+        startDate: '',
+        expiryDate: '',
+        vehicleNumber: '',
+        make: '',
+        model: '',
+        vehicleClass: '',
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isConverting, setIsConverting] = useState(false);
 
@@ -166,22 +181,93 @@ const Leads: React.FC = () => {
     const openConvert = (lead: any) => {
         setConvertingLead(lead);
         setConvertForm({
-            address: '', email: '',
+            address: '',
+            email: '',
             policyOrigin: lead.policyOrigin || 'fresh',
-            ncbPercentage: lead.ncbPercentage !== null && lead.ncbPercentage !== undefined ? lead.ncbPercentage.toString() : ''
+            ncbPercentage: lead.ncbPercentage !== null && lead.ncbPercentage !== undefined ? lead.ncbPercentage.toString() : '',
+            policyNumber: lead.policyNumber || '',
+            policyType: lead.policyType || '',
+            companyId: lead.companyId || '',
+            premiumAmount: lead.premiumAmount?.toString() || '',
+            startDate: lead.startDate?.split('T')[0] || '',
+            expiryDate: lead.expiryDate?.split('T')[0] || '',
+            vehicleNumber: lead.vehicleNumber || '',
+            make: lead.make || '',
+            model: lead.model || '',
+            vehicleClass: lead.vehicleClass || '',
         });
+        setErrors({});
         setConvertModalOpen(true);
     };
 
     const handleConvert = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Perform strict validation for Solution B mandatory fields
+        const errs: Record<string, string> = {};
+        const policyType = convertingLead?.policyType || convertForm.policyType;
+        const companyId = convertingLead?.companyId || convertForm.companyId;
+        const premiumAmount = (convertingLead?.premiumAmount !== null && convertingLead?.premiumAmount !== undefined) 
+            ? convertingLead.premiumAmount 
+            : convertForm.premiumAmount;
+        const startDate = convertingLead?.startDate || convertForm.startDate;
+        const expiryDate = convertingLead?.expiryDate || convertForm.expiryDate;
+        const policyNumber = convertingLead?.policyNumber || convertForm.policyNumber;
+
+        if (!policyType) errs.policyType = 'Policy type is required';
+        if (!companyId) errs.companyId = 'Insurer is required';
+        if (!policyNumber) errs.policyNumber = 'Policy number is required';
+        if (premiumAmount === '' || premiumAmount === undefined || premiumAmount === null) errs.premiumAmount = 'Premium is required';
+        if (!startDate) errs.startDate = 'Start date is required';
+        if (!expiryDate) errs.expiryDate = 'Expiry date is required';
+        else if (startDate && expiryDate <= startDate) errs.expiryDate = 'Expiry date must be after start date';
+
+        // Motor-specific validation matching Policies.tsx direct creation
+        if (policyType === 'motor') {
+            const vehicleNumber = convertingLead?.vehicleNumber || convertForm.vehicleNumber;
+            const make = convertingLead?.make || convertForm.make;
+            const model = convertingLead?.model || convertForm.model;
+
+            if (!vehicleNumber) errs.vehicleNumber = 'Vehicle number is required';
+            if (!make) errs.make = 'Make is required';
+            if (!model) errs.model = 'Model is required';
+        }
+
+        if (Object.keys(errs).length > 0) {
+            setErrors(errs);
+            return;
+        }
+
         setIsConverting(true);
         try {
-            await api.post(`/leads/${convertingLead.id}/convert`, convertForm);
-            toast.success('Lead converted to customer!');
+            const payload = {
+                address: convertForm.address || undefined,
+                email: convertForm.email || undefined,
+                policyOrigin: convertForm.policyOrigin,
+                ncbPercentage: convertForm.ncbPercentage ? parseFloat(convertForm.ncbPercentage) : undefined,
+                
+                // Dynamically append any missing details provided inline in the modal
+                ...(!convertingLead?.policyType && { policyType: convertForm.policyType }),
+                ...(!convertingLead?.companyId && { companyId: convertForm.companyId }),
+                ...(!convertingLead?.policyNumber && { policyNumber: convertForm.policyNumber }),
+                ...((convertingLead?.premiumAmount === null || convertingLead?.premiumAmount === undefined) && { premiumAmount: parseFloat(convertForm.premiumAmount) }),
+                ...(!convertingLead?.startDate && { startDate: convertForm.startDate }),
+                ...(!convertingLead?.expiryDate && { expiryDate: convertForm.expiryDate }),
+                ...(!convertingLead?.vehicleNumber && { vehicleNumber: convertForm.vehicleNumber || undefined }),
+                ...(!convertingLead?.make && { make: convertForm.make || undefined }),
+                ...(!convertingLead?.model && { model: convertForm.model || undefined }),
+                ...(!convertingLead?.vehicleClass && { vehicleClass: convertForm.vehicleClass || undefined }),
+            };
+
+            await api.post(`/leads/${convertingLead.id}/convert`, payload);
+            toast.success('Lead converted to customer and policy generated!');
             setConvertModalOpen(false);
             fetchLeads(meta.page);
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsConverting(false); }
+        } catch (err: any) { 
+            toast.error(err.response?.data?.message || 'Error converting lead'); 
+        } finally { 
+            setIsConverting(false); 
+        }
     };
 
     return (
@@ -323,7 +409,7 @@ const Leads: React.FC = () => {
                     <div>
                         <label className="label">Status *</label>
                         <SearchableSelect
-                            options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                            options={statusOptions.filter(s => s !== 'converted').map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
                             value={form.status}
                             onChange={(val) => { setForm({ ...form, status: val }); setErrors(prev => ({ ...prev, status: '' })); }}
                             placeholder="Select Status"
@@ -333,21 +419,21 @@ const Leads: React.FC = () => {
                     </div>
                     <div><label className="label">Next Follow-up Date</label><input type="date" className="input" value={form.nextFollowUpDate} onChange={(e) => setForm({ ...form, nextFollowUpDate: e.target.value })} /></div>
                     <div><label className="label">Notes</label><textarea className="input" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-
+ 
                     <PolicyFormFields form={form} setForm={setForm} companies={companies} dealers={dealers} showQuoteHeader />
-
+ 
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
                         <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
             </Modal>
-
+ 
             {/* Convert Modal */}
             <Modal isOpen={convertModalOpen} onClose={() => setConvertModalOpen(false)} title="Convert Lead to Customer">
                 <form onSubmit={handleConvert} className="space-y-4">
                     <p className="text-sm text-surface-500">Converting <strong>{convertingLead?.name}</strong> to a customer.</p>
-
+ 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b border-surface-200 pb-4 mb-4">
                         <div>
                             <label className="label">Policy Origin *</label>
@@ -395,6 +481,196 @@ const Leads: React.FC = () => {
                         )}
                     </div>
 
+                    {/* Solution B: Dynamically request missing mandatory policy details inline */}
+                    {convertingLead && (
+                        (!convertingLead.policyType ||
+                         !convertingLead.companyId ||
+                         !convertingLead.policyNumber ||
+                         (convertingLead.premiumAmount === null || convertingLead.premiumAmount === undefined) ||
+                         !convertingLead.startDate ||
+                         !convertingLead.expiryDate ||
+                         ((convertingLead.policyType || convertForm.policyType) === 'motor' && (
+                             !convertingLead.vehicleNumber ||
+                             !convertingLead.make ||
+                             !convertingLead.model
+                         )))
+                    ) && (
+                        <div className="bg-surface-50 p-4 rounded-xl border border-surface-200 space-y-4 my-2">
+                            <h4 className="text-xs font-bold text-surface-700 uppercase tracking-wider">Missing Policy Details</h4>
+                            <p className="text-xs text-surface-500">Please provide the missing mandatory details below to auto-generate the policy record upon conversion:</p>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {!convertingLead?.policyType && (
+                                    <div>
+                                        <label className="label">Policy Type *</label>
+                                        <SearchableSelect
+                                            options={[
+                                                { value: 'motor', label: 'Motor' },
+                                                { value: 'health', label: 'Health' },
+                                                { value: 'life', label: 'Life' }
+                                            ]}
+                                            value={convertForm.policyType}
+                                            onChange={(val) => {
+                                                setConvertForm(prev => ({
+                                                    ...prev,
+                                                    policyType: val,
+                                                    companyId: '', // Reset insurer to re-filter
+                                                }));
+                                                setErrors(prev => ({ ...prev, policyType: '' }));
+                                            }}
+                                            placeholder="Select Type"
+                                            hasError={!!errors.policyType}
+                                        />
+                                        {errors.policyType && <p className="text-xs text-red-500 mt-1">{errors.policyType}</p>}
+                                    </div>
+                                )}
+
+                                {!convertingLead?.companyId && (
+                                    <div>
+                                        <label className="label">Insurer (Company) *</label>
+                                        <SearchableSelect
+                                            options={companies
+                                                .filter(c => {
+                                                    const currentType = convertingLead?.policyType || convertForm.policyType;
+                                                    if (currentType === 'life') return c.name === 'LIC';
+                                                    if (currentType === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
+                                                    if (currentType === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
+                                                    return true;
+                                                })
+                                                .map(c => ({ value: c.id, label: c.name }))
+                                            }
+                                            value={convertForm.companyId}
+                                            onChange={(val) => {
+                                                setConvertForm(prev => ({ ...prev, companyId: val }));
+                                                setErrors(prev => ({ ...prev, companyId: '' }));
+                                            }}
+                                            placeholder="Select Insurer"
+                                            hasError={!!errors.companyId}
+                                        />
+                                        {errors.companyId && <p className="text-xs text-red-500 mt-1">{errors.companyId}</p>}
+                                    </div>
+                                )}
+
+                                {!convertingLead?.policyNumber && (
+                                    <div>
+                                        <label className="label">Policy Number *</label>
+                                        <input
+                                            className={`input ${errors.policyNumber ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                            placeholder="Enter Policy Number"
+                                            value={convertForm.policyNumber}
+                                            onChange={(e) => {
+                                                setConvertForm(prev => ({ ...prev, policyNumber: e.target.value }));
+                                                setErrors(prev => ({ ...prev, policyNumber: '' }));
+                                            }}
+                                        />
+                                        {errors.policyNumber && <p className="text-xs text-red-500 mt-1">{errors.policyNumber}</p>}
+                                    </div>
+                                )}
+
+                                {(convertingLead?.premiumAmount === null || convertingLead?.premiumAmount === undefined) && (
+                                    <div>
+                                        <label className="label">Net Premium Amount *</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            className={`input ${errors.premiumAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                            placeholder="e.g. 15000"
+                                            value={convertForm.premiumAmount}
+                                            onChange={(e) => {
+                                                setConvertForm(prev => ({ ...prev, premiumAmount: e.target.value }));
+                                                setErrors(prev => ({ ...prev, premiumAmount: '' }));
+                                            }}
+                                        />
+                                        {errors.premiumAmount && <p className="text-xs text-red-500 mt-1">{errors.premiumAmount}</p>}
+                                    </div>
+                                )}
+
+                                {!convertingLead?.startDate && (
+                                    <div>
+                                        <label className="label">Start Date *</label>
+                                        <input
+                                            type="date"
+                                            className={`input ${errors.startDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                            value={convertForm.startDate}
+                                            onChange={(e) => {
+                                                setConvertForm(prev => ({ ...prev, startDate: e.target.value }));
+                                                setErrors(prev => ({ ...prev, startDate: '' }));
+                                            }}
+                                        />
+                                        {errors.startDate && <p className="text-xs text-red-500 mt-1">{errors.startDate}</p>}
+                                    </div>
+                                )}
+
+                                {!convertingLead?.expiryDate && (
+                                    <div>
+                                        <label className="label">Expiry Date *</label>
+                                        <input
+                                            type="date"
+                                            className={`input ${errors.expiryDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                            value={convertForm.expiryDate}
+                                            onChange={(e) => {
+                                                setConvertForm(prev => ({ ...prev, expiryDate: e.target.value }));
+                                                setErrors(prev => ({ ...prev, expiryDate: '' }));
+                                            }}
+                                        />
+                                        {errors.expiryDate && <p className="text-xs text-red-500 mt-1">{errors.expiryDate}</p>}
+                                    </div>
+                                )}
+
+                                {((convertingLead?.policyType || convertForm.policyType) === 'motor') && (
+                                    <>
+                                        {!convertingLead?.vehicleNumber && (
+                                            <div>
+                                                <label className="label">Vehicle Number *</label>
+                                                <input
+                                                    className={`input uppercase ${errors.vehicleNumber ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                                    placeholder="e.g. TN01AB1234"
+                                                    value={convertForm.vehicleNumber}
+                                                    onChange={(e) => {
+                                                        setConvertForm(prev => ({ ...prev, vehicleNumber: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) }));
+                                                        setErrors(prev => ({ ...prev, vehicleNumber: '' }));
+                                                    }}
+                                                />
+                                                {errors.vehicleNumber && <p className="text-xs text-red-500 mt-1">{errors.vehicleNumber}</p>}
+                                            </div>
+                                        )}
+                                        {!convertingLead?.make && (
+                                            <div>
+                                                <label className="label">Make *</label>
+                                                <input
+                                                    className={`input ${errors.make ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                                    placeholder="e.g. Maruti"
+                                                    value={convertForm.make}
+                                                    onChange={(e) => {
+                                                        setConvertForm(prev => ({ ...prev, make: e.target.value }));
+                                                        setErrors(prev => ({ ...prev, make: '' }));
+                                                    }}
+                                                />
+                                                {errors.make && <p className="text-xs text-red-500 mt-1">{errors.make}</p>}
+                                            </div>
+                                        )}
+                                        {!convertingLead?.model && (
+                                            <div>
+                                                <label className="label">Model *</label>
+                                                <input
+                                                    className={`input ${errors.model ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                                    placeholder="e.g. Swift"
+                                                    value={convertForm.model}
+                                                    onChange={(e) => {
+                                                        setConvertForm(prev => ({ ...prev, model: e.target.value }));
+                                                        setErrors(prev => ({ ...prev, model: '' }));
+                                                    }}
+                                                />
+                                                {errors.model && <p className="text-xs text-red-500 mt-1">{errors.model}</p>}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+ 
                     <div><label className="label">Customer Email (Optional)</label><input type="email" className="input" value={convertForm.email} onChange={(e) => setConvertForm({ ...convertForm, email: e.target.value })} /></div>
                     <div><label className="label">Customer Address (Optional)</label><textarea className="input" rows={2} value={convertForm.address} onChange={(e) => setConvertForm({ ...convertForm, address: e.target.value })} /></div>
                     <div className="flex gap-3 pt-2">
