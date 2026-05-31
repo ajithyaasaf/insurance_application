@@ -864,6 +864,12 @@ export class ReportService {
             const dateFrom = filters?.dateFrom ? new Date(filters.dateFrom) : undefined;
             const dateTo = filters?.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
 
+            // Compute ownership filter in JS — avoids invalid ::text cast on a Prisma bind variable
+            const isGlobalRole = ['agent', 'staff', 'admin'].includes(role);
+            const ownershipFilter = isGlobalRole
+                ? Prisma.sql`1=1`
+                : Prisma.sql`"userId" = ${userId}::uuid`;
+
             // Use Raw SQL for efficient grouping in the database
             const results: any[] = await prisma.$queryRaw`
                 SELECT 
@@ -873,7 +879,7 @@ export class ReportService {
                     SUM(COALESCE("totalPremium", "premiumAmount"))::FLOAT AS "totalPremiumSum"
                 FROM "Policy"
                 WHERE 
-                    "userId" = ${userId}
+                    ${ownershipFilter}
                     AND "deletedAt" IS NULL
                     ${dateFrom ? Prisma.sql`AND "createdAt" >= ${dateFrom}` : Prisma.empty}
                     ${dateTo ? Prisma.sql`AND "createdAt" <= ${dateTo}` : Prisma.empty}
@@ -934,6 +940,12 @@ export class ReportService {
             const dateFrom = filters?.dateFrom ? new Date(filters.dateFrom) : undefined;
             const dateTo = filters?.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
 
+            // Compute ownership filter in JS — avoids invalid ::text cast on a Prisma bind variable
+            const isGlobalRoleP = ['agent', 'staff', 'admin'].includes(role);
+            const ownershipFilterP = isGlobalRoleP
+                ? Prisma.sql`1=1`
+                : Prisma.sql`p."userId" = ${userId}::uuid`;
+
             const results: any[] = await prisma.$queryRaw`
                 SELECT 
                     TO_CHAR(DATE_TRUNC('month', p."createdAt"), 'YYYY-MM') AS name,
@@ -943,7 +955,7 @@ export class ReportService {
                 FROM "Payment" p
                 ${(filters?.companyId || filters?.dealerId || filters?.policyType) ? Prisma.sql`JOIN "Policy" pol ON p."policyId" = pol."id"` : Prisma.empty}
                 WHERE 
-                    p."userId" = ${userId}
+                    ${ownershipFilterP}
                     ${dateFrom ? Prisma.sql`AND p."createdAt" >= ${dateFrom}` : Prisma.empty}
                     ${dateTo ? Prisma.sql`AND p."createdAt" <= ${dateTo}` : Prisma.empty}
                     ${filters?.customerId ? Prisma.sql`AND p."customerId" = ${filters.customerId}` : Prisma.empty}
