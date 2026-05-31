@@ -873,7 +873,7 @@ export class ReportService {
             // Use Raw SQL for efficient grouping in the database
             const results: any[] = await prisma.$queryRaw`
                 SELECT 
-                    TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS name,
+                    TO_CHAR(DATE_TRUNC('month', "startDate"), 'Mon YYYY') AS name,
                     COUNT(*)::INT AS count,
                     SUM("premiumAmount")::FLOAT AS "premiumSum",
                     SUM(COALESCE("totalPremium", "premiumAmount"))::FLOAT AS "totalPremiumSum"
@@ -881,13 +881,13 @@ export class ReportService {
                 WHERE 
                     ${ownershipFilter}
                     AND "deletedAt" IS NULL
-                    ${dateFrom ? Prisma.sql`AND "createdAt" >= ${dateFrom}` : Prisma.empty}
-                    ${dateTo ? Prisma.sql`AND "createdAt" <= ${dateTo}` : Prisma.empty}
+                    ${dateFrom ? Prisma.sql`AND "startDate" >= ${dateFrom}` : Prisma.empty}
+                    ${dateTo ? Prisma.sql`AND "startDate" <= ${dateTo}` : Prisma.empty}
                     ${filters?.companyId ? Prisma.sql`AND "companyId" = ${filters.companyId}` : Prisma.empty}
                     ${filters?.dealerId ? Prisma.sql`AND "dealerId" = ${filters.dealerId}` : Prisma.empty}
                     ${filters?.policyType ? Prisma.sql`AND "policyType"::text = ${filters.policyType}` : Prisma.empty}
-                GROUP BY name
-                ORDER BY name DESC
+                GROUP BY DATE_TRUNC('month', "startDate")
+                ORDER BY DATE_TRUNC('month', "startDate") DESC
             `;
 
             return {
@@ -948,7 +948,7 @@ export class ReportService {
 
             const results: any[] = await prisma.$queryRaw`
                 SELECT 
-                    TO_CHAR(DATE_TRUNC('month', p."createdAt"), 'YYYY-MM') AS name,
+                    TO_CHAR(DATE_TRUNC('month', p."dueDate"), 'Mon YYYY') AS name,
                     COUNT(*)::INT AS count,
                     SUM(p."amount")::FLOAT AS "amountSum",
                     SUM(COALESCE(p."paidAmount", 0))::FLOAT AS "paidSum"
@@ -956,14 +956,14 @@ export class ReportService {
                 ${(filters?.companyId || filters?.dealerId || filters?.policyType) ? Prisma.sql`JOIN "Policy" pol ON p."policyId" = pol."id"` : Prisma.empty}
                 WHERE 
                     ${ownershipFilterP}
-                    ${dateFrom ? Prisma.sql`AND p."createdAt" >= ${dateFrom}` : Prisma.empty}
-                    ${dateTo ? Prisma.sql`AND p."createdAt" <= ${dateTo}` : Prisma.empty}
+                    ${dateFrom ? Prisma.sql`AND p."dueDate" >= ${dateFrom}` : Prisma.empty}
+                    ${dateTo ? Prisma.sql`AND p."dueDate" <= ${dateTo}` : Prisma.empty}
                     ${filters?.customerId ? Prisma.sql`AND p."customerId" = ${filters.customerId}` : Prisma.empty}
                     ${filters?.companyId ? Prisma.sql`AND pol."companyId" = ${filters.companyId}` : Prisma.empty}
                     ${filters?.dealerId ? Prisma.sql`AND pol."dealerId" = ${filters.dealerId}` : Prisma.empty}
                     ${filters?.policyType ? Prisma.sql`AND pol."policyType"::text = ${filters.policyType}` : Prisma.empty}
-                GROUP BY name
-                ORDER BY name DESC
+                GROUP BY DATE_TRUNC('month', p."dueDate")
+                ORDER BY DATE_TRUNC('month', p."dueDate") DESC
             `;
 
             const columns = [
