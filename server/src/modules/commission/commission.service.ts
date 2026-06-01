@@ -184,6 +184,7 @@ export class CommissionService {
             const tpCommission = parseFloat(((tp * tpPercentage) / 100).toFixed(2));
             return {
                 policyId: p.id,
+                policyNumber: p.policyNumber,
                 customerName: p.customer?.name || 'Unknown',
                 vehicleNumber: p.vehicleNumber,
                 make: p.make,
