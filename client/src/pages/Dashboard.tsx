@@ -177,8 +177,8 @@ const Dashboard: React.FC = () => {
                 ))}
             </div>
 
-            {/* Priority Section: Follow-up, Pending Payments & Overdue Payments */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Priority Section: Follow-up & Overdue Payments */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Follow-up (7 Days) */}
                 <div className="card">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
@@ -212,31 +212,6 @@ const Dashboard: React.FC = () => {
                                             );
                                         })()}
                                     </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Pending Payments */}
-                <div className="card">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
-                        <h2 className="font-semibold text-surface-900">Pending Payments</h2>
-                        <button onClick={() => navigate('/payments')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                            View All <HiOutlineChevronRight className="w-3 h-3" />
-                        </button>
-                    </div>
-                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
-                        {data.pendingPayments.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-surface-400">No pending payments</p>
-                        ) : (
-                            data.pendingPayments.map((payment: any) => (
-                                <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
-                                        <p className="text-xs text-surface-500">Due: {formatDate(payment.dueDate)}</p>
-                                    </div>
-                                    <p className="text-sm font-semibold text-surface-900">{formatCurrency(payment.amount)}</p>
                                 </div>
                             ))
                         )}
@@ -317,7 +292,7 @@ const Dashboard: React.FC = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Expiring Policies */}
-                <div className="card lg:col-span-2">
+                <div className="card">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
                         <h2 className="font-semibold text-surface-900">Expiring Policies</h2>
                         <button onClick={() => navigate('/policies')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
@@ -352,6 +327,31 @@ const Dashboard: React.FC = () => {
                                         </p>
                                         <p className="text-xs text-surface-400">{formatDate(policy.expiryDate)}</p>
                                     </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Pending Payments */}
+                <div className="card">
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
+                        <h2 className="font-semibold text-surface-900">Pending Payments</h2>
+                        <button onClick={() => navigate('/payments')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                            View All <HiOutlineChevronRight className="w-3 h-3" />
+                        </button>
+                    </div>
+                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
+                        {data.pendingPayments.length === 0 ? (
+                            <p className="px-5 py-8 text-center text-sm text-surface-400">No pending payments</p>
+                        ) : (
+                            data.pendingPayments.map((payment: any) => (
+                                <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
+                                        <p className="text-xs text-surface-500">Due: {formatDate(payment.dueDate)}</p>
+                                    </div>
+                                    <p className="text-sm font-semibold text-surface-900">{formatCurrency(payment.amount)}</p>
                                 </div>
                             ))
                         )}
