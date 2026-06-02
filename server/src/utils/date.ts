@@ -1,5 +1,22 @@
 import { PolicyStatus } from '@prisma/client';
 
+/**
+ * Returns a Date object representing 00:00:00.000 IST for the 1st day of the current month.
+ * Safe to use on UTC servers — uses Intl API to extract the IST year/month reliably.
+ */
+export const getStartOfMonthIST = (): Date => {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+    }).formatToParts(now);
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    // Day 01 of the current IST month at midnight IST
+    return new Date(`${year}-${month}-01T00:00:00.000+05:30`);
+};
+
 export const getStartOfTodayIST = (): Date => {
     const now = new Date();
     // Use Intl API to extract IST year, month, day securely across OS timezones

@@ -2,7 +2,7 @@ import prisma from '../../utils/prisma';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 import { Prisma } from '@prisma/client';
-import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, mapPaymentStatus, getStartOfDayIST, getEndOfDayIST } from '../../utils/date';
+import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, mapPaymentStatus, getStartOfDayIST, getEndOfDayIST, getStartOfMonthIST } from '../../utils/date';
 import type { ReportSource, ReportGroupBy } from './report.schema';
 import { ownerFilter } from '../../utils/rbac';
 
@@ -1165,8 +1165,9 @@ export class ReportService {
     // ── Dashboard analytics (pre-computed) ───────────────
 
     async getDashboardReport(userId: string, role: string, filters?: { dateFrom?: string; dateTo?: string }) {
-        const now = new Date();
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        // IST-aware month start — ensures the "This Month" boundary is midnight IST June 1st,
+        // not midnight UTC (which would be 05:30 IST and miss the first 5.5 hours of the month).
+        const thisMonthStart = getStartOfMonthIST();
 
         // When the user provides date filters, use those for KPIs; otherwise default to current month
         const periodFilters: ReportFilters | undefined = filters?.dateFrom || filters?.dateTo
@@ -1175,21 +1176,34 @@ export class ReportService {
 
         const ow = ownerFilter(userId, role);
 
-        // For KPI cards - use the filtered period or fall back to current month
+        // For KPI cards — filter by policy startDate (inception date), NOT createdAt (entry date).
+        // Reason: users may enter historical/backdated policies into a newly launched system,
+        // which would falsely inflate "This Month" figures if we counted by entry date.
+        // Using startDate ensures the dashboard reflects actual business done in the period.
         const kpiWhere: any = { ...ow, deletedAt: null };
         if (periodFilters?.dateFrom || periodFilters?.dateTo) {
-            kpiWhere.createdAt = {};
-            if (periodFilters.dateFrom) kpiWhere.createdAt.gte = new Date(periodFilters.dateFrom);
-            if (periodFilters.dateTo) kpiWhere.createdAt.lte = new Date(periodFilters.dateTo);
+            kpiWhere.startDate = {};
+            if (periodFilters.dateFrom) kpiWhere.startDate.gte = getStartOfDayIST(periodFilters.dateFrom);
+            if (periodFilters.dateTo) kpiWhere.startDate.lte = getEndOfDayIST(periodFilters.dateTo);
         } else {
-            kpiWhere.createdAt = { gte: thisMonthStart };
+            kpiWhere.startDate = { gte: thisMonthStart };
         }
 
-        // For monthlyTrend - use filtered end date or now, look back 12 months from that point
-        const trendEnd = filters?.dateTo ? new Date(filters.dateTo) : now;
-        const trendStart = filters?.dateFrom
-            ? new Date(filters.dateFrom)
-            : new Date(trendEnd.getFullYear() - 1, trendEnd.getMonth(), 1);
+        // For monthlyTrend — derive IST-aware YYYY-MM-DD strings so trendStart/trendEnd
+        // align exactly with how startDate values are stored (IST midnight).
+        const nowISTStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); // YYYY-MM-DD
+        const trendEndStr = filters?.dateTo ?? nowISTStr;
+        // Default: go back exactly 12 months from the current IST month start
+        let trendStartStr: string;
+        if (filters?.dateFrom) {
+            trendStartStr = filters.dateFrom;
+        } else {
+            const [y, m] = nowISTStr.split('-').map(Number);
+            const prevYear = m === 1 ? y - 1 : y;
+            const prevMonth = m === 1 ? 12 : m - 1;
+            trendStartStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
+        }
+
 
         const [
             companyPerformance,
@@ -1210,10 +1224,10 @@ export class ReportService {
             // Dealer performance (filtered)
             this.groupPolicies(userId, role, periodFilters, 'dealer'),
 
-            // Monthly premium trend
+            // Monthly premium trend — uses IST-aware date strings for accurate month grouping
             this.groupPolicies(userId, role, {
-                dateFrom: trendStart.toISOString().split('T')[0],
-                dateTo: trendEnd.toISOString().split('T')[0],
+                dateFrom: trendStartStr,
+                dateTo: trendEndStr,
             }, 'month'),
 
             // Payment collection summary (filtered)
