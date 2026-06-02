@@ -1199,9 +1199,8 @@ export class ReportService {
             trendStartStr = filters.dateFrom;
         } else {
             const [y, m] = nowISTStr.split('-').map(Number);
-            const prevYear = m === 1 ? y - 1 : y;
-            const prevMonth = m === 1 ? 12 : m - 1;
-            trendStartStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`;
+            const prevYear = y - 1;
+            trendStartStr = `${prevYear}-${String(m).padStart(2, '0')}-01`;
         }
 
 
