@@ -82,7 +82,7 @@ const Policies: React.FC = () => {
     useEffect(() => {
         const loadDropdowns = async () => {
             try {
-                const [custRes, compRes, dealerRes] = await Promise.all([api.get('/customers?limit=100'), api.get('/companies'), api.get('/dealers?limit=100')]);
+                const [custRes, compRes, dealerRes] = await Promise.all([api.get('/customers?limit=10000'), api.get('/companies'), api.get('/dealers?limit=10000')]);
                 setCustomers(custRes.data.data);
                 setCompanies(compRes.data.data);
                 setDealers(dealerRes.data.data);

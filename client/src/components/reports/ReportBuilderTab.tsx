@@ -103,11 +103,11 @@ const ReportBuilderTab: React.FC = () => {
     });
     const { data: dealersData } = useQuery({
         queryKey: ['dealers'],
-        queryFn: () => api.get('/dealers?limit=100').then(r => r.data),
+        queryFn: () => api.get('/dealers?limit=10000').then(r => r.data),
     });
     const { data: customersData } = useQuery({
         queryKey: ['customers'],
-        queryFn: () => api.get('/customers?limit=100').then(r => r.data),
+        queryFn: () => api.get('/customers?limit=10000').then(r => r.data),
     });
     const companies = companiesData?.data || [];
     const dealers = dealersData?.data || [];

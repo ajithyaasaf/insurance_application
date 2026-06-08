@@ -63,8 +63,8 @@ const Claims: React.FC = () => {
         const loadDropdowns = async () => {
             try {
                 const [custRes, polRes] = await Promise.all([
-                    api.get('/customers?limit=100'),
-                    api.get('/policies?limit=100'),
+                    api.get('/customers?limit=10000'),
+                    api.get('/policies?limit=10000'),
                 ]);
                 setCustomers(custRes.data.data);
                 setPolicies(polRes.data.data);

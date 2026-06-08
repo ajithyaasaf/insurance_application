@@ -52,7 +52,7 @@ const Commissions: React.FC = () => {
         const loadInitialData = async () => {
             try {
                 const [dRes, cRes] = await Promise.all([
-                    api.get('/dealers?limit=500'),
+                    api.get('/dealers?limit=10000'),
                     api.get('/companies')
                 ]);
                 setDealers(dRes.data.data);
