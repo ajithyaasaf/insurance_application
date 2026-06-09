@@ -82,6 +82,19 @@ const Claims: React.FC = () => {
         if (form.billAmount && parseFloat(form.billAmount) < 0) errs.billAmount = 'Bill amount cannot be negative';
         if (!form.claimDate) errs.claimDate = 'Claim date is required';
         if (!form.status) errs.status = 'Please select a status';
+
+        // Status-based rules for settled claims
+        if (form.status === 'settled') {
+            if (!form.billAmount) {
+                errs.billAmount = 'Settled amount (bill amount) is required when claim status is settled';
+            }
+            if (!form.claimAmount) {
+                errs.claimAmount = 'Claimed amount is required when claim status is settled';
+            }
+            if (form.billAmount && form.claimAmount && parseFloat(form.billAmount) > parseFloat(form.claimAmount)) {
+                errs.billAmount = 'Settled amount cannot be higher than the claimed amount';
+            }
+        }
         return errs;
     };
 
@@ -160,7 +173,14 @@ const Claims: React.FC = () => {
     };
 
     const setField = (key: keyof typeof form, value: string) => {
-        setForm(prev => ({ ...prev, [key]: value }));
+        setForm(prev => {
+            const updated = { ...prev, [key]: value };
+            // Auto status transition: if they fill a bill amount, suggest transitioning status to settled
+            if (key === 'billAmount' && value && parseFloat(value) > 0 && prev.status === 'filed') {
+                updated.status = 'settled';
+            }
+            return updated;
+        });
         setErrors(prev => ({ ...prev, [key]: '' }));
     };
 
@@ -427,6 +447,16 @@ const Claims: React.FC = () => {
                                 onChange={(e) => setField('billAmount', e.target.value)}
                             />
                             {errors.billAmount && <p className="text-xs text-red-500 mt-1">{errors.billAmount}</p>}
+                            {!errors.billAmount && form.billAmount && form.claimAmount && parseFloat(form.billAmount) > parseFloat(form.claimAmount) && (
+                                <p className="text-xs text-amber-600 mt-1 font-medium">
+                                    ⚠️ Warning: Settled amount exceeds the initial claimed amount.
+                                </p>
+                            )}
+                            {!errors.billAmount && form.billAmount && form.status !== 'settled' && (
+                                <p className="text-[10px] text-amber-500 mt-1">
+                                    ℹ️ Status will be updated to "Settled" automatically.
+                                </p>
+                            )}
                         </div>
                     </div>
 

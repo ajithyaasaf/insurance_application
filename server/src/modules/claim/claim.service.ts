@@ -32,6 +32,32 @@ export class ClaimService {
             );
         }
 
+        // Business logic validations for claim and bill amounts
+        const status = data.status || 'filed';
+        const claimAmount = data.claimAmount ?? null;
+        const billAmount = data.billAmount ?? null;
+
+        if (status === 'settled') {
+            if (billAmount === null || billAmount === undefined) {
+                throw Object.assign(
+                    new Error('Settled amount (bill amount) is required when claim status is settled'),
+                    { statusCode: 400 }
+                );
+            }
+            if (claimAmount === null || claimAmount === undefined) {
+                throw Object.assign(
+                    new Error('Claimed amount is required when claim status is settled'),
+                    { statusCode: 400 }
+                );
+            }
+            if (billAmount > claimAmount) {
+                throw Object.assign(
+                    new Error('Settled amount cannot be higher than the claimed amount'),
+                    { statusCode: 400 }
+                );
+            }
+        }
+
         return prisma.claim.create({
             data: {
                 userId,
@@ -42,7 +68,7 @@ export class ClaimService {
                 estimatedAmount: data.estimatedAmount ?? null,
                 billAmount: data.billAmount ?? null,
                 claimDate: new Date(data.claimDate),
-                status: data.status || 'filed',
+                status: status,
                 reason: data.reason,
                 createdBy: role,
             },
@@ -100,7 +126,33 @@ export class ClaimService {
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreateClaimInput>) {
-        await this.findById(userId, role, id); // ownership check
+        const existing = await this.findById(userId, role, id); // ownership check
+
+        const status = data.status !== undefined ? data.status : existing.status;
+        const claimAmount = data.claimAmount !== undefined ? data.claimAmount : existing.claimAmount;
+        const billAmount = data.billAmount !== undefined ? data.billAmount : existing.billAmount;
+
+        if (status === 'settled') {
+            if (billAmount === null || billAmount === undefined) {
+                throw Object.assign(
+                    new Error('Settled amount (bill amount) is required when claim status is settled'),
+                    { statusCode: 400 }
+                );
+            }
+            if (claimAmount === null || claimAmount === undefined) {
+                throw Object.assign(
+                    new Error('Claimed amount is required when claim status is settled'),
+                    { statusCode: 400 }
+                );
+            }
+            if (billAmount > claimAmount) {
+                throw Object.assign(
+                    new Error('Settled amount cannot be higher than the claimed amount'),
+                    { statusCode: 400 }
+                );
+            }
+        }
+
         return prisma.claim.update({
             where: { id },
             data: {
