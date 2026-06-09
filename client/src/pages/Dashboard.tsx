@@ -244,52 +244,6 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Company-wise Stats */}
-            <div className="card overflow-hidden">
-                <div className="px-5 py-4 border-b border-surface-100 flex items-center gap-2">
-                    <HiOutlineOfficeBuilding className="w-5 h-5 text-surface-400" />
-                    <h2 className="font-semibold text-surface-900">Policies by Company</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-surface-100">
-                    {data.companyStats.length === 0 ? (
-                        <p className="col-span-full py-8 text-center text-sm text-surface-400">No company data available</p>
-                    ) : (
-                        data.companyStats.map((stat: any) => (
-                            <div key={stat.companyId} className="px-5 py-4 hover:bg-surface-50 transition-colors">
-                                <p className="text-xs font-bold text-surface-400 uppercase tracking-wider mb-1 truncate">{stat.companyName}</p>
-                                <div className="flex items-end justify-between">
-                                    <p className="text-xl font-bold text-surface-900">{stat.count} <span className="text-xs font-normal text-surface-500">Policies</span></p>
-                                    <p className="text-sm font-semibold text-primary-600">{formatCurrency(stat.totalPremium)}</p>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-
-            {/* Vehicle Class Distribution */}
-            <div className="card overflow-hidden">
-                <div className="px-5 py-4 border-b border-surface-100 flex items-center gap-2">
-                    <HiOutlineDocumentText className="w-5 h-5 text-surface-400" />
-                    <h2 className="font-semibold text-surface-900">Vehicle Class Distribution</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-surface-100">
-                    {data.vehicleClassStats.length === 0 ? (
-                        <p className="col-span-full py-8 text-center text-sm text-surface-400">No vehicle class data available</p>
-                    ) : (
-                        data.vehicleClassStats.map((stat: any) => (
-                            <div key={stat.vehicleClass} className="px-5 py-4 hover:bg-surface-50 transition-colors">
-                                <p className="text-xs font-bold text-surface-400 uppercase tracking-wider mb-1 truncate">{formatVehicleClass(stat.vehicleClass)}</p>
-                                <div className="flex items-end justify-between">
-                                    <p className="text-xl font-bold text-surface-900">{stat.count} <span className="text-xs font-normal text-surface-500">Policies</span></p>
-                                    <p className="text-sm font-semibold text-primary-600">{formatCurrency(stat.totalPremium)}</p>
-                                </div>
-                            </div>
-                        ))
-                    )}
-                </div>
-            </div>
-            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Expiring Policies */}
                 <div className="card">
@@ -357,7 +311,55 @@ const Dashboard: React.FC = () => {
                         )}
                     </div>
                 </div>
+            </div>
 
+            {/* Company-wise Stats */}
+            <div className="card overflow-hidden">
+                <div className="px-5 py-4 border-b border-surface-100 flex items-center gap-2">
+                    <HiOutlineOfficeBuilding className="w-5 h-5 text-surface-400" />
+                    <h2 className="font-semibold text-surface-900">Policies by Company</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-surface-100">
+                    {data.companyStats.length === 0 ? (
+                        <p className="col-span-full py-8 text-center text-sm text-surface-400">No company data available</p>
+                    ) : (
+                        data.companyStats.map((stat: any) => (
+                            <div key={stat.companyId} className="px-5 py-4 hover:bg-surface-50 transition-colors">
+                                <p className="text-xs font-bold text-surface-400 uppercase tracking-wider mb-1 truncate">{stat.companyName}</p>
+                                <div className="flex items-end justify-between">
+                                    <p className="text-xl font-bold text-surface-900">{stat.count} <span className="text-xs font-normal text-surface-500">Policies</span></p>
+                                    <p className="text-sm font-semibold text-primary-600">{formatCurrency(stat.totalPremium)}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Vehicle Class Distribution */}
+            <div className="card overflow-hidden">
+                <div className="px-5 py-4 border-b border-surface-100 flex items-center gap-2">
+                    <HiOutlineDocumentText className="w-5 h-5 text-surface-400" />
+                    <h2 className="font-semibold text-surface-900">Vehicle Class Distribution</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-surface-100">
+                    {data.vehicleClassStats.length === 0 ? (
+                        <p className="col-span-full py-8 text-center text-sm text-surface-400">No vehicle class data available</p>
+                    ) : (
+                        data.vehicleClassStats.map((stat: any) => (
+                            <div key={stat.vehicleClass} className="px-5 py-4 hover:bg-surface-50 transition-colors">
+                                <p className="text-xs font-bold text-surface-400 uppercase tracking-wider mb-1 truncate">{formatVehicleClass(stat.vehicleClass)}</p>
+                                <div className="flex items-end justify-between">
+                                    <p className="text-xl font-bold text-surface-900">{stat.count} <span className="text-xs font-normal text-surface-500">Policies</span></p>
+                                    <p className="text-sm font-semibold text-primary-600">{formatCurrency(stat.totalPremium)}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Today's Birthdays */}
                 <div className="card lg:col-span-2">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">

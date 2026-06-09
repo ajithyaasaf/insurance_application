@@ -188,7 +188,8 @@ export class PolicyService {
         vehicleClass?: string,
         companyIds?: string | string[],
         dateFrom?: string,
-        dateTo?: string
+        dateTo?: string,
+        expiringSoon?: boolean | string
     ) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
         const VALID_VEHICLE_CLASSES = [
@@ -199,6 +200,12 @@ export class PolicyService {
         const matchedClasses = [search?.toUpperCase(), normalizedSearch].filter(
             val => val && VALID_VEHICLE_CLASSES.includes(val)
         );
+
+        const todayIST = getStartOfTodayIST();
+        const thirtyDaysFromNow = new Date(todayIST);
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+        const isExpiringSoon = status === 'expiring_soon' || expiringSoon === 'true' || expiringSoon === true;
 
         const where: any = {
             ...ownerFilter(userId, role),
@@ -211,7 +218,10 @@ export class PolicyService {
                     ...(matchedClasses.length > 0 ? [{ vehicleClass: { in: matchedClasses as any } }] : [])
                 ],
             }),
-            ...(status ? buildStatusFilter(status) : {}),
+            ...(isExpiringSoon ? {
+                status: 'active',
+                expiryDate: { gte: todayIST, lte: thirtyDaysFromNow }
+            } : (status ? buildStatusFilter(status) : {})),
             ...(policyType && { policyType: policyType as any }),
             ...(companyId && { companyId }),
             ...(companyIds && {
@@ -219,12 +229,12 @@ export class PolicyService {
             }),
             ...(dealerId === 'direct' ? { dealerId: null } : dealerId ? { dealerId } : {}),
             ...(vehicleClass && { vehicleClass: vehicleClass as any }),
-            ...(dateFrom || dateTo) && {
+            ...(!isExpiringSoon && (dateFrom || dateTo) && {
                 startDate: {
                     ...(dateFrom && { gte: getStartOfDayIST(dateFrom) }),
                     ...(dateTo && { lte: getEndOfDayIST(dateTo) }),
                 }
-            }
+            })
         };
 
         const total = await prisma.policy.count({ where });
@@ -241,7 +251,7 @@ export class PolicyService {
                     }
                 }
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: isExpiringSoon ? { expiryDate: 'asc' } : { createdAt: 'desc' },
             skip: (page - 1) * limit,
             take: limit,
         });

@@ -294,6 +294,23 @@ const Policies: React.FC = () => {
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
+                            onClick={() => {
+                                if (statusFilter === 'expiring_soon') {
+                                    setStatusFilter('');
+                                } else {
+                                    setStatusFilter('expiring_soon');
+                                }
+                            }}
+                            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
+                                statusFilter === 'expiring_soon'
+                                    ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-inner'
+                                    : 'bg-white border-surface-200 text-surface-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 shadow-sm'
+                            }`}
+                        >
+                            <span>⏱️ Expiring Soon</span>
+                        </button>
+                        <button
+                            type="button"
                             onClick={() => setShowFilters(!showFilters)}
                             className={`btn-secondary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
                                 showFilters 
@@ -327,7 +344,10 @@ const Policies: React.FC = () => {
                             <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Status</label>
                             <SearchableSelect
                                 className="w-full"
-                                options={statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+                                options={[
+                                    ...statusOptions.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) })),
+                                    { value: 'expiring_soon', label: 'Expiring in 30 Days ⏱️' }
+                                ]}
                                 value={statusFilter}
                                 onChange={setStatusFilter}
                                 allLabel="All Status"
