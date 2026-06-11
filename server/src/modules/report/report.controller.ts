@@ -51,10 +51,32 @@ export class ReportController {
                 return;
             }
 
-            const reportData = result.data || [];
-            const reportColumns = columns
+            let reportData = result.data || [];
+            let reportColumns = columns
                 ? columns.map((key: string) => (result.columns || []).find((c: any) => c.key === key)).filter(Boolean)
                 : result.columns || [];
+
+            if (source === 'policies' && format === 'xlsx') {
+                reportColumns = [
+                    { key: 'startDate', label: 'Start Date' },
+                    { key: 'expiryDate', label: 'Expiry Date' },
+                    { key: 'policyNumber', label: 'Policy No.' },
+                    { key: 'customerName', label: 'Customer' },
+                    { key: 'make', label: 'Make' },
+                    { key: 'model', label: 'Model' },
+                    { key: 'vehicleNumber', label: 'Vehicle No.' },
+                    { key: 'vehicleClass', label: 'Vehicle Class' },
+                    { key: 'od', label: 'OD Premium (₹)' },
+                    { key: 'tp', label: 'TP Premium (₹)' },
+                    { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
+                    { key: 'tax', label: 'Tax (₹)' },
+                    { key: 'totalPremium', label: 'Total Premium (₹)' },
+                    { key: 'companyName', label: 'Company' },
+                    { key: 'customerPhone', label: 'Phone' },
+                    { key: 'policyOrigin', label: 'Origin' },
+                    { key: 'dealerName', label: 'Dealer' }
+                ];
+            }
 
             if (format === 'xlsx') {
                 const buffer = await reportService.exportXlsx(reportData, reportColumns, title);
