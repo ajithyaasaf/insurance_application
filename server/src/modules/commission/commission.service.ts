@@ -27,14 +27,14 @@ export class CommissionService {
             orderBy: { startDate: 'asc' } // Earliest first
         });
 
-        const groupingMap = new Map<string, { dealerId: string; companyId: string; companyName: string; count: number; oldestDate: Date; newestDate: Date }>();
+        const groupingMap = new Map<string, { dealerId: string; companyIds: Set<string>; companyNames: Set<string>; count: number; oldestDate: Date; newestDate: Date }>();
         for (const p of unprocessedPolicies) {
-            const key = `${p.dealerId}_${p.companyId}`;
+            const key = p.dealerId!;
             if (!groupingMap.has(key)) {
                 groupingMap.set(key, {
-                    dealerId: p.dealerId!,
-                    companyId: p.companyId,
-                    companyName: p.company.name,
+                    dealerId: key,
+                    companyIds: new Set<string>(),
+                    companyNames: new Set<string>(),
                     count: 0,
                     oldestDate: p.startDate,
                     newestDate: p.startDate
@@ -42,6 +42,9 @@ export class CommissionService {
             }
             const stat = groupingMap.get(key)!;
             stat.count++;
+            stat.companyIds.add(p.companyId);
+            stat.companyNames.add(p.company.name);
+            if (p.startDate < stat.oldestDate) stat.oldestDate = p.startDate;
             if (p.startDate > stat.newestDate) stat.newestDate = p.startDate;
         }
 
@@ -58,12 +61,12 @@ export class CommissionService {
             dealerId: g.dealerId,
             dealerName: dealerDict[g.dealerId]?.name || 'Unknown',
             dealerPhone: dealerDict[g.dealerId]?.phone || 'N/A',
-            companyId: g.companyId,
-            companyName: g.companyName,
+            companyIds: Array.from(g.companyIds),
+            companyNames: Array.from(g.companyNames),
             unprocessedCount: g.count,
             oldestPolicyDate: g.oldestDate,
             newestPolicyDate: g.newestDate
-        })).sort((a, b) => b.unprocessedCount - a.unprocessedCount);
+        })).sort((a, b) => new Date(a.oldestPolicyDate).getTime() - new Date(b.oldestPolicyDate).getTime());
     }
 
     /**

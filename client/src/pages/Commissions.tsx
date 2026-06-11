@@ -157,7 +157,7 @@ const Commissions: React.FC = () => {
 
     const handleProcessPending = (pd: any) => {
         setDealerId(pd.dealerId);
-        setCompanyIds([pd.companyId]);
+        setCompanyIds(pd.companyIds || []);
         setPeriodStart(pd.oldestPolicyDate.split('T')[0]);
         // Use newestPolicyDate or Today, whichever is LATER
         const latestDate = new Date(pd.newestPolicyDate);
@@ -247,11 +247,14 @@ const Commissions: React.FC = () => {
 
     const filteredPending = useMemo(() => {
         return pendingDealers.filter(pd => {
-            if (pendingCompanyFilter.length > 0 && !pendingCompanyFilter.includes(pd.companyId)) return false;
+            if (pendingCompanyFilter.length > 0) {
+                const hasMatch = pd.companyIds?.some((id: string) => pendingCompanyFilter.includes(id));
+                if (!hasMatch) return false;
+            }
             const search = pendingSearch.toLowerCase().trim();
             if (!search) return true;
             return pd.dealerName.toLowerCase().includes(search) ||
-                pd.companyName.toLowerCase().includes(search);
+                (pd.companyNames || []).some((name: string) => name.toLowerCase().includes(search));
         });
     }, [pendingDealers, pendingCompanyFilter, pendingSearch]);
 
@@ -467,16 +470,22 @@ const Commissions: React.FC = () => {
                                 </thead>
                                 <tbody>
                                     {filteredPending.map(pd => (
-                                        <tr key={`${pd.dealerId}_${pd.companyId}`} className="hover:bg-surface-50 transition-colors">
+                                        <tr key={pd.dealerId} className="hover:bg-surface-50 transition-colors">
                                             <td>
                                                 <p className="font-bold text-surface-900">{pd.dealerName}</p>
-                                                <p className="text-[10px] font-bold text-primary-600 uppercase tracking-tight bg-primary-50 px-1.5 py-0.5 rounded inline-block mt-0.5">{pd.companyName}</p>
-                                                <p className="text-[10px] text-surface-400 mt-0.5">{pd.dealerPhone || 'No phone'}</p>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {(pd.companyNames || []).map((name: string, idx: number) => (
+                                                        <span key={idx} className="text-[10px] font-bold text-primary-600 uppercase tracking-tight bg-primary-50 px-1.5 py-0.5 rounded">
+                                                            {name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[10px] text-surface-400 mt-1">{pd.dealerPhone || 'No phone'}</p>
                                             </td>
                                             <td>
                                                 <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-sm font-semibold inline-flex items-center gap-1.5">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                    {pd.unprocessedCount} Policies
+                                                    {pd.unprocessedCount} {pd.unprocessedCount === 1 ? 'Policy' : 'Policies'}
                                                 </span>
                                             </td>
                                             <td className="text-surface-600 font-medium">{formatDate(pd.oldestPolicyDate)}</td>
