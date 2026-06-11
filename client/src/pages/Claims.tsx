@@ -215,7 +215,7 @@ const Claims: React.FC = () => {
                                     <th>Customer</th>
                                     <th>Policy</th>
                                     <th>Claim # / Policy #</th>
-                                    <th>Claim Amount</th>
+                                    <th>Claim Settled Amount</th>
                                     <th>Estimated Amount</th>
                                     <th>Bill Amount</th>
                                     <th>Date</th>
@@ -302,7 +302,7 @@ const Claims: React.FC = () => {
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 text-xs mt-2">
                                     <div className="bg-surface-50 rounded-lg p-2">
-                                        <p className="text-[10px] text-surface-400 uppercase font-bold mb-0.5">Claim</p>
+                                        <p className="text-[10px] text-surface-400 uppercase font-bold mb-0.5">Settled</p>
                                         <p className="font-semibold text-surface-900">{c.claimAmount != null ? formatCurrency(c.claimAmount) : '—'}</p>
                                     </div>
                                     <div className="bg-amber-50 rounded-lg p-2">
@@ -395,7 +395,7 @@ const Claims: React.FC = () => {
                     {/* Amounts row */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                            <label className="label">Claim Amount</label>
+                            <label className="label">Claim Settled Amount</label>
                             <input
                                 type="number" min="0" step="0.01"
                                 className={`input ${errors.claimAmount ? 'border-red-500 focus:ring-red-400' : ''}`}

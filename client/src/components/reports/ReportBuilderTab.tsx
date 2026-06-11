@@ -177,8 +177,8 @@ const ReportBuilderTab: React.FC = () => {
                         { key: 'policyNumber', label: 'Policy No' },
                         { key: 'vehicleNumber', label: 'Vehicle No' },
                         { key: 'claimDate', label: 'Claim Date' },
-                        { key: 'claimAmount', label: 'Claimed Amount (₹)' },
-                        { key: 'billAmount', label: 'Settled/Received Amount (₹)' },
+                        { key: 'billAmount', label: 'Bill Amount (₹)' },
+                        { key: 'claimAmount', label: 'Claim Settled Amount (₹)' },
                         { key: 'status', label: 'Status' },
                     ];
                     exportTitle = `${report?.summary?.customerName || 'Customer'} - Claims Statement`;
@@ -678,12 +678,12 @@ const ReportBuilderTab: React.FC = () => {
                                     <p className="text-2xl font-bold text-rose-900">{report.summary.totalClaims}</p>
                                 </div>
                                 <div className="card p-4 bg-orange-50 border border-orange-100">
-                                    <p className="text-xs text-orange-600 font-bold uppercase">Total Billed Amount</p>
-                                    <p className="text-2xl font-bold text-orange-900">₹{report.summary.totalBillAmount.toLocaleString('en-IN')}</p>
+                                    <p className="text-xs text-orange-600 font-bold uppercase">Total Bill Amount</p>
+                                    <p className="text-2xl font-bold text-orange-900">₹{report.summary.totalClaimedAmount.toLocaleString('en-IN')}</p>
                                 </div>
                                 <div className="card p-4 bg-purple-50 border border-purple-100">
-                                    <p className="text-xs text-purple-600 font-bold uppercase">Total Claimed Amount</p>
-                                    <p className="text-2xl font-bold text-purple-900">₹{report.summary.totalClaimedAmount.toLocaleString('en-IN')}</p>
+                                    <p className="text-xs text-purple-600 font-bold uppercase">Total Claim Settled Amount</p>
+                                    <p className="text-2xl font-bold text-purple-900">₹{report.summary.totalBillAmount.toLocaleString('en-IN')}</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -812,8 +812,8 @@ const ReportBuilderTab: React.FC = () => {
                                     { key: 'policyNumber', label: 'Policy No' },
                                     { key: 'vehicleNumber', label: 'Vehicle No' },
                                     { key: 'claimDate', label: 'Claim Date' },
-                                    { key: 'claimAmount', label: 'Claimed (₹)' },
-                                    { key: 'billAmount', label: 'Settled/Received (₹)' },
+                                    { key: 'billAmount', label: 'Bill Amount (₹)' },
+                                    { key: 'claimAmount', label: 'Claim Settled Amount (₹)' },
                                     { key: 'status', label: 'Status' },
                                 ]} 
                             />

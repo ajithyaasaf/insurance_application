@@ -105,10 +105,10 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'make', label: 'Make' },
         { key: 'vehicleClass', label: 'Vehicle Class' },
         { key: 'companyName', label: 'Company' },
-        { key: 'claimAmount', label: 'Claimed (₹)' },
+        { key: 'billAmount', label: 'Bill Amount (₹)' },
         { key: 'status', label: 'Status' },
         { key: 'reason', label: 'Reason' },
-        { key: 'billAmount', label: 'Claim Settled Amount' },
+        { key: 'claimAmount', label: 'Claim Settled Amount' },
     ],
     customers: [
         { key: 'name', label: 'Name' },
@@ -389,8 +389,8 @@ export class ReportService {
             totalPolicies: policies.length,
             totalPremium,
             totalClaims: claims.length,
-            totalClaimedAmount: totalClaimed,
-            totalBillAmount,
+            totalClaimedAmount: totalBillAmount,
+            totalBillAmount: totalClaimed,
             insurers: Object.values(byInsurer),
             vehicles: Object.values(byVehicle)
         };
@@ -1019,7 +1019,7 @@ export class ReportService {
                 columns: [
                     { key: 'name', label: 'Status' },
                     { key: 'count', label: 'Count' },
-                    { key: 'claimSum', label: 'Claim Total (₹)' },
+                    { key: 'claimSum', label: 'Claim Settled Total (₹)' },
                     { key: 'estimatedSum', label: 'Estimated Total (₹)' },
                     { key: 'billSum', label: 'Bill Total (₹)' },
                 ],
@@ -1049,7 +1049,7 @@ export class ReportService {
                 columns: [
                     { key: 'name', label: 'Customer' },
                     { key: 'count', label: 'Total Claims' },
-                    { key: 'claimSum', label: 'Claim Total (₹)' },
+                    { key: 'claimSum', label: 'Claim Settled Total (₹)' },
                     { key: 'estimatedSum', label: 'Estimated Total (₹)' },
                     { key: 'billSum', label: 'Bill Total (₹)' },
                 ],
@@ -1095,8 +1095,8 @@ export class ReportService {
                         { key: 'policyNumber', label: 'Policy No' },
                         { key: 'vehicleNumber', label: 'Vehicle No' },
                         { key: 'claimDate', label: 'Claim Date' },
-                        { key: 'claimAmount', label: 'Claimed (₹)' },
-                        { key: 'billAmount', label: 'Settled/Received (₹)' },
+                        { key: 'billAmount', label: 'Bill Amount (₹)' },
+                        { key: 'claimAmount', label: 'Claim Settled Amount (₹)' },
                         { key: 'status', label: 'Status' },
                     ],
                     data: res.claims || [],
@@ -1705,8 +1705,8 @@ export class ReportService {
         summarySheet.addRow(['Total Policies Written', summary.totalPolicies || 0]);
         summarySheet.addRow(['Total Premium Paid', summary.totalPremium || 0]);
         summarySheet.addRow(['Total Claims Made', summary.totalClaims || 0]);
-        summarySheet.addRow(['Total Claimed Amount', summary.totalClaimedAmount || 0]);
-        summarySheet.addRow(['Total Received/Settled', summary.totalBillAmount || 0]);
+        summarySheet.addRow(['Total Bill Amount', summary.totalClaimedAmount || 0]);
+        summarySheet.addRow(['Total Claim Settled Amount', summary.totalBillAmount || 0]);
 
         // Style Metrics Table
         const metricsHeaderRow = summarySheet.getRow(8);
@@ -1778,8 +1778,8 @@ export class ReportService {
             { header: 'Policy Number', key: 'policyNumber', width: 25 },
             { header: 'Vehicle No', key: 'vehicleNumber', width: 18 },
             { header: 'Claim Date', key: 'claimDate', width: 15 },
-            { header: 'Claimed (₹)', key: 'claimAmount', width: 18 },
-            { header: 'Settled/Received (₹)', key: 'billAmount', width: 18 },
+            { header: 'Bill Amount (₹)', key: 'billAmount', width: 18 },
+            { header: 'Claim Settled Amount (₹)', key: 'claimAmount', width: 18 },
             { header: 'Status', key: 'status', width: 15 },
         ];
         claimsSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -1928,8 +1928,8 @@ export class ReportService {
                     .text('Claim No', 45, claimRowY + 6)
                     .text('Policy No', 150, claimRowY + 6)
                     .text('Vehicle No', 270, claimRowY + 6)
-                    .text('Claimed (₹)', 360, claimRowY + 6, { width: 80, align: 'right' })
-                    .text('Received (₹)', 460, claimRowY + 6, { width: 80, align: 'right' });
+                    .text('Bill Amount (₹)', 360, claimRowY + 6, { width: 80, align: 'right' })
+                    .text('Settled (₹)', 460, claimRowY + 6, { width: 80, align: 'right' });
 
                 claimRowY += 20;
                 doc.fontSize(8).font('Helvetica').fillColor('#334155');
@@ -1942,8 +1942,8 @@ export class ReportService {
                     doc.text(c.claimNumber || '—', 45, claimRowY + 4)
                         .text(c.policyNumber || '—', 150, claimRowY + 4)
                         .text(c.vehicleNumber || '—', 270, claimRowY + 4)
-                        .text(c.claimAmount != null ? `₹${c.claimAmount.toLocaleString('en-IN')}` : '—', 360, claimRowY + 4, { width: 80, align: 'right' })
-                        .text(c.billAmount != null ? `₹${c.billAmount.toLocaleString('en-IN')}` : '—', 460, claimRowY + 4, { width: 80, align: 'right' });
+                        .text(c.billAmount != null ? `₹${c.billAmount.toLocaleString('en-IN')}` : '—', 360, claimRowY + 4, { width: 80, align: 'right' })
+                        .text(c.claimAmount != null ? `₹${c.claimAmount.toLocaleString('en-IN')}` : '—', 460, claimRowY + 4, { width: 80, align: 'right' });
                     claimRowY += 16;
                 }
             }
