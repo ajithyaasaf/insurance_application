@@ -11,6 +11,9 @@ export const createClaimSchema = z.object({
         claimDate: z.string().min(1, 'Claim date is required'),
         status: z.enum(['filed', 'approved', 'rejected', 'settled']).optional(),
         reason: z.string().optional().or(z.literal('')),
+        surveyorName: z.string().optional().or(z.literal('')),
+        surveyorPhone: z.string().optional().or(z.literal('')),
+        workshopName: z.string().optional().or(z.literal('')),
     }),
 });
 
@@ -25,6 +28,9 @@ export const updateClaimSchema = z.object({
         claimDate: z.string().optional(),
         status: z.enum(['filed', 'approved', 'rejected', 'settled']).optional(),
         reason: z.string().optional().or(z.literal('')),
+        surveyorName: z.string().optional().or(z.literal('')),
+        surveyorPhone: z.string().optional().or(z.literal('')),
+        workshopName: z.string().optional().or(z.literal('')),
     }),
 });
 

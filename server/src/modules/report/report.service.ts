@@ -109,6 +109,9 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'status', label: 'Status' },
         { key: 'reason', label: 'Reason' },
         { key: 'claimAmount', label: 'Claim Settled Amount' },
+        { key: 'surveyorName', label: 'Surveyor Name' },
+        { key: 'surveyorPhone', label: 'Surveyor Number' },
+        { key: 'workshopName', label: 'Workshop Name' },
     ],
     customers: [
         { key: 'name', label: 'Name' },
@@ -606,6 +609,9 @@ export class ReportService {
             status: r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : '—',
             reason: r.reason || '—',
             billAmount: r.billAmount ?? '—',
+            surveyorName: r.surveyorName || '—',
+            surveyorPhone: r.surveyorPhone || '—',
+            workshopName: r.workshopName || '—',
         }));
 
         return { data, total, columns: SOURCE_COLUMNS.claims };
@@ -1398,7 +1404,7 @@ export class ReportService {
             const limitCols = isFullWidthReport ? columns.length : 8;
             let pdfCols = columns.slice(0, limitCols);
             if (source === 'claims') {
-                pdfCols = pdfCols.filter(c => c.key !== 'status' && c.key !== 'reason');
+                pdfCols = pdfCols.filter(c => c.key !== 'status' && c.key !== 'reason' && c.key !== 'surveyorName' && c.key !== 'surveyorPhone' && c.key !== 'workshopName');
             }
             const visibleCols = [sNoCol, ...pdfCols]; // Prepend S.No.
             const startX = 40;

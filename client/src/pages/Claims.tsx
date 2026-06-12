@@ -21,6 +21,9 @@ const initialForm = {
     claimDate: '',
     status: 'filed',
     reason: '',
+    surveyorName: '',
+    surveyorPhone: '',
+    workshopName: '',
 };
 
 const Claims: React.FC = () => {
@@ -104,6 +107,9 @@ const Claims: React.FC = () => {
             claimDate: claim.claimDate?.split('T')[0] || '',
             status: claim.status,
             reason: claim.reason || '',
+            surveyorName: claim.surveyorName || '',
+            surveyorPhone: claim.surveyorPhone || '',
+            workshopName: claim.workshopName || '',
         });
         setErrors({});
         setModalOpen(true);
@@ -245,6 +251,13 @@ const Claims: React.FC = () => {
                                             {c.policy?.policyNumber && (
                                                 <p className="text-surface-400 text-[10px] mt-0.5">Policy: {c.policy.policyNumber}</p>
                                             )}
+                                            {(c.surveyorName || c.workshopName) && (
+                                                <p className="text-[10px] text-surface-500 mt-1">
+                                                    {c.surveyorName && `Srv: ${c.surveyorName}`}
+                                                    {c.surveyorPhone && ` (${c.surveyorPhone})`}
+                                                    {c.workshopName && ` | WS: ${c.workshopName}`}
+                                                </p>
+                                            )}
                                         </td>
                                         <td className="text-sm font-medium text-surface-900">
                                             {c.claimAmount != null
@@ -316,6 +329,12 @@ const Claims: React.FC = () => {
                                 </div>
                                 <p className="text-xs text-surface-400 mt-2">{formatDate(c.claimDate)}</p>
                                 {c.reason && <p className="text-xs text-surface-500 mt-1">{c.reason}</p>}
+                                {(c.surveyorName || c.workshopName) && (
+                                    <div className="text-[11px] text-surface-500 mt-1.5 bg-surface-50 p-2 rounded-lg border border-surface-100/50">
+                                        {c.surveyorName && <p><strong>Surveyor:</strong> {c.surveyorName} {c.surveyorPhone && `(${c.surveyorPhone})`}</p>}
+                                        {c.workshopName && <p className="mt-0.5"><strong>Workshop:</strong> {c.workshopName}</p>}
+                                    </div>
+                                )}
                                 <div className="flex gap-2 mt-3 pt-3 border-t border-surface-100">
                                     <button onClick={() => openEdit(c)} className="btn-secondary btn-sm flex-1">Edit</button>
                                     <button onClick={() => handleDelete(c.id, c.customer?.name)} className="btn-sm flex-1 text-red-500 border border-red-200 rounded-lg hover:bg-red-50">Delete</button>
@@ -454,6 +473,39 @@ const Claims: React.FC = () => {
                             hasError={!!errors.status}
                         />
                         {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status}</p>}
+                    </div>
+
+                    {/* Surveyor Info */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label className="label">Surveyor Name</label>
+                            <input
+                                className="input"
+                                placeholder="Enter name"
+                                value={form.surveyorName}
+                                onChange={(e) => setField('surveyorName', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="label">Surveyor Number</label>
+                            <input
+                                className="input"
+                                placeholder="e.g. 9876543210"
+                                value={form.surveyorPhone}
+                                onChange={(e) => setField('surveyorPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Workshop Name */}
+                    <div>
+                        <label className="label">Workshop Name</label>
+                        <input
+                            className="input"
+                            placeholder="e.g. Maruti Service Center"
+                            value={form.workshopName}
+                            onChange={(e) => setField('workshopName', e.target.value)}
+                        />
                     </div>
 
                     {/* Reason */}

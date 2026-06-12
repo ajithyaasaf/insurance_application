@@ -11,6 +11,9 @@ interface CreateClaimInput {
     claimDate: string;
     status?: string;
     reason?: string;
+    surveyorName?: string;
+    surveyorPhone?: string;
+    workshopName?: string;
 }
 
 export class ClaimService {
@@ -44,6 +47,9 @@ export class ClaimService {
                 claimDate: new Date(data.claimDate),
                 status: data.status || 'filed',
                 reason: data.reason,
+                surveyorName: data.surveyorName,
+                surveyorPhone: data.surveyorPhone,
+                workshopName: data.workshopName,
                 createdBy: role,
             },
             include: { customer: true, policy: true },
@@ -111,6 +117,9 @@ export class ClaimService {
                 ...(data.claimDate !== undefined && { claimDate: new Date(data.claimDate) }),
                 ...(data.status !== undefined && { status: data.status }),
                 ...(data.reason !== undefined && { reason: data.reason }),
+                ...(data.surveyorName !== undefined && { surveyorName: data.surveyorName }),
+                ...(data.surveyorPhone !== undefined && { surveyorPhone: data.surveyorPhone }),
+                ...(data.workshopName !== undefined && { workshopName: data.workshopName }),
             },
             include: { customer: true, policy: true },
         });
