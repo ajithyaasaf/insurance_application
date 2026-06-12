@@ -346,8 +346,16 @@ export class ReportService {
 
         const [customer, policies, claims, expiringPolicies] = await Promise.all([
             prisma.customer.findFirst({ where: { id: filters.customerId, ...ow } }),
-            prisma.policy.findMany({ where: policyWhere, include: { company: true } }),
-            prisma.claim.findMany({ where: claimWhere, include: { policy: true } }),
+            prisma.policy.findMany({ 
+                where: policyWhere, 
+                include: { company: true },
+                orderBy: { startDate: 'asc' }
+            }),
+            prisma.claim.findMany({ 
+                where: claimWhere, 
+                include: { policy: true },
+                orderBy: { claimDate: 'asc' }
+            }),
             prisma.policy.findMany({
                 where: {
                     customerId: filters.customerId,
@@ -358,7 +366,8 @@ export class ReportService {
                         lte: sixtyDaysFromNow
                     }
                 },
-                include: { company: true }
+                include: { company: true },
+                orderBy: { expiryDate: 'asc' }
             })
         ]);
 
@@ -462,7 +471,7 @@ export class ReportService {
             prisma.policy.findMany({
                 where,
                 include: { customer: true, company: true, dealer: true },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { startDate: 'asc' },
                 skip: (page - 1) * limit,
                 take: limit,
             }),
@@ -557,7 +566,7 @@ export class ReportService {
                         }
                     }
                 },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { dueDate: 'asc' },
                 skip: (page - 1) * limit,
                 take: limit,
             }),
@@ -589,7 +598,7 @@ export class ReportService {
             prisma.claim.findMany({
                 where,
                 include: { customer: true, policy: { include: { company: true } } },
-                orderBy: { createdAt: 'desc' },
+                orderBy: { claimDate: 'asc' },
                 skip: (page - 1) * limit,
                 take: limit,
             }),
