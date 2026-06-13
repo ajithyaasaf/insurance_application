@@ -135,6 +135,99 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
     ],
 };
 
+function getColumnsForSource(source: string, policyType?: string): { key: string; label: string }[] {
+    const defaultCols = SOURCE_COLUMNS[source] || [];
+    if (!policyType || policyType === 'motor') {
+        return defaultCols;
+    }
+
+    const typeLower = policyType.toLowerCase();
+    if (typeLower === 'health' || typeLower === 'life') {
+        if (source === 'policies') {
+            return [
+                { key: 'policyNumber', label: 'Policy No.' },
+                { key: 'customerName', label: 'Customer' },
+                { key: 'customerPhone', label: 'Phone' },
+                { key: 'companyName', label: 'Company' },
+                { key: 'policyType', label: 'Type' },
+                { key: 'productName', label: 'Product Name' },
+                { key: 'sumInsured', label: 'Sum Insured (₹)' },
+                { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
+                { key: 'tax', label: 'Tax (₹)' },
+                { key: 'totalPremium', label: 'Total Premium (₹)' },
+                { key: 'startDate', label: 'Start Date' },
+                { key: 'expiryDate', label: 'Expiry Date' },
+                { key: 'status', label: 'Status' },
+                { key: 'policyOrigin', label: 'Origin' },
+            ];
+        }
+        if (source === 'policies-expired') {
+            return [
+                { key: 'policyNumber', label: 'Policy No.' },
+                { key: 'customerName', label: 'Customer' },
+                { key: 'customerPhone', label: 'Phone' },
+                { key: 'companyName', label: 'Company' },
+                { key: 'policyType', label: 'Type' },
+                { key: 'productName', label: 'Product Name' },
+                { key: 'sumInsured', label: 'Sum Insured (₹)' },
+                { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
+                { key: 'tax', label: 'Tax (₹)' },
+                { key: 'totalPremium', label: 'Total Premium (₹)' },
+                { key: 'startDate', label: 'Start Date' },
+                { key: 'expiryDate', label: 'Expiry Date' },
+                { key: 'status', label: 'Status' },
+                { key: 'policyOrigin', label: 'Origin' },
+                { key: 'ncbPercentage', label: 'NCB (%)' },
+            ];
+        }
+        if (source === 'payments') {
+            return [
+                { key: 'startDate', label: 'Start Date' },
+                { key: 'customerName', label: 'Customer' },
+                { key: 'policyNumber', label: 'Policy No.' },
+                { key: 'productName', label: 'Product Name' },
+                { key: 'paidAmount', label: 'Paid (₹)' },
+                { key: 'pendingAmount', label: 'Pending (₹)' },
+                { key: 'amount', label: 'Premium (₹)' },
+                { key: 'dealerName', label: 'Dealer' },
+                { key: 'dueDate', label: 'Due Date' },
+                { key: 'companyName', label: 'Company' },
+                { key: 'status', label: 'Status' },
+            ];
+        }
+        if (source === 'claims') {
+            return [
+                { key: 'claimDate', label: 'Claim Intimation Date' },
+                { key: 'claimNumber', label: 'Claim No.' },
+                { key: 'customerName', label: 'Customer' },
+                { key: 'policyNumber', label: 'Policy No.' },
+                { key: 'productName', label: 'Product Name' },
+                { key: 'companyName', label: 'Company' },
+                { key: 'billAmount', label: 'Bill Amount (₹)' },
+                { key: 'status', label: 'Status' },
+                { key: 'reason', label: 'Reason' },
+                { key: 'claimAmount', label: 'Claim Settled Amount' },
+            ];
+        }
+        if (source === 'followups') {
+            return [
+                { key: 'customerName', label: 'Customer' },
+                { key: 'customerPhone', label: 'Phone' },
+                { key: 'policyNumber', label: 'Policy No.' },
+                { key: 'productName', label: 'Product Name' },
+                { key: 'startDate', label: 'Start Date' },
+                { key: 'expiryDate', label: 'Expiry Date' },
+                { key: 'nextFollowUpDate', label: 'Follow-up Date' },
+                { key: 'status', label: 'Status' },
+                { key: 'notes', label: 'Notes' },
+            ];
+        }
+    }
+
+    return defaultCols;
+}
+
+
 // ─── Helper: build Prisma where clause ───────────────────
 
 function buildPolicyWhere(userId: string, role: string, filters?: ReportFilters) {
@@ -413,6 +506,8 @@ export class ReportService {
             customerName: customer.name,
             companyName: p.company?.name || '—',
             policyType: p.policyType.charAt(0).toUpperCase() + p.policyType.slice(1),
+            productName: p.policyType === 'motor' ? `${p.make || ''} ${p.model || ''}`.trim() || 'Motor' : p.productName || '—',
+            sumInsured: p.policyType === 'motor' ? (p.idv || 0) : (p.sumInsured || 0),
             vehicleClass: p.vehicleClass ? p.vehicleClass.replace(/_/g, ' ') : '—',
             vehicleNo: p.vehicleNumber || '—',
             totalPremium: p.totalPremium || p.premiumAmount || 0,
@@ -425,6 +520,8 @@ export class ReportService {
             id: c.id,
             claimNumber: c.claimNumber || '—',
             policyNumber: c.policy?.policyNumber || '—',
+            policyType: c.policy?.policyType || 'motor',
+            productName: c.policy?.policyType === 'motor' ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor' : c.policy?.productName || '—',
             vehicleNumber: c.policy?.vehicleNumber || '—',
             claimDate: fmtDate(c.claimDate),
             claimAmount: c.claimAmount || 0,
@@ -439,6 +536,8 @@ export class ReportService {
             return {
                 id: p.id,
                 policyNumber: p.policyNumber,
+                policyType: p.policyType,
+                productName: p.policyType === 'motor' ? `${p.make || ''} ${p.model || ''}`.trim() || 'Motor' : p.productName || '—',
                 companyName: p.company?.name || '—',
                 vehicleClass: p.vehicleClass ? p.vehicleClass.replace(/_/g, ' ') : '—',
                 vehicleNo: p.vehicleNumber || '—',
@@ -505,7 +604,7 @@ export class ReportService {
                         : 'Fresh',
         }));
 
-        return { data, total, columns: SOURCE_COLUMNS.policies };
+        return { data, total, columns: getColumnsForSource('policies', filters?.policyType) };
     }
 
     private async queryPoliciesExpired(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
@@ -549,7 +648,7 @@ export class ReportService {
                         : 'Fresh',
         }));
 
-        return { data, total, columns: SOURCE_COLUMNS['policies-expired'] };
+        return { data, total, columns: getColumnsForSource('policies-expired', filters?.policyType) };
     }
 
     private async queryPayments(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
@@ -587,9 +686,10 @@ export class ReportService {
             dueDate: fmtDate(r.dueDate),
             paidDate: (r.paidAmount > 0 && r.paidDate) ? fmtDate(r.paidDate) : '—',
             status: r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : '—',
+            productName: r.policy?.policyType === 'motor' ? `${r.policy?.make || ''} ${r.policy?.model || ''}`.trim() || 'Motor' : r.policy?.productName || '—',
         }));
 
-        return { data, total, columns: SOURCE_COLUMNS.payments };
+        return { data, total, columns: getColumnsForSource('payments', filters?.policyType) };
     }
 
     private async queryClaims(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
@@ -621,9 +721,10 @@ export class ReportService {
             surveyorName: r.surveyorName || '—',
             surveyorPhone: r.surveyorPhone || '—',
             workshopName: r.workshopName || '—',
+            productName: r.policy?.policyType === 'motor' ? `${r.policy?.make || ''} ${r.policy?.model || ''}`.trim() || 'Motor' : r.policy?.productName || '—',
         }));
 
-        return { data, total, columns: SOURCE_COLUMNS.claims };
+        return { data, total, columns: getColumnsForSource('claims', filters?.policyType) };
     }
 
     private async queryCustomers(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
@@ -680,9 +781,10 @@ export class ReportService {
             nextFollowUpDate: fmtDate(r.nextFollowUpDate),
             status: r.status,
             notes: r.notes || '—',
+            productName: r.policy?.policyType === 'motor' ? `${r.policy?.make || ''} ${r.policy?.model || ''}`.trim() || 'Motor' : r.policy?.productName || '—',
         }));
 
-        return { data, total, columns: SOURCE_COLUMNS.followups };
+        return { data, total, columns: getColumnsForSource('followups', filters?.policyType) };
     }
 
     // ── Grouped aggregation queries ──────────────────────
@@ -1769,8 +1871,10 @@ export class ReportService {
             { header: 'Policy Number', key: 'policyNumber', width: 25 },
             { header: 'Insurer', key: 'companyName', width: 25 },
             { header: 'Type', key: 'policyType', width: 15 },
+            { header: 'Product / Plan Name', key: 'productName', width: 25 },
             { header: 'Vehicle Class', key: 'vehicleClass', width: 20 },
             { header: 'Vehicle No', key: 'vehicleNo', width: 18 },
+            { header: 'Sum Insured / IDV', key: 'sumInsured', width: 18 },
             { header: 'Gross Premium', key: 'totalPremium', width: 18 },
             { header: 'Start Date', key: 'startDate', width: 15 },
             { header: 'Expiry Date', key: 'expiryDate', width: 15 },
@@ -1782,7 +1886,8 @@ export class ReportService {
             policiesSheet.addRow(row);
         }
         for (let i = 2; i <= policiesSheet.rowCount; i++) {
-            policiesSheet.getRow(i).getCell(6).numFmt = '"₹"#,##0';
+            policiesSheet.getRow(i).getCell(7).numFmt = '"₹"#,##0'; // Sum Insured
+            policiesSheet.getRow(i).getCell(8).numFmt = '"₹"#,##0'; // Gross Premium
             if (i % 2 === 0) policiesSheet.getRow(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } };
         }
 
@@ -1813,6 +1918,8 @@ export class ReportService {
         expiringSheet.columns = [
             { header: 'Policy Number', key: 'policyNumber', width: 25 },
             { header: 'Insurer', key: 'companyName', width: 25 },
+            { header: 'Type', key: 'policyType', width: 15 },
+            { header: 'Product / Plan Name', key: 'productName', width: 25 },
             { header: 'Vehicle Class', key: 'vehicleClass', width: 20 },
             { header: 'Vehicle No', key: 'vehicleNo', width: 18 },
             { header: 'Expiry Date', key: 'expiryDate', width: 15 },
@@ -1911,7 +2018,7 @@ export class ReportService {
             doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
                 .text('Policy No', 45, rowY + 6)
                 .text('Insurer', 150, rowY + 6)
-                .text('Vehicle No', 270, rowY + 6)
+                .text('Vehicle / Details', 270, rowY + 6)
                 .text('Premium', 370, rowY + 6, { width: 80, align: 'right' })
                 .text('Expiry Date', 470, rowY + 6, { width: 80, align: 'right' });
 
@@ -1922,10 +2029,11 @@ export class ReportService {
                     doc.addPage();
                     rowY = 40;
                 }
+                const detailText = p.policyType?.toLowerCase() === 'motor' ? (p.vehicleNo || '—') : (p.productName || '—');
                 doc.rect(40, rowY, 515, 16).stroke('#f1f5f9');
                 doc.text(p.policyNumber || '—', 45, rowY + 4)
                     .text(p.companyName || '—', 150, rowY + 4)
-                    .text(p.vehicleNo || '—', 270, rowY + 4)
+                    .text(detailText, 270, rowY + 4)
                     .text(`₹${p.totalPremium.toLocaleString('en-IN')}`, 370, rowY + 4, { width: 80, align: 'right' })
                     .text(p.expiryDate || '—', 470, rowY + 4, { width: 80, align: 'right' });
                 rowY += 16;
@@ -1942,7 +2050,7 @@ export class ReportService {
                 doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
                     .text('Claim No', 45, claimRowY + 6)
                     .text('Policy No', 150, claimRowY + 6)
-                    .text('Vehicle No', 270, claimRowY + 6)
+                    .text('Vehicle / Details', 270, claimRowY + 6)
                     .text('Bill Amount (₹)', 360, claimRowY + 6, { width: 80, align: 'right' })
                     .text('Settled (₹)', 460, claimRowY + 6, { width: 80, align: 'right' });
 
@@ -1953,10 +2061,11 @@ export class ReportService {
                         doc.addPage();
                         claimRowY = 40;
                     }
+                    const detailText = c.policyType?.toLowerCase() === 'motor' ? (c.vehicleNumber || '—') : (c.productName || '—');
                     doc.rect(40, claimRowY, 515, 16).stroke('#f1f5f9');
                     doc.text(c.claimNumber || '—', 45, claimRowY + 4)
                         .text(c.policyNumber || '—', 150, claimRowY + 4)
-                        .text(c.vehicleNumber || '—', 270, claimRowY + 4)
+                        .text(detailText, 270, claimRowY + 4)
                         .text(c.billAmount != null ? `₹${c.billAmount.toLocaleString('en-IN')}` : '—', 360, claimRowY + 4, { width: 80, align: 'right' })
                         .text(c.claimAmount != null ? `₹${c.claimAmount.toLocaleString('en-IN')}` : '—', 460, claimRowY + 4, { width: 80, align: 'right' });
                     claimRowY += 16;
@@ -1974,7 +2083,7 @@ export class ReportService {
                 doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
                     .text('Policy No', 45, expRowY + 6)
                     .text('Insurer', 150, expRowY + 6)
-                    .text('Vehicle No', 270, expRowY + 6)
+                    .text('Vehicle / Details', 270, expRowY + 6)
                     .text('Expiry Date', 370, expRowY + 6)
                     .text('Days Remaining', 470, expRowY + 6, { width: 80, align: 'right' });
 
@@ -1985,10 +2094,11 @@ export class ReportService {
                         doc.addPage();
                         expRowY = 40;
                     }
+                    const detailText = e.policyType?.toLowerCase() === 'motor' ? (e.vehicleNo || '—') : (e.productName || '—');
                     doc.rect(40, expRowY, 515, 16).stroke('#f1f5f9');
                     doc.text(e.policyNumber || '—', 45, expRowY + 4)
                         .text(e.companyName || '—', 150, expRowY + 4)
-                        .text(e.vehicleNo || '—', 270, expRowY + 4)
+                        .text(detailText, 270, expRowY + 4)
                         .text(e.expiryDate || '—', 370, expRowY + 4)
                         .text(e.daysRemaining, 470, expRowY + 4, { width: 80, align: 'right' });
                     expRowY += 16;

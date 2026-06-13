@@ -198,52 +198,96 @@ const ReportBuilderTab: React.FC = () => {
                 }
             }
 
+            const activePolicyType = (appliedFilters.policyType || '').toLowerCase();
+
             if (format === 'pdf' && source === 'policies') {
-                exportCols = [
-                    { key: 'startDate', label: 'Start Date' },
-                    { key: 'customerName', label: 'Customer' },
-                    { key: 'policyNumber', label: 'Policy No.' },
-                    { key: 'make', label: 'Make' },
-                    { key: 'model', label: 'Model' },
-                    { key: 'vehicleNumber', label: 'Vehicle No.' },
-                    { key: 'vehicleClass', label: 'Vehicle Class' },
-                    { key: 'companyName', label: 'Company' },
-                    { key: 'customerPhone', label: 'Mobile No.' },
-                    { key: 'totalPremium', label: 'Total Premium' },
-                ];
+                if (activePolicyType === 'health' || activePolicyType === 'life') {
+                    exportCols = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'productName', label: 'Product Name' },
+                        { key: 'sumInsured', label: 'Sum Insured' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'customerPhone', label: 'Mobile No.' },
+                        { key: 'totalPremium', label: 'Total Premium' },
+                    ];
+                } else {
+                    exportCols = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'make', label: 'Make' },
+                        { key: 'model', label: 'Model' },
+                        { key: 'vehicleNumber', label: 'Vehicle No.' },
+                        { key: 'vehicleClass', label: 'Vehicle Class' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'customerPhone', label: 'Mobile No.' },
+                        { key: 'totalPremium', label: 'Total Premium' },
+                    ];
+                }
             }
 
             if (format === 'pdf' && source === 'policies-expired') {
-                exportCols = [
-                    { key: 'startDate', label: 'Start Date' },
-                    { key: 'expiryDate', label: 'Expiry Date' },
-                    { key: 'customerName', label: 'Customer' },
-                    { key: 'policyNumber', label: 'Policy No.' },
-                    { key: 'make', label: 'Make' },
-                    { key: 'model', label: 'Model' },
-                    { key: 'vehicleNumber', label: 'Vehicle No.' },
-                    { key: 'vehicleClass', label: 'Vehicle Class' },
-                    { key: 'companyName', label: 'Company' },
-                    { key: 'ncbPercentage', label: 'NCB' },
-                    { key: 'customerPhone', label: 'Mobile No.' },
-                    { key: 'totalPremium', label: 'Total Premium' },
-                ];
+                if (activePolicyType === 'health' || activePolicyType === 'life') {
+                    exportCols = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'expiryDate', label: 'Expiry Date' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'productName', label: 'Product Name' },
+                        { key: 'sumInsured', label: 'Sum Insured' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'customerPhone', label: 'Mobile No.' },
+                        { key: 'totalPremium', label: 'Total Premium' },
+                    ];
+                } else {
+                    exportCols = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'expiryDate', label: 'Expiry Date' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'make', label: 'Make' },
+                        { key: 'model', label: 'Model' },
+                        { key: 'vehicleNumber', label: 'Vehicle No.' },
+                        { key: 'vehicleClass', label: 'Vehicle Class' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'ncbPercentage', label: 'NCB' },
+                        { key: 'customerPhone', label: 'Mobile No.' },
+                        { key: 'totalPremium', label: 'Total Premium' },
+                    ];
+                }
             }
 
             if (format === 'pdf' && source === 'payments') {
-                exportCols = [
-                    { key: 'startDate', label: 'Start Date' },
-                    { key: 'customerName', label: 'Customer' },
-                    { key: 'policyNumber', label: 'Policy No.' },
-                    { key: 'vehicleNumber', label: 'Vehicle No.' },
-                    { key: 'vehicleClass', label: 'Vehicle Class' },
-                    { key: 'paidAmount', label: 'Paid (₹)' },
-                    { key: 'pendingAmount', label: 'Pending (₹)' },
-                    { key: 'amount', label: 'Premium (₹)' },
-                    { key: 'dealerName', label: 'Dealer' },
-                    { key: 'companyName', label: 'Company' },
-                    { key: 'status', label: 'Status' },
-                ];
+                if (activePolicyType === 'health' || activePolicyType === 'life') {
+                    exportCols = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'productName', label: 'Product Name' },
+                        { key: 'paidAmount', label: 'Paid (₹)' },
+                        { key: 'pendingAmount', label: 'Pending (₹)' },
+                        { key: 'amount', label: 'Premium (₹)' },
+                        { key: 'dealerName', label: 'Dealer' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'status', label: 'Status' },
+                    ];
+                } else {
+                    exportCols = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'vehicleNumber', label: 'Vehicle No.' },
+                        { key: 'vehicleClass', label: 'Vehicle Class' },
+                        { key: 'paidAmount', label: 'Paid (₹)' },
+                        { key: 'pendingAmount', label: 'Pending (₹)' },
+                        { key: 'amount', label: 'Premium (₹)' },
+                        { key: 'dealerName', label: 'Dealer' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'status', label: 'Status' },
+                    ];
+                }
             }
 
             const res = await api.post('/reports/export', {
@@ -806,11 +850,14 @@ const ReportBuilderTab: React.FC = () => {
                     {isSnapshot ? (
                         subTab === 'claims' ? (
                             <ReportTable 
-                                data={report.claims || []} 
+                                data={(report.claims || []).map((c: any) => ({
+                                    ...c,
+                                    vehicleNumber: c.policyType?.toLowerCase() === 'motor' ? c.vehicleNumber : c.productName
+                                }))} 
                                 columns={[
                                     { key: 'claimNumber', label: 'Claim No' },
                                     { key: 'policyNumber', label: 'Policy No' },
-                                    { key: 'vehicleNumber', label: 'Vehicle No' },
+                                    { key: 'vehicleNumber', label: 'Vehicle / Detail' },
                                     { key: 'claimDate', label: 'Claim Date' },
                                     { key: 'billAmount', label: 'Bill Amount (₹)' },
                                     { key: 'claimAmount', label: 'Claim Settled Amount (₹)' },
@@ -819,12 +866,16 @@ const ReportBuilderTab: React.FC = () => {
                             />
                         ) : subTab === 'expiring' ? (
                             <ReportTable 
-                                data={report.expiring || []} 
+                                data={(report.expiring || []).map((e: any) => ({
+                                    ...e,
+                                    vehicleNo: e.policyType?.toLowerCase() === 'motor' ? e.vehicleNo : e.productName,
+                                    vehicleClass: e.policyType?.toLowerCase() === 'motor' ? e.vehicleClass : '—'
+                                }))} 
                                 columns={[
                                     { key: 'policyNumber', label: 'Policy No' },
                                     { key: 'companyName', label: 'Insurer' },
                                     { key: 'vehicleClass', label: 'Vehicle Class' },
-                                    { key: 'vehicleNo', label: 'Vehicle No' },
+                                    { key: 'vehicleNo', label: 'Vehicle / Detail' },
                                     { key: 'expiryDate', label: 'Expiry Date' },
                                     { key: 'daysRemaining', label: 'Days Left' },
                                 ]} 

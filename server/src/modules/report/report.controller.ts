@@ -56,26 +56,52 @@ export class ReportController {
                 ? columns.map((key: string) => (result.columns || []).find((c: any) => c.key === key)).filter(Boolean)
                 : result.columns || [];
 
-            if (source === 'policies' && format === 'xlsx') {
-                reportColumns = [
-                    { key: 'startDate', label: 'Start Date' },
-                    { key: 'expiryDate', label: 'Expiry Date' },
-                    { key: 'policyNumber', label: 'Policy No.' },
-                    { key: 'customerName', label: 'Customer' },
-                    { key: 'make', label: 'Make' },
-                    { key: 'model', label: 'Model' },
-                    { key: 'vehicleNumber', label: 'Vehicle No.' },
-                    { key: 'vehicleClass', label: 'Vehicle Class' },
-                    { key: 'od', label: 'OD Premium (₹)' },
-                    { key: 'tp', label: 'TP Premium (₹)' },
-                    { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
-                    { key: 'tax', label: 'Tax (₹)' },
-                    { key: 'totalPremium', label: 'Total Premium (₹)' },
-                    { key: 'companyName', label: 'Company' },
-                    { key: 'customerPhone', label: 'Phone' },
-                    { key: 'policyOrigin', label: 'Origin' },
-                    { key: 'dealerName', label: 'Dealer' }
-                ];
+            if ((source === 'policies' || source === 'policies-expired') && format === 'xlsx') {
+                const typeLower = (filters?.policyType || '').toLowerCase();
+                if (typeLower === 'health' || typeLower === 'life') {
+                    reportColumns = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'expiryDate', label: 'Expiry Date' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'policyType', label: 'Type' },
+                        { key: 'productName', label: 'Product Name' },
+                        { key: 'sumInsured', label: 'Sum Insured (₹)' },
+                        { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
+                        { key: 'tax', label: 'Tax (₹)' },
+                        { key: 'totalPremium', label: 'Total Premium (₹)' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'customerPhone', label: 'Phone' },
+                        { key: 'policyOrigin', label: 'Origin' },
+                        { key: 'dealerName', label: 'Dealer' }
+                    ];
+                    if (source === 'policies-expired') {
+                        reportColumns.push({ key: 'ncbPercentage', label: 'NCB (%)' });
+                    }
+                } else {
+                    reportColumns = [
+                        { key: 'startDate', label: 'Start Date' },
+                        { key: 'expiryDate', label: 'Expiry Date' },
+                        { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'customerName', label: 'Customer' },
+                        { key: 'make', label: 'Make' },
+                        { key: 'model', label: 'Model' },
+                        { key: 'vehicleNumber', label: 'Vehicle No.' },
+                        { key: 'vehicleClass', label: 'Vehicle Class' },
+                        { key: 'od', label: 'OD Premium (₹)' },
+                        { key: 'tp', label: 'TP Premium (₹)' },
+                        { key: 'premiumAmount', label: 'Premium (Net) (₹)' },
+                        { key: 'tax', label: 'Tax (₹)' },
+                        { key: 'totalPremium', label: 'Total Premium (₹)' },
+                        { key: 'companyName', label: 'Company' },
+                        { key: 'customerPhone', label: 'Phone' },
+                        { key: 'policyOrigin', label: 'Origin' },
+                        { key: 'dealerName', label: 'Dealer' }
+                    ];
+                    if (source === 'policies-expired') {
+                        reportColumns.push({ key: 'ncbPercentage', label: 'NCB (%)' });
+                    }
+                }
             }
 
             if (format === 'xlsx') {
