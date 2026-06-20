@@ -23,26 +23,27 @@ export class CustomerService {
             data.dob = new Date(data.dob);
         }
 
-        // Duplicate phone warning
+        // Check duplicate phone number (Block)
         if (data.phone) {
-            const existing = await prisma.customer.findFirst({
-                where: { userId, phone: data.phone, deletedAt: null },
+            const existing = await prisma.customer.findMany({
+                where: {
+                    ...ownerFilter(userId, role),
+                    phone: data.phone,
+                    deletedAt: null
+                },
+                select: { name: true }
             });
-            if (existing) {
-                return {
-                    customer: await prisma.customer.create({
-                        data: { userId, ...data, createdBy: role, updatedBy: role },
-                    }),
-                    warning: `Duplicate phone: Customer "${existing.name}" already has this number`,
-                };
+            if (existing.length > 0) {
+                const names = existing.map(c => `"${c.name}"`).join(', ');
+                throw Object.assign(new Error(`Duplicate phone: Customer(s) ${names} already have this number`), { statusCode: 400 });
             }
         }
 
-        return {
-            customer: await prisma.customer.create({
-                data: { userId, ...data, createdBy: role, updatedBy: role },
-            }),
-        };
+        const customer = await prisma.customer.create({
+            data: { userId, ...data, createdBy: role, updatedBy: role },
+        });
+
+        return { customer };
     }
 
     async findAll(userId: string, role: string, page = 1, limit = 10, search?: string) {
@@ -100,9 +101,21 @@ export class CustomerService {
         if (data.phone === '') data.phone = undefined;
         if (data.email === '') data.email = undefined;
 
-        // Transform dob to Date
-        if (data.dob && typeof data.dob === 'string') {
-            data.dob = new Date(data.dob);
+        // Check duplicate phone number (excluding current customer) (Block)
+        if (data.phone) {
+            const existing = await prisma.customer.findMany({
+                where: {
+                    ...ownerFilter(userId, role),
+                    phone: data.phone,
+                    deletedAt: null,
+                    NOT: { id },
+                },
+                select: { name: true }
+            });
+            if (existing.length > 0) {
+                const names = existing.map(c => `"${c.name}"`).join(', ');
+                throw Object.assign(new Error(`Duplicate phone: Customer(s) ${names} already have this number`), { statusCode: 400 });
+            }
         }
 
         return prisma.customer.update({ where: { id }, data: { ...data, updatedBy: role } });

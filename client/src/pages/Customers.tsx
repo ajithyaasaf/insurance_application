@@ -77,18 +77,11 @@ const Customers: React.FC = () => {
         setSubmitting(true);
         try {
             if (editing) {
-                const response = await api.put(`/customers/${editing.id}`, form);
-                toast.success(response.data?.message || 'Customer updated');
+                await api.put(`/customers/${editing.id}`, form);
+                toast.success('Customer updated');
             } else {
-                const response = await api.post('/customers', form);
-                toast.success(response.data?.message || 'Customer created');
-                if (response.data?.warning) {
-                    toast(response.data.warning, {
-                        icon: '⚠️',
-                        duration: 8000,
-                        style: { background: '#fffbeb', color: '#92400e', border: '1px solid #f59e0b' },
-                    });
-                }
+                await api.post('/customers', form);
+                toast.success('Customer created');
             }
             setModalOpen(false);
             fetchCustomers(meta.page);

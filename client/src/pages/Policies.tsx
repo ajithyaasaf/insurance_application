@@ -168,8 +168,13 @@ const Policies: React.FC = () => {
                 ncbPercentage: form.ncbPercentage ? parseFloat(form.ncbPercentage as string) : undefined,
                 ...(editing ? { status: editStatus } : {}),
             };
-            if (editing) { await api.put(`/policies/${editing.id}`, payload); toast.success('Policy updated'); }
-            else { await api.post('/policies', payload); toast.success('Policy created'); }
+            if (editing) {
+                await api.put(`/policies/${editing.id}`, payload);
+                toast.success('Policy updated');
+            } else {
+                await api.post('/policies', payload);
+                toast.success('Policy created');
+            }
             setModalOpen(false); fetchPolicies(meta.page);
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsSubmitting(false); }
     };

@@ -11,7 +11,6 @@ export class CustomerController {
                 statusCode: 201,
                 message: 'Customer created',
                 data: result.customer,
-                ...(result.warning && { warning: result.warning }),
             });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }

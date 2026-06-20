@@ -237,6 +237,40 @@ export class LeadService {
     ) {
         const lead = await this.findById(userId, role, id);
 
+        const policyNumber = extra.policyNumber;
+        if (policyNumber) {
+            const existingPolicy = await prisma.policy.findFirst({
+                where: {
+                    ...ownerFilter(userId, role),
+                    policyNumber,
+                    deletedAt: null,
+                },
+                include: { customer: true }
+            });
+            if (existingPolicy) {
+                throw Object.assign(new Error(`Duplicate policy number: Customer "${existingPolicy.customer?.name}" already has policy number "${policyNumber}"`), { statusCode: 400 });
+            }
+        }
+
+        // Check duplicate customer phone number (Block)
+        if (lead.phone) {
+            const existingCustomer = await prisma.customer.findMany({
+                where: {
+                    ...ownerFilter(userId, role),
+                    phone: lead.phone,
+                    deletedAt: null,
+                },
+                select: { name: true }
+            });
+            if (existingCustomer.length > 0) {
+                const names = existingCustomer.map(c => `"${c.name}"`).join(', ');
+                throw Object.assign(
+                    new Error(`Duplicate phone: Customer(s) ${names} already have this number`),
+                    { statusCode: 400 }
+                );
+            }
+        }
+
         const result = await prisma.$transaction(async (tx) => {
             // 1. Create Customer
             const customer = await tx.customer.create({
@@ -268,7 +302,7 @@ export class LeadService {
             
             const rawStartDate = lead.startDate || (extra.startDate ? new Date(extra.startDate) : null);
             const rawExpiryDate = lead.expiryDate || (extra.expiryDate ? new Date(extra.expiryDate) : null);
-
+ 
             if (policyType && premiumAmount !== undefined && premiumAmount !== null && rawStartDate && rawExpiryDate && companyId) {
                 // --- Smart Premium Pre-calculation for Conversion ---
                 const od = lead.od !== null ? Number(lead.od) : (extra.od !== undefined && extra.od !== null ? Number(extra.od) : 0);

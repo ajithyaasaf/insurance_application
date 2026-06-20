@@ -69,7 +69,22 @@ export class PolicyService {
         if (!customer) throw Object.assign(new Error('Customer not found or unauthorized'), { statusCode: 404 });
         if (data.dealerId && !dealer) throw Object.assign(new Error('Dealer not found or unauthorized'), { statusCode: 404 });
 
-        return prisma.$transaction(async (tx) => {
+        // Check duplicate policy number (Block)
+        if (data.policyNumber) {
+            const existingPolicy = await prisma.policy.findFirst({
+                where: {
+                    ...ownerFilter(userId, role),
+                    policyNumber: data.policyNumber,
+                    deletedAt: null,
+                },
+                include: { customer: true },
+            });
+            if (existingPolicy) {
+                throw Object.assign(new Error(`Duplicate policy number: Customer "${existingPolicy.customer?.name}" already has policy number "${data.policyNumber}"`), { statusCode: 400 });
+            }
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
             const policy = await tx.policy.create({
                 data: {
                     userId,
@@ -173,6 +188,8 @@ export class PolicyService {
 
             return policy;
         });
+
+        return result;
     }
 
     async findAll(
@@ -356,8 +373,23 @@ export class PolicyService {
             throw Object.assign(new Error('Vehicle number is required for motor policies'), { statusCode: 400 });
         }
 
+        // Check duplicate policy number (Block)
+        if (data.policyNumber && data.policyNumber !== policy.policyNumber) {
+            const existingPolicy = await prisma.policy.findFirst({
+                where: {
+                    ...ownerFilter(userId, role),
+                    policyNumber: data.policyNumber,
+                    deletedAt: null,
+                },
+                include: { customer: true },
+            });
+            if (existingPolicy) {
+                throw Object.assign(new Error(`Duplicate policy number: Customer "${existingPolicy.customer?.name}" already has policy number "${data.policyNumber}"`), { statusCode: 400 });
+            }
+        }
+
         // Use transaction to sync premium changes to pending payments if needed
-        return prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             const updatedPolicy = await tx.policy.update({
                 where: { id },
                 data: {
@@ -406,6 +438,8 @@ export class PolicyService {
 
             return mapPolicyStatus(updatedPolicy);
         });
+
+        return result;
     }
 
     async softDelete(userId: string, role: string, id: string) {
@@ -463,7 +497,22 @@ export class PolicyService {
             throw Object.assign(new Error('Renewal expiry date must be after the start date'), { statusCode: 400 });
         }
 
-        return prisma.$transaction(async (tx: any) => {
+        // Check duplicate policy number (Block)
+        if (data.policyNumber) {
+            const existingPolicy = await prisma.policy.findFirst({
+                where: {
+                    ...ownerFilter(userId, role),
+                    policyNumber: data.policyNumber,
+                    deletedAt: null,
+                },
+                include: { customer: true }
+            });
+            if (existingPolicy) {
+                throw Object.assign(new Error(`Duplicate policy number: Customer "${existingPolicy.customer?.name}" already has policy number "${data.policyNumber}"`), { statusCode: 400 });
+            }
+        }
+
+        const result = await prisma.$transaction(async (tx: any) => {
             // Mark original as expired
             await tx.policy.update({
                 where: { id },
@@ -573,6 +622,8 @@ export class PolicyService {
 
             return renewedPolicy;
         });
+
+        return result;
     }
 
     // Pre-delete check: returns counts of linked records so the frontend can warn the user

@@ -6,7 +6,12 @@ export class PolicyController {
     async create(req: Request, res: Response, next: NextFunction) {
         try {
             const policy = await policyService.create(req.user!.userId, req.user!.role, req.body);
-            sendSuccess({ res, statusCode: 201, message: 'Policy created', data: policy });
+            sendSuccess({
+                res,
+                statusCode: 201,
+                message: 'Policy created',
+                data: policy,
+            });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
@@ -28,7 +33,12 @@ export class PolicyController {
     async update(req: Request, res: Response, next: NextFunction) {
         try {
             const policy = await policyService.update(req.user!.userId, req.user!.role, req.params.id as string, req.body);
-            sendSuccess({ res, statusCode: 200, message: 'Policy updated', data: policy });
+            sendSuccess({
+                res,
+                statusCode: 200,
+                message: 'Policy updated',
+                data: policy,
+            });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 
@@ -49,7 +59,12 @@ export class PolicyController {
     async renew(req: Request, res: Response, next: NextFunction) {
         try {
             const policy = await policyService.renew(req.user!.userId, req.user!.role, req.params.id as string, req.body);
-            sendSuccess({ res, statusCode: 201, message: 'Policy renewed', data: policy });
+            sendSuccess({
+                res,
+                statusCode: 201,
+                message: 'Policy renewed',
+                data: policy,
+            });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
 }
