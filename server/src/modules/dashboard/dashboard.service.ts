@@ -54,15 +54,25 @@ export class DashboardService {
                 },
             }),
 
-            // 4: Pending payments
+            // 4: Pending payments (now representing future/upcoming payments)
             prisma.payment.findMany({
-                where: { ...ow, status: 'pending' },
+                where: {
+                    ...ow,
+                    status: { in: ['pending', 'partial'] },
+                    dueDate: { gte: getStartOfTodayIST() }
+                },
                 include: { customer: true, policy: true },
                 orderBy: { dueDate: 'asc' },
                 take: 10,
             }),
             // 5: Count pending payments
-            prisma.payment.count({ where: { ...ow, status: 'pending' } }),
+            prisma.payment.count({
+                where: {
+                    ...ow,
+                    status: { in: ['pending', 'partial'] },
+                    dueDate: { gte: getStartOfTodayIST() }
+                }
+            }),
 
             // 6: Overdue payments
             prisma.payment.findMany({

@@ -41,6 +41,7 @@ interface DashboardData {
 const Dashboard: React.FC = () => {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [activePaymentTab, setActivePaymentTab] = useState<'overdue' | 'upcoming'>('overdue');
     const navigate = useNavigate();
 
     const handleWhatsAppWish = (customer: any) => {
@@ -110,7 +111,7 @@ const Dashboard: React.FC = () => {
             valueColor: 'text-cyan-600'
         },
         {
-            label: 'Pending Payments',
+            label: 'Upcoming Payments',
             value: data.stats.pendingPaymentsCount,
             icon: HiOutlineCreditCard,
             iconBg: 'text-orange-600 bg-orange-50 group-hover:bg-orange-100',
@@ -177,7 +178,7 @@ const Dashboard: React.FC = () => {
                 ))}
             </div>
 
-            {/* Priority Section: Follow-up & Overdue Payments */}
+            {/* Priority Section: Follow-up & Payments tabbed card */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Follow-up (7 Days) */}
                 <div className="card">
@@ -218,34 +219,69 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Overdue Payments */}
+                {/* Tabbed Payment Collections Card */}
                 <div className="card">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
-                        <h2 className="font-semibold text-surface-900 text-red-700">Overdue Payments</h2>
-                        <button onClick={() => navigate('/payments')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
+                    <div className="flex items-center justify-between px-5 py-3.5 border-b border-surface-100">
+                        <div className="flex items-center gap-1.5 sm:gap-3">
+                            <span className="font-semibold text-surface-900 text-sm sm:text-base">Payments</span>
+                            <div className="flex bg-surface-100 p-0.5 rounded-lg border border-surface-200 text-xs font-semibold">
+                                <button
+                                    type="button"
+                                    onClick={() => setActivePaymentTab('overdue')}
+                                    className={`px-2.5 py-1 rounded-md transition-all duration-150 ${activePaymentTab === 'overdue' ? 'bg-white text-red-600 shadow-sm border border-surface-200 font-bold' : 'text-surface-500 hover:text-surface-900'}`}
+                                >
+                                    Overdue ({data.overduePayments.length})
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActivePaymentTab('upcoming')}
+                                    className={`px-2.5 py-1 rounded-md transition-all duration-150 ${activePaymentTab === 'upcoming' ? 'bg-white text-primary-600 shadow-sm border border-surface-200 font-bold' : 'text-surface-500 hover:text-surface-900'}`}
+                                >
+                                    Upcoming ({data.pendingPayments.length})
+                                </button>
+                            </div>
+                        </div>
+                        <button onClick={() => navigate('/payments')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-0.5 sm:gap-1">
                             View All <HiOutlineChevronRight className="w-3 h-3" />
                         </button>
                     </div>
+
                     <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
-                        {data.overduePayments.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-surface-400">No overdue payments 🎉</p>
-                        ) : (
-                            data.overduePayments.map((payment: any) => (
-                                <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
-                                        <p className="text-xs text-red-500">Due: {formatDate(payment.dueDate)}</p>
+                        {activePaymentTab === 'overdue' ? (
+                            data.overduePayments.length === 0 ? (
+                                <p className="px-5 py-8 text-center text-sm text-surface-400">No overdue payments 🎉</p>
+                            ) : (
+                                data.overduePayments.map((payment: any) => (
+                                    <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
+                                            <p className="text-xs text-red-500">Due: {formatDate(payment.dueDate)}</p>
+                                        </div>
+                                        <p className="text-sm font-semibold text-red-600">{formatCurrency(payment.amount)}</p>
                                     </div>
-                                    <p className="text-sm font-semibold text-red-600">{formatCurrency(payment.amount)}</p>
-                                </div>
-                            ))
+                                ))
+                            )
+                        ) : (
+                            data.pendingPayments.length === 0 ? (
+                                <p className="px-5 py-8 text-center text-sm text-surface-400">No upcoming payments</p>
+                            ) : (
+                                data.pendingPayments.map((payment: any) => (
+                                    <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
+                                            <p className="text-xs text-surface-500">Due: {formatDate(payment.dueDate)}</p>
+                                        </div>
+                                        <p className="text-sm font-semibold text-surface-900">{formatCurrency(payment.amount)}</p>
+                                    </div>
+                                ))
+                            )
                         )}
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Expiring Policies */}
+            {/* Expiring Policies Row (Full-width for premium look) */}
+            <div className="grid grid-cols-1 gap-6">
                 <div className="card">
                     <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
                         <h2 className="font-semibold text-surface-900">Expiring Policies</h2>
@@ -281,31 +317,6 @@ const Dashboard: React.FC = () => {
                                         </p>
                                         <p className="text-xs text-surface-400">{formatDate(policy.expiryDate)}</p>
                                     </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Pending Payments */}
-                <div className="card">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-surface-100">
-                        <h2 className="font-semibold text-surface-900">Pending Payments</h2>
-                        <button onClick={() => navigate('/payments')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-                            View All <HiOutlineChevronRight className="w-3 h-3" />
-                        </button>
-                    </div>
-                    <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
-                        {data.pendingPayments.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-surface-400">No pending payments</p>
-                        ) : (
-                            data.pendingPayments.map((payment: any) => (
-                                <div key={payment.id} className="px-5 py-3 flex items-center justify-between hover:bg-surface-50">
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-medium text-surface-900 truncate">{payment.customer?.name}</p>
-                                        <p className="text-xs text-surface-500">Due: {formatDate(payment.dueDate)}</p>
-                                    </div>
-                                    <p className="text-sm font-semibold text-surface-900">{formatCurrency(payment.amount)}</p>
                                 </div>
                             ))
                         )}
