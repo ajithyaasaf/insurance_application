@@ -252,20 +252,20 @@ export class LeadService {
             }
         }
 
-        // Check duplicate customer phone number (Block)
-        if (lead.phone) {
+        // Check duplicate name and phone number combination (Block)
+        if (lead.phone && lead.name) {
             const existingCustomer = await prisma.customer.findMany({
                 where: {
                     ...ownerFilter(userId, role),
                     phone: lead.phone,
+                    name: { equals: lead.name, mode: 'insensitive' },
                     deletedAt: null,
                 },
                 select: { name: true }
             });
             if (existingCustomer.length > 0) {
-                const names = existingCustomer.map(c => `"${c.name}"`).join(', ');
                 throw Object.assign(
-                    new Error(`Duplicate phone: Customer(s) ${names} already have this number`),
+                    new Error(`Duplicate customer: "${lead.name}" with phone ${lead.phone} already exists`),
                     { statusCode: 400 }
                 );
             }

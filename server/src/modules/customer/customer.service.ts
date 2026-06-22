@@ -23,19 +23,19 @@ export class CustomerService {
             data.dob = new Date(data.dob);
         }
 
-        // Check duplicate phone number (Block)
-        if (data.phone) {
+        // Check duplicate name and phone number combination (Block)
+        if (data.phone && data.name) {
             const existing = await prisma.customer.findMany({
                 where: {
                     ...ownerFilter(userId, role),
                     phone: data.phone,
+                    name: { equals: data.name, mode: 'insensitive' },
                     deletedAt: null
                 },
                 select: { name: true }
             });
             if (existing.length > 0) {
-                const names = existing.map(c => `"${c.name}"`).join(', ');
-                throw Object.assign(new Error(`Duplicate phone: Customer(s) ${names} already have this number`), { statusCode: 400 });
+                throw Object.assign(new Error(`Duplicate customer: "${data.name}" with phone ${data.phone} already exists`), { statusCode: 400 });
             }
         }
 
@@ -94,31 +94,54 @@ export class CustomerService {
     }
 
     async update(userId: string, role: string, id: string, data: Partial<CreateCustomerInput>) {
-        await this.findById(userId, role, id);
+        const customer = await this.findById(userId, role, id);
 
         // Clean up empty strings from frontend
         if (data.dob === '') data.dob = null;
         if (data.phone === '') data.phone = undefined;
         if (data.email === '') data.email = undefined;
 
-        // Check duplicate phone number (excluding current customer) (Block)
-        if (data.phone) {
+        const nameToVerify = data.name !== undefined ? data.name : customer.name;
+        const phoneToVerify = data.phone !== undefined ? data.phone : customer.phone;
+
+        // Check duplicate name and phone number combination (excluding current customer) (Block)
+        if (phoneToVerify && nameToVerify) {
             const existing = await prisma.customer.findMany({
                 where: {
                     ...ownerFilter(userId, role),
-                    phone: data.phone,
+                    phone: phoneToVerify,
+                    name: { equals: nameToVerify, mode: 'insensitive' },
                     deletedAt: null,
                     NOT: { id },
                 },
                 select: { name: true }
             });
             if (existing.length > 0) {
-                const names = existing.map(c => `"${c.name}"`).join(', ');
-                throw Object.assign(new Error(`Duplicate phone: Customer(s) ${names} already have this number`), { statusCode: 400 });
+                throw Object.assign(new Error(`Duplicate customer: "${nameToVerify}" with phone ${phoneToVerify} already exists`), { statusCode: 400 });
             }
         }
 
         return prisma.customer.update({ where: { id }, data: { ...data, updatedBy: role } });
+    }
+
+    async checkDuplicate(userId: string, role: string, query: { name?: string; phone?: string; excludeId?: string }) {
+        const { name, phone, excludeId } = query;
+        if (!name || !phone) {
+            return { exists: false };
+        }
+
+        const existing = await prisma.customer.findFirst({
+            where: {
+                ...ownerFilter(userId, role),
+                phone,
+                name: { equals: name.trim(), mode: 'insensitive' },
+                deletedAt: null,
+                ...(excludeId && { NOT: { id: excludeId } })
+            },
+            select: { id: true, name: true }
+        });
+
+        return { exists: !!existing, customer: existing };
     }
 
     async softDelete(userId: string, role: string, id: string) {

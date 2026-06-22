@@ -19,6 +19,9 @@ const Dealers: React.FC = () => {
     const [form, setForm] = useState({ name: '', phone: '', address: '' });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [dealerToDelete, setDealerToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchDealers = useCallback(async (page = 1) => {
         setLoading(true);
@@ -70,14 +73,24 @@ const Dealers: React.FC = () => {
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error saving dealer'); } finally { setIsSubmitting(false); }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this dealer?')) return;
+    const handleDeleteClick = (d: any) => {
+        setDealerToDelete(d);
+        setDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!dealerToDelete) return;
+        setIsDeleting(true);
         try { 
-            await api.delete(`/dealers/${id}`); 
+            await api.delete(`/dealers/${dealerToDelete.id}`); 
             toast.success('Dealer deleted'); 
+            setDeleteConfirmOpen(false);
+            setDealerToDelete(null);
             fetchDealers(meta.page); 
         } catch (err: any) { 
             toast.error(err.response?.data?.message || 'Failed to delete dealer'); 
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -116,7 +129,7 @@ const Dealers: React.FC = () => {
                                         <td>
                                             <div className="flex items-center gap-1">
                                                 <button onClick={() => openEdit(d)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
-                                                <button onClick={() => handleDelete(d.id)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => handleDeleteClick(d)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -132,7 +145,7 @@ const Dealers: React.FC = () => {
                                 <p className="text-xs text-surface-500">{d.phone || 'No phone'}</p>
                                 <div className="flex gap-2 mt-3">
                                     <button onClick={() => openEdit(d)} className="btn-secondary btn-sm flex-1">Edit</button>
-                                    <button onClick={() => handleDelete(d.id)} className="btn-danger btn-sm">Delete</button>
+                                    <button onClick={() => handleDeleteClick(d)} className="btn-danger btn-sm">Delete</button>
                                 </div>
                             </div>
                         ))}
@@ -174,6 +187,23 @@ const Dealers: React.FC = () => {
                         <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Delete Dealer" size="sm">
+                <div className="space-y-4">
+                    <p className="text-sm text-surface-600">
+                        Are you sure you want to delete the dealer <strong>{dealerToDelete?.name}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="btn-secondary flex-1" disabled={isDeleting}>
+                            Cancel
+                        </button>
+                        <Button type="button" onClick={confirmDelete} isLoading={isDeleting} className="btn-danger flex-1">
+                            Delete
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

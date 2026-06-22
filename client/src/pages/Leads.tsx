@@ -25,6 +25,9 @@ const Leads: React.FC = () => {
     const [convertModalOpen, setConvertModalOpen] = useState(false);
     const [editing, setEditing] = useState<any>(null);
     const [convertingLead, setConvertingLead] = useState<any>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [leadToDelete, setLeadToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Initial State including Quote Fields
     const initialFormState = {
@@ -53,6 +56,32 @@ const Leads: React.FC = () => {
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isConverting, setIsConverting] = useState(false);
+    const [convertDuplicateWarning, setConvertDuplicateWarning] = useState<string | null>(null);
+
+    useEffect(() => {
+        const checkDuplicateConvert = async () => {
+            if (convertModalOpen && convertingLead?.name && convertingLead?.phone) {
+                try {
+                    const res = await api.get('/customers/check-duplicate', {
+                        params: {
+                            name: convertingLead.name,
+                            phone: convertingLead.phone
+                        }
+                    });
+                    if (res.data.data.exists) {
+                        setConvertDuplicateWarning(`⚠️ Note: A customer named "${convertingLead.name}" with phone ${convertingLead.phone} already exists. Conversion is disabled.`);
+                    } else {
+                        setConvertDuplicateWarning(null);
+                    }
+                } catch {
+                    setConvertDuplicateWarning(null);
+                }
+            } else {
+                setConvertDuplicateWarning(null);
+            }
+        };
+        checkDuplicateConvert();
+    }, [convertModalOpen, convertingLead]);
 
     const fetchLeads = useCallback(async (page = 1, status = statusFilter, vehicleClass = vehicleClassFilter) => {
         setLoading(true);
@@ -169,13 +198,25 @@ const Leads: React.FC = () => {
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsSubmitting(false); }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this lead?')) return;
+    const handleDeleteClick = (lead: any) => {
+        setLeadToDelete(lead);
+        setDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!leadToDelete) return;
+        setIsDeleting(true);
         try {
-            await api.delete(`/leads/${id}`);
+            await api.delete(`/leads/${leadToDelete.id}`);
             toast.success('Lead deleted');
+            setDeleteConfirmOpen(false);
+            setLeadToDelete(null);
             fetchLeads(meta.page);
-        } catch { toast.error('Failed to delete'); }
+        } catch {
+            toast.error('Failed to delete');
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const openConvert = (lead: any) => {
@@ -339,7 +380,7 @@ const Leads: React.FC = () => {
                                             <div className="flex items-center gap-1">
                                                 <button onClick={() => openEdit(lead)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
                                                 {lead.status !== 'converted' && <button onClick={() => openConvert(lead)} className="btn-ghost btn-sm text-emerald-600"><HiOutlineUserAdd className="w-3.5 h-3.5" /></button>}
-                                                <button onClick={() => handleDelete(lead.id)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => handleDeleteClick(lead)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -369,7 +410,7 @@ const Leads: React.FC = () => {
                                 <div className="flex gap-2 mt-2">
                                     <button onClick={() => openEdit(lead)} className="btn-secondary btn-sm flex-1">Edit</button>
                                     {lead.status !== 'converted' && <button onClick={() => openConvert(lead)} className="btn-primary btn-sm flex-1">Convert</button>}
-                                    <button onClick={() => handleDelete(lead.id)} className="btn-danger btn-sm">Delete</button>
+                                    <button onClick={() => handleDeleteClick(lead)} className="btn-danger btn-sm">Delete</button>
                                 </div>
                             </div>
                         ))}
@@ -673,11 +714,33 @@ const Leads: React.FC = () => {
  
                     <div><label className="label">Customer Email (Optional)</label><input type="email" className="input" value={convertForm.email} onChange={(e) => setConvertForm({ ...convertForm, email: e.target.value })} /></div>
                     <div><label className="label">Customer Address (Optional)</label><textarea className="input" rows={2} value={convertForm.address} onChange={(e) => setConvertForm({ ...convertForm, address: e.target.value })} /></div>
+                    {convertDuplicateWarning && (
+                        <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-center gap-2 font-medium">
+                            {convertDuplicateWarning}
+                        </div>
+                    )}
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setConvertModalOpen(false)} className="btn-secondary flex-1">Cancel</button>
-                        <Button type="submit" isLoading={isConverting} className="btn-primary flex-1">Convert</Button>
+                        <Button type="submit" isLoading={isConverting} className="btn-primary flex-1" disabled={!!convertDuplicateWarning}>Convert</Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Delete Lead" size="sm">
+                <div className="space-y-4">
+                    <p className="text-sm text-surface-600">
+                        Are you sure you want to delete the lead <strong>{leadToDelete?.name}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="btn-secondary flex-1" disabled={isDeleting}>
+                            Cancel
+                        </button>
+                        <Button type="button" onClick={confirmDelete} isLoading={isDeleting} className="btn-danger flex-1">
+                            Delete
+                        </Button>
+                    </div>
+                </div>
             </Modal>
 
             <button onClick={openCreate} className="fab lg:hidden"><HiOutlinePlus className="w-6 h-6" /></button>

@@ -28,6 +28,9 @@ const FollowUps: React.FC = () => {
     const [form, setForm] = useState({ customerId: '', policyId: '', nextFollowUpDate: '', notes: '', status: 'pending' });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [followUpToDelete, setFollowUpToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchFollowUps = useCallback(async (page = 1) => {
         setLoading(true);
@@ -103,9 +106,25 @@ const FollowUps: React.FC = () => {
         } catch (err: any) { toast.error(err.response?.data?.message || 'Error'); } finally { setIsSubmitting(false); }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this follow-up?')) return;
-        try { await api.delete(`/follow-ups/${id}`); toast.success('Deleted'); fetchFollowUps(meta.page); } catch { toast.error('Failed'); }
+    const handleDeleteClick = (f: any) => {
+        setFollowUpToDelete(f);
+        setDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!followUpToDelete) return;
+        setIsDeleting(true);
+        try { 
+            await api.delete(`/follow-ups/${followUpToDelete.id}`); 
+            toast.success('Deleted'); 
+            setDeleteConfirmOpen(false);
+            setFollowUpToDelete(null);
+            fetchFollowUps(meta.page); 
+        } catch { 
+            toast.error('Failed'); 
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const markComplete = async (id: string) => {
@@ -175,7 +194,7 @@ const FollowUps: React.FC = () => {
                                 <div className="flex items-center gap-2 flex-shrink-0">
                                     {f.status === 'pending' && <button onClick={() => markComplete(f.id)} className="btn-primary btn-sm">Complete</button>}
                                     <button onClick={() => openEdit(f)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
-                                    <button onClick={() => handleDelete(f.id)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                                     <button onClick={() => handleDeleteClick(f)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
                                 </div>
                             </div>
                         ))}
@@ -193,7 +212,7 @@ const FollowUps: React.FC = () => {
                                 <div className="flex gap-2">
                                     {f.status === 'pending' && <button onClick={() => markComplete(f.id)} className="btn-primary btn-sm flex-1">Complete</button>}
                                     <button onClick={() => openEdit(f)} className="btn-secondary btn-sm flex-1">Edit</button>
-                                    <button onClick={() => handleDelete(f.id)} className="btn-danger btn-sm">Del</button>
+                                     <button onClick={() => handleDeleteClick(f)} className="btn-danger btn-sm">Del</button>
                                 </div>
                             </div>
                         ))}
@@ -269,6 +288,23 @@ const FollowUps: React.FC = () => {
                         <Button type="submit" isLoading={isSubmitting} className="btn-primary flex-1">{editing ? 'Update' : 'Create'}</Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Delete Follow-up" size="sm">
+                <div className="space-y-4">
+                    <p className="text-sm text-surface-600">
+                        Are you sure you want to delete this follow-up for <strong>{followUpToDelete?.customer?.name}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="btn-secondary flex-1" disabled={isDeleting}>
+                            Cancel
+                        </button>
+                        <Button type="button" onClick={confirmDelete} isLoading={isDeleting} className="btn-danger flex-1">
+                            Delete
+                        </Button>
+                    </div>
+                </div>
             </Modal>
 
             <button onClick={openCreate} className="fab lg:hidden"><HiOutlinePlus className="w-6 h-6" /></button>

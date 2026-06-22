@@ -47,6 +47,11 @@ const Commissions: React.FC = () => {
     const [showVolumeModal, setShowVolumeModal] = useState(false);
     const [volumePolicies, setVolumePolicies] = useState<any[]>([]);
     const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [commissionToDelete, setCommissionToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [bulkPayConfirmOpen, setBulkPayConfirmOpen] = useState(false);
+    const [isBulkPaying, setIsBulkPaying] = useState(false);
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -202,25 +207,46 @@ const Commissions: React.FC = () => {
         } catch { toast.error('Failed to update'); }
     };
 
-    const handleBulkMarkPaid = async () => {
+    const handleBulkMarkPaidClick = () => {
         if (selectedIds.length === 0) return;
-        if (!confirm(`Mark ${selectedIds.length} records as paid?`)) return;
+        setBulkPayConfirmOpen(true);
+    };
+
+    const confirmBulkMarkPaid = async () => {
+        setIsBulkPaying(true);
         try {
             await api.put('/commissions/bulk-status', { ids: selectedIds, status: 'paid' });
             toast.success(`Marked ${selectedIds.length} as paid`);
             setSelectedIds([]);
+            setBulkPayConfirmOpen(false);
             fetchHistory();
-        } catch { toast.error('Bulk update failed'); }
+        } catch { 
+            toast.error('Bulk update failed'); 
+        } finally {
+            setIsBulkPaying(false);
+        }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this commission record?')) return;
+    const handleDeleteClick = (c: any) => {
+        setCommissionToDelete(c);
+        setDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!commissionToDelete) return;
+        setIsDeleting(true);
         try {
-            await api.delete(`/commissions/${id}`);
+            await api.delete(`/commissions/${commissionToDelete.id}`);
             toast.success('Deleted');
+            setDeleteConfirmOpen(false);
+            setCommissionToDelete(null);
             fetchHistory();
-            if (detailModal?.id === id) setDetailModal(null);
-        } catch { toast.error('Failed to delete'); }
+            if (detailModal?.id === commissionToDelete.id) setDetailModal(null);
+        } catch { 
+            toast.error('Failed to delete'); 
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const viewDetail = async (id: string) => {
@@ -847,7 +873,7 @@ const Commissions: React.FC = () => {
                                 <HiOutlineDocumentDownload className="w-4 h-4 mr-1" /> Export Excel
                             </button>
                             {selectedIds.length > 0 && (
-                                <button onClick={handleBulkMarkPaid} className="btn-primary animate-bounce-in whitespace-nowrap">
+                                <button onClick={handleBulkMarkPaidClick} className="btn-primary animate-bounce-in whitespace-nowrap">
                                     <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> Mark {selectedIds.length} Paid
                                 </button>
                             )}
@@ -928,7 +954,7 @@ const Commissions: React.FC = () => {
                                                         <button onClick={() => handleMarkPaid(c.id)} className="btn-ghost btn-sm text-emerald-600" title="Mark Paid"><HiOutlineCheckCircle className="w-3.5 h-3.5" /></button>
                                                     )}
                                                     <button
-                                                        onClick={() => handleDelete(c.id)}
+                                                        onClick={() => handleDeleteClick(c)}
                                                         className={`btn-ghost btn-sm ${c.status === 'paid' ? 'text-surface-300 cursor-not-allowed' : 'text-red-500'}`}
                                                         title={c.status === 'paid' ? 'Cannot delete paid records' : 'Delete'}
                                                         disabled={c.status === 'paid'}
@@ -1055,6 +1081,40 @@ const Commissions: React.FC = () => {
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
                         <button onClick={() => setShowVolumeModal(false)} className="btn-secondary">Close</button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Delete Commission Record" size="sm">
+                <div className="space-y-4">
+                    <p className="text-sm text-surface-600">
+                        Are you sure you want to delete this commission record for <strong>{commissionToDelete?.dealer?.name}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="btn-secondary flex-1" disabled={isDeleting}>
+                            Cancel
+                        </button>
+                        <Button type="button" onClick={confirmDelete} isLoading={isDeleting} className="btn-danger flex-1">
+                            Delete
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Bulk Pay Confirmation Modal */}
+            <Modal isOpen={bulkPayConfirmOpen} onClose={() => setBulkPayConfirmOpen(false)} title="Mark Paid" size="sm">
+                <div className="space-y-4">
+                    <p className="text-sm text-surface-600">
+                        Are you sure you want to mark <strong>{selectedIds.length}</strong> selected commission records as <strong>Paid</strong>?
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setBulkPayConfirmOpen(false)} className="btn-secondary flex-1" disabled={isBulkPaying}>
+                            Cancel
+                        </button>
+                        <Button type="button" onClick={confirmBulkMarkPaid} isLoading={isBulkPaying} className="btn-primary flex-1">
+                            Confirm
+                        </Button>
                     </div>
                 </div>
             </Modal>

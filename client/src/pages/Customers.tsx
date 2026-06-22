@@ -22,6 +22,10 @@ const Customers: React.FC = () => {
     const [form, setForm] = useState({ name: '', phone: '', email: '', address: '', dob: '' });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [submitting, setSubmitting] = useState(false);
+    const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [customerToDelete, setCustomerToDelete] = useState<any>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchCustomers = useCallback(async (page = 1) => {
         setLoading(true);
@@ -34,6 +38,34 @@ const Customers: React.FC = () => {
 
     useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
+    useEffect(() => {
+        const checkDuplicateCustomer = async () => {
+            if (form.name.trim() && form.phone.length === 10) {
+                try {
+                    const res = await api.get('/customers/check-duplicate', {
+                        params: {
+                            name: form.name.trim(),
+                            phone: form.phone,
+                            excludeId: editing?.id
+                        }
+                    });
+                    if (res.data.data.exists) {
+                        setDuplicateWarning(`⚠️ Note: A customer named "${form.name.trim()}" with phone ${form.phone} already exists in the system.`);
+                    } else {
+                        setDuplicateWarning(null);
+                    }
+                } catch {
+                    setDuplicateWarning(null);
+                }
+            } else {
+                setDuplicateWarning(null);
+            }
+        };
+
+        const timer = setTimeout(checkDuplicateCustomer, 500); // 500ms debounce
+        return () => clearTimeout(timer);
+    }, [form.name, form.phone, editing]);
+
     const validate = () => {
         const errs: Record<string, string> = {};
         if (!form.name.trim()) errs.name = 'Name is required';
@@ -42,7 +74,7 @@ const Customers: React.FC = () => {
         return errs;
     };
 
-    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', email: '', address: '', dob: '' }); setErrors({}); setModalOpen(true); };
+    const openCreate = () => { setEditing(null); setForm({ name: '', phone: '', email: '', address: '', dob: '' }); setErrors({}); setDuplicateWarning(null); setModalOpen(true); };
 
     const openEdit = (c: any) => {
         setEditing(c);
@@ -54,6 +86,7 @@ const Customers: React.FC = () => {
             dob: c.dob ? c.dob.split('T')[0] : ''
         });
         setErrors({});
+        setDuplicateWarning(null);
         setModalOpen(true);
     };
 
@@ -92,9 +125,25 @@ const Customers: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Delete this customer?')) return;
-        try { await api.delete(`/customers/${id}`); toast.success('Customer deleted'); fetchCustomers(meta.page); } catch { toast.error('Failed to delete'); }
+    const handleDeleteClick = (c: any) => {
+        setCustomerToDelete(c);
+        setDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!customerToDelete) return;
+        setIsDeleting(true);
+        try {
+            await api.delete(`/customers/${customerToDelete.id}`);
+            toast.success('Customer deleted');
+            setDeleteConfirmOpen(false);
+            setCustomerToDelete(null);
+            fetchCustomers(meta.page);
+        } catch {
+            toast.error('Failed to delete');
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     return (
@@ -130,7 +179,7 @@ const Customers: React.FC = () => {
                                             <div className="flex items-center gap-1">
                                                 <button onClick={() => viewDetail(c.id)} className="btn-ghost btn-sm"><HiOutlineEye className="w-3.5 h-3.5" /></button>
                                                 <button onClick={() => openEdit(c)} className="btn-ghost btn-sm"><HiOutlinePencil className="w-3.5 h-3.5" /></button>
-                                                <button onClick={() => handleDelete(c.id)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
+                                                <button onClick={() => handleDeleteClick(c)} className="btn-ghost btn-sm text-red-500"><HiOutlineTrash className="w-3.5 h-3.5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -146,7 +195,7 @@ const Customers: React.FC = () => {
                                 <p className="text-xs text-surface-500">{c.phone || 'No phone'} • {c.email || 'No email'}</p>
                                 <div className="flex gap-2 mt-3">
                                     <button onClick={(e) => { e.stopPropagation(); openEdit(c); }} className="btn-secondary btn-sm flex-1">Edit</button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }} className="btn-danger btn-sm">Delete</button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteClick(c); }} className="btn-danger btn-sm">Delete</button>
                                 </div>
                             </div>
                         ))}
@@ -218,6 +267,11 @@ const Customers: React.FC = () => {
                             />
                         </div>
                     </div>
+                    {duplicateWarning && (
+                        <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-center gap-2 font-medium">
+                            {duplicateWarning}
+                        </div>
+                    )}
                     <div className="flex gap-3 pt-2">
                         <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1" disabled={submitting}>Cancel</button>
                         <Button type="submit" isLoading={submitting} className="btn-primary flex-1">
@@ -270,6 +324,23 @@ const Customers: React.FC = () => {
                         )}
                     </div>
                 )}
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Delete Customer" size="sm">
+                <div className="space-y-4">
+                    <p className="text-sm text-surface-600">
+                        Are you sure you want to delete the customer <strong>{customerToDelete?.name}</strong>? This action cannot be undone.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                        <button type="button" onClick={() => setDeleteConfirmOpen(false)} className="btn-secondary flex-1" disabled={isDeleting}>
+                            Cancel
+                        </button>
+                        <Button type="button" onClick={confirmDelete} isLoading={isDeleting} className="btn-danger flex-1">
+                            Delete
+                        </Button>
+                    </div>
+                </div>
             </Modal>
 
             <button onClick={openCreate} className="fab lg:hidden"><HiOutlinePlus className="w-6 h-6" /></button>

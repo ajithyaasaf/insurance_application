@@ -9,6 +9,7 @@ router.use(authenticate);
 
 router.post('/', validate(createCustomerSchema), (req, res, next) => customerController.create(req, res, next));
 router.get('/', (req, res, next) => customerController.findAll(req, res, next));
+router.get('/check-duplicate', (req, res, next) => customerController.checkDuplicate(req, res, next));
 router.get('/:id', (req, res, next) => customerController.findById(req, res, next));
 router.put('/:id', validate(updateCustomerSchema), (req, res, next) => customerController.update(req, res, next));
 router.delete('/:id', (req, res, next) => customerController.delete(req, res, next));

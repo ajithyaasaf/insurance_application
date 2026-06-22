@@ -43,6 +43,14 @@ export class CustomerController {
             sendSuccess({ res, statusCode: 200, message: 'Customer deleted' });
         } catch (e: any) { e.statusCode ? sendError({ res, statusCode: e.statusCode, message: e.message }) : next(e); }
     }
+
+    async checkDuplicate(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { name, phone, excludeId } = req.query as any;
+            const result = await customerService.checkDuplicate(req.user!.userId, req.user!.role, { name, phone, excludeId });
+            sendSuccess({ res, statusCode: 200, message: 'Duplicate checked', data: result });
+        } catch (e: any) { next(e); }
+    }
 }
 
 export const customerController = new CustomerController();
