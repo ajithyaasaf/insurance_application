@@ -1595,41 +1595,36 @@ export class ReportService {
                 return colKey === 'sNo' ? 35 : otherColWidth;
             };
 
-            // Header row
-            doc.fontSize(8).font('Helvetica-Bold');
-            let x = startX;
-            const headerY = doc.y; // Fix: lock Y coordinate for the entire row
             const isPolicyReport = source === 'policies' || source === 'policies-expired';
             const headerHeight = isPolicyReport ? 28 : 22;
 
-            for (const col of visibleCols) {
-                const w = getColWidth(col.key);
+            const drawHeaders = (yCoord: number) => {
+                doc.fontSize(8).font('Helvetica-Bold');
+                let hX = startX;
+                for (const col of visibleCols) {
+                    const w = getColWidth(col.key);
+                    // Background color for header
+                    doc.rect(hX, yCoord, w, headerHeight).fill('#1e1b4b');
+                    // Header Border
+                    doc.lineWidth(0.2).rect(hX, yCoord, w, headerHeight).stroke('#ffffff');
+                    // Replace Rupee symbol with Rs. to avoid PDFKit character rendering issues
+                    const labelText = col.label.replace(/₹/g, 'Rs.');
+                    // Dynamically calculate height of text to center it perfectly vertically
+                    const textHeight = doc.heightOfString(labelText, { width: w - 4 });
+                    const yOffset = (headerHeight - textHeight) / 2;
+                    // Draw header text centered
+                    doc.fillColor('#FFFFFF')
+                        .text(labelText, hX + 2, yCoord + yOffset, {
+                            width: w - 4,
+                            align: 'center'
+                        });
+                    hX += w;
+                }
+                doc.y = yCoord + headerHeight;
+            };
 
-                // Background color for header
-                doc.rect(x, headerY, w, headerHeight).fill('#1e1b4b');
-
-                // Header Border
-                doc.lineWidth(0.2).rect(x, headerY, w, headerHeight).stroke('#ffffff');
-
-                // Replace Rupee symbol with Rs. to avoid PDFKit character rendering issues
-                const labelText = col.label.replace(/₹/g, 'Rs.');
-
-                // Dynamically calculate height of text to center it perfectly vertically
-                const textHeight = doc.heightOfString(labelText, { width: w - 4 });
-                const yOffset = (headerHeight - textHeight) / 2;
-
-                // Draw header text centered
-                doc.fillColor('#FFFFFF')
-                    .text(labelText, x + 2, headerY + yOffset, {
-                        width: w - 4,
-                        align: 'center'
-                    });
-
-                x += w;
-            }
-
-            // Step cursor past header
-            doc.y = headerY + headerHeight;
+            // Draw initial headers
+            drawHeaders(doc.y);
 
             // Data rows
             let rowIdx = 0;
@@ -1665,12 +1660,12 @@ export class ReportService {
                 const currentRowHeight = Math.max(defaultRowHeight, Math.round(maxTextHeight + 8));
 
                 // Page overflow check (using dynamic row height)
-                if (doc.y > doc.page.height - 60) {
+                if (doc.y + currentRowHeight > doc.page.height - 60) {
                     doc.addPage();
-                    doc.y = 40;
+                    drawHeaders(40);
                 }
 
-                x = startX;
+                let x = startX;
                 const rowY = doc.y; // Fix: lock Y coordinate for this specific row data
                 const bgColor = rowIdx % 2 === 0 ? '#F9FAFB' : '#FFFFFF';
 
@@ -2013,21 +2008,26 @@ export class ReportService {
             doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e1b4b').text('Policies Ledger', 40, 40);
             doc.moveDown(0.5);
 
-            let rowY = doc.y;
-            doc.rect(40, rowY, 515, 20).fill('#4338ca');
-            doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
-                .text('Policy No', 45, rowY + 6)
-                .text('Insurer', 150, rowY + 6)
-                .text('Vehicle / Details', 270, rowY + 6)
-                .text('Premium', 370, rowY + 6, { width: 80, align: 'right' })
-                .text('Expiry Date', 470, rowY + 6, { width: 80, align: 'right' });
+            const drawLedgerHeader = (yCoord: number) => {
+                doc.rect(40, yCoord, 515, 20).fill('#4338ca');
+                doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
+                    .text('Policy No', 45, yCoord + 6)
+                    .text('Insurer', 150, yCoord + 6)
+                    .text('Vehicle / Details', 270, yCoord + 6)
+                    .text('Premium', 370, yCoord + 6, { width: 80, align: 'right' })
+                    .text('Expiry Date', 470, yCoord + 6, { width: 80, align: 'right' });
+                return yCoord + 20;
+            };
 
-            rowY += 20;
+            let rowY = doc.y;
+            rowY = drawLedgerHeader(rowY);
+
             doc.fontSize(8).font('Helvetica').fillColor('#334155');
             for (const p of result.data || []) {
-                if (rowY > doc.page.height - 60) {
+                if (rowY + 16 > doc.page.height - 40) {
                     doc.addPage();
-                    rowY = 40;
+                    rowY = drawLedgerHeader(40);
+                    doc.fontSize(8).font('Helvetica').fillColor('#334155');
                 }
                 const detailText = p.policyType?.toLowerCase() === 'motor' ? (p.vehicleNo || '—') : (p.productName || '—');
                 doc.rect(40, rowY, 515, 16).stroke('#f1f5f9');
@@ -2045,21 +2045,26 @@ export class ReportService {
                 doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e1b4b').text('Claims History Statement', 40, 40);
                 doc.moveDown(0.5);
 
-                let claimRowY = doc.y;
-                doc.rect(40, claimRowY, 515, 20).fill('#be123c');
-                doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
-                    .text('Claim No', 45, claimRowY + 6)
-                    .text('Policy No', 150, claimRowY + 6)
-                    .text('Vehicle / Details', 270, claimRowY + 6)
-                    .text('Bill Amount (₹)', 360, claimRowY + 6, { width: 80, align: 'right' })
-                    .text('Settled (₹)', 460, claimRowY + 6, { width: 80, align: 'right' });
+                const drawClaimsHeader = (yCoord: number) => {
+                    doc.rect(40, yCoord, 515, 20).fill('#be123c');
+                    doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
+                        .text('Claim No', 45, yCoord + 6)
+                        .text('Policy No', 150, yCoord + 6)
+                        .text('Vehicle / Details', 270, yCoord + 6)
+                        .text('Bill Amount (₹)', 360, yCoord + 6, { width: 80, align: 'right' })
+                        .text('Settled (₹)', 460, yCoord + 6, { width: 80, align: 'right' });
+                    return yCoord + 20;
+                };
 
-                claimRowY += 20;
+                let claimRowY = doc.y;
+                claimRowY = drawClaimsHeader(claimRowY);
+
                 doc.fontSize(8).font('Helvetica').fillColor('#334155');
                 for (const c of result.claims || []) {
-                    if (claimRowY > doc.page.height - 60) {
+                    if (claimRowY + 16 > doc.page.height - 40) {
                         doc.addPage();
-                        claimRowY = 40;
+                        claimRowY = drawClaimsHeader(40);
+                        doc.fontSize(8).font('Helvetica').fillColor('#334155');
                     }
                     const detailText = c.policyType?.toLowerCase() === 'motor' ? (c.vehicleNumber || '—') : (c.productName || '—');
                     doc.rect(40, claimRowY, 515, 16).stroke('#f1f5f9');
@@ -2078,21 +2083,26 @@ export class ReportService {
                 doc.fontSize(14).font('Helvetica-Bold').fillColor('#1e1b4b').text('Upcoming Expiry & Renewal Forecast', 40, 40);
                 doc.moveDown(0.5);
 
-                let expRowY = doc.y;
-                doc.rect(40, expRowY, 515, 20).fill('#b45309');
-                doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
-                    .text('Policy No', 45, expRowY + 6)
-                    .text('Insurer', 150, expRowY + 6)
-                    .text('Vehicle / Details', 270, expRowY + 6)
-                    .text('Expiry Date', 370, expRowY + 6)
-                    .text('Days Remaining', 470, expRowY + 6, { width: 80, align: 'right' });
+                const drawExpiringHeader = (yCoord: number) => {
+                    doc.rect(40, yCoord, 515, 20).fill('#b45309');
+                    doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold')
+                        .text('Policy No', 45, yCoord + 6)
+                        .text('Insurer', 150, yCoord + 6)
+                        .text('Vehicle / Details', 270, yCoord + 6)
+                        .text('Expiry Date', 370, yCoord + 6)
+                        .text('Days Remaining', 470, yCoord + 6, { width: 80, align: 'right' });
+                    return yCoord + 20;
+                };
 
-                expRowY += 20;
+                let expRowY = doc.y;
+                expRowY = drawExpiringHeader(expRowY);
+
                 doc.fontSize(8).font('Helvetica').fillColor('#334155');
                 for (const e of result.expiring || []) {
-                    if (expRowY > doc.page.height - 60) {
+                    if (expRowY + 16 > doc.page.height - 40) {
                         doc.addPage();
-                        expRowY = 40;
+                        expRowY = drawExpiringHeader(40);
+                        doc.fontSize(8).font('Helvetica').fillColor('#334155');
                     }
                     const detailText = e.policyType?.toLowerCase() === 'motor' ? (e.vehicleNo || '—') : (e.productName || '—');
                     doc.rect(40, expRowY, 515, 16).stroke('#f1f5f9');
