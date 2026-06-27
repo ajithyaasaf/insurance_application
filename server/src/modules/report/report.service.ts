@@ -292,6 +292,8 @@ function buildPaymentWhere(userId: string, role: string, filters?: ReportFilters
         if (filters.status === 'overdue') {
             where.status = { in: ['pending', 'partial'] };
             where.dueDate = { lt: todayIST };
+        } else if (filters.status === 'pending') {
+            where.status = { in: ['pending', 'partial', 'overdue'] };
         } else {
             where.status = filters.status;
         }

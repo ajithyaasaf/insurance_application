@@ -107,7 +107,7 @@ export class PaymentService {
             // 'pending' → also include DB records stored as 'overdue' (legacy from detectOverdue mutations)
             // other statuses → match directly
             ...(status === 'overdue' && { status: { in: ['pending', 'partial', 'overdue'] } }),
-            ...(status === 'pending' && { status: { in: ['pending', 'overdue'] } }),
+            ...(status === 'pending' && { status: { in: ['pending', 'overdue', 'partial'] } }),
             ...(status && status !== 'overdue' && status !== 'pending' && { status: status as any }),
             ...(Object.keys(dueDateFilter).length > 0 && { dueDate: dueDateFilter }),
             ...(dealerId === 'direct' ? { policy: { dealerId: null } } : dealerId ? { policy: { dealerId } } : {}),
