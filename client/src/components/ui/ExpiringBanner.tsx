@@ -34,10 +34,6 @@ const ExpiringBanner: React.FC = () => {
     };
 
     useEffect(() => {
-        // Check if user dismissed it in this session
-        const isDismissed = sessionStorage.getItem('expiring_banner_dismissed');
-        if (isDismissed === 'true') return;
-
         const fetchExpiringPolicies = async () => {
             try {
                 const res = await api.get('/policies', {
@@ -88,7 +84,6 @@ const ExpiringBanner: React.FC = () => {
     const handleDismiss = (e: React.MouseEvent) => {
         e.stopPropagation();
         setVisible(false);
-        sessionStorage.setItem('expiring_banner_dismissed', 'true');
     };
 
     const handleAction = (policyId: string) => {
