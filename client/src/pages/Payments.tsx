@@ -7,9 +7,12 @@ import TableSkeleton from '../components/ui/TableSkeleton';
 import SearchableSelect from '../components/ui/SearchableSelect';
 import { formatDate, formatCurrency, getStatusColor, scrollToFirstError, formatVehicleClass } from '../utils/format';
 import toast from 'react-hot-toast';
-import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineCreditCard } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineCreditCard, HiOutlineDocumentDownload } from 'react-icons/hi';
 import { PAYMENT_STATUSES as statusOptions, VEHICLE_CLASSES } from '../utils/constants';
 import Button from '../components/ui/Button';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 
 
@@ -136,11 +139,137 @@ const Payments: React.FC = () => {
         } catch { toast.error('Failed'); } finally { setIsDetecting(false); }
     };
 
+    const exportPDF = async () => {
+        if (payments.length === 0) {
+            toast.error('No payments to export');
+            return;
+        }
+
+        toast.loading('Generating PDF...', { id: 'export-pdf' });
+        try {
+            const res = await api.get('/payments', {
+                params: {
+                    limit: 10000,
+                    status: statusFilter || undefined,
+                    search: search || undefined,
+                    dateFrom: dateFrom || undefined,
+                    dateTo: dateTo || undefined,
+                    dealerId: dealerFilter || undefined,
+                    vehicleClass: vehicleClassFilter || undefined,
+                },
+            });
+            const dataToPrint = res.data.data || [];
+
+            const doc = new jsPDF();
+
+            // Branding Header
+            doc.setFontSize(22);
+            doc.setTextColor(30, 58, 138); // Royal Blue
+            doc.text('ROYAL INSURANCE', 14, 22);
+
+            doc.setFontSize(10);
+            doc.setTextColor(107, 114, 128); // Gray
+            doc.text('Proprietor: Senthil Kumar', 14, 28);
+            doc.text('Madurai, Tamil Nadu', 14, 33);
+
+            // Divider Line
+            doc.setDrawColor(229, 231, 235);
+            doc.setLineWidth(0.5);
+            doc.line(14, 38, doc.internal.pageSize.width - 14, 38);
+
+            // Report Info
+            doc.setTextColor(17, 24, 39); // Almost Black
+            doc.setFontSize(14);
+            doc.text('Payment Report', 14, 48);
+
+            doc.setFontSize(10);
+            let filterText = `Filter: ${statusFilter ? statusFilter.toUpperCase() : 'ALL STATUS'}`;
+            if (dealerFilter) {
+                const selectedDealer = dealers.find(d => d.id === dealerFilter);
+                filterText += ` | Dealer: ${dealerFilter === 'direct' ? 'Direct' : (selectedDealer?.name || 'Selected')}`;
+            }
+            if (vehicleClassFilter) {
+                filterText += ` | Class: ${formatVehicleClass(vehicleClassFilter)}`;
+            }
+            if (dateFrom || dateTo) {
+                filterText += ` | Period: ${dateFrom ? formatDate(dateFrom) : 'Start'} to ${dateTo ? formatDate(dateTo) : 'End'}`;
+            }
+            doc.text(filterText, 14, 56);
+
+            const rightX = doc.internal.pageSize.width - 14;
+            doc.text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, rightX, 56, { align: 'right' });
+
+            const totalAmount = dataToPrint.reduce((sum: number, p: any) => sum + p.amount, 0);
+            const totalPaid = dataToPrint.reduce((sum: number, p: any) => sum + (p.paidAmount || 0), 0);
+            const totalOutstanding = totalAmount - totalPaid;
+
+            // Table with optimized columns to fit exactly in A4 width (182mm print area with 14mm margins)
+            autoTable(doc, {
+                startY: 65,
+                margin: { left: 14, right: 14 },
+                head: [['S.No.', 'Customer', 'Policy Details', 'Due Date', 'Amount', 'Paid', 'Outstanding', 'Status']],
+                body: dataToPrint.map((p: any, i: number) => {
+                    const outstanding = p.amount - (p.paidAmount || 0);
+                    return [
+                        i + 1,
+                        p.customer?.name || '-',
+                        `${p.policy?.productName || p.policy?.policyType || '—'}${p.policy?.vehicleNumber ? ` (${p.policy.vehicleNumber})` : ''}`,
+                        formatDate(p.dueDate),
+                        p.amount.toLocaleString('en-IN'),
+                        p.paidAmount ? p.paidAmount.toLocaleString('en-IN') : '—',
+                        outstanding.toLocaleString('en-IN'),
+                        p.status.toUpperCase(),
+                    ];
+                }),
+                foot: [[
+                    { content: 'Total Outstanding:', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold', textColor: [31, 41, 55], fillColor: [249, 250, 251] } },
+                    { content: totalOutstanding.toLocaleString('en-IN'), styles: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38], fillColor: [249, 250, 251] } },
+                    { content: '', styles: { fillColor: [249, 250, 251] } }
+                ]],
+                showFoot: 'lastPage',
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 3,
+                    valign: 'middle',
+                    overflow: 'linebreak',
+                    lineWidth: 0.2,
+                    lineColor: [209, 213, 219]
+                },
+                headStyles: {
+                    fillColor: [30, 58, 138],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    halign: 'center',
+                },
+                columnStyles: {
+                    0: { cellWidth: 10, halign: 'center' },
+                    1: { cellWidth: 35, halign: 'left' },
+                    2: { cellWidth: 40, halign: 'left' },
+                    3: { cellWidth: 20, halign: 'center' },
+                    4: { cellWidth: 18, halign: 'right' },
+                    5: { cellWidth: 18, halign: 'right' },
+                    6: { cellWidth: 22, halign: 'right', fontStyle: 'bold' },
+                    7: { cellWidth: 19, halign: 'center' }
+                }
+            });
+
+            doc.save(`payments_${statusFilter || 'report'}_${new Date().toISOString().split('T')[0]}.pdf`);
+            toast.success('PDF Downloaded!', { id: 'export-pdf' });
+        } catch (err) {
+            toast.error('Failed to generate PDF', { id: 'export-pdf' });
+        }
+    };
+
+
     return (
         <div className="space-y-4 animate-fade-in">
             <div className="page-header">
                 <h1 className="page-title">Payments</h1>
                 <div className="flex gap-2">
+                    <Button onClick={exportPDF} className="btn-secondary flex items-center gap-1">
+                        <HiOutlineDocumentDownload className="w-4 h-4" /> Export PDF
+                    </Button>
                     <Button onClick={handleDetectOverdue} isLoading={isDetecting} className="btn-secondary text-amber-600">Detect Overdue</Button>
                     <button onClick={openCreate} className="btn-primary"><HiOutlinePlus className="w-4 h-4" /> Add Payment</button>
                 </div>
@@ -242,7 +371,7 @@ const Payments: React.FC = () => {
                             </tbody>
                             <tfoot className="bg-surface-50 font-bold">
                                 <tr>
-                                    <td colSpan={5} className="text-right py-3">Total Outstanding (This Page):</td>
+                                    <td colSpan={5} className="text-right py-3">Total Outstanding :</td>
                                     <td className="text-red-600 py-3">
                                         {formatCurrency(payments.reduce((sum, p) => sum + (p.amount - (p.paidAmount || 0)), 0))}
                                     </td>
