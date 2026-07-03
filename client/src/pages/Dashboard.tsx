@@ -27,8 +27,10 @@ interface DashboardData {
         pendingPaymentsCount: number;
         overduePaymentsCount: number;
         todayBirthdaysCount?: number;
+        expiredPoliciesCount?: number;
     };
     expiringPolicies: any[];
+    expiredPolicies?: any[];
     todayFollowUps: any[];
     pendingPayments: any[];
     overduePayments: any[];
@@ -42,7 +44,7 @@ const Dashboard: React.FC = () => {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [activePaymentTab, setActivePaymentTab] = useState<'overdue' | 'upcoming'>('overdue');
-    const [activeExpiryTab, setActiveExpiryTab] = useState<'7days' | '30days'>('30days');
+    const [activeExpiryTab, setActiveExpiryTab] = useState<'7days' | '30days' | 'expired'>('30days');
     const navigate = useNavigate();
 
     const handleWhatsAppWish = (customer: any) => {
@@ -201,6 +203,13 @@ const Dashboard: React.FC = () => {
                                 >
                                     30 Days ({data.expiringPolicies.length})
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveExpiryTab('expired')}
+                                    className={`px-2.5 py-1 rounded-md transition-all duration-150 ${activeExpiryTab === 'expired' ? 'bg-white text-red-600 shadow-sm border border-surface-200 font-bold' : 'text-surface-500 hover:text-surface-900'}`}
+                                >
+                                    Expired ({data.stats.expiredPoliciesCount || 0})
+                                </button>
                             </div>
                         </div>
                         <button onClick={() => navigate('/policies')} className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-0.5 sm:gap-1">
@@ -211,12 +220,16 @@ const Dashboard: React.FC = () => {
                         {(() => {
                             const filteredPolicies = activeExpiryTab === '7days'
                                 ? data.expiringPolicies.filter(p => daysUntil(p.expiryDate) <= 7)
+                                : activeExpiryTab === 'expired'
+                                ? data.expiredPolicies || []
                                 : data.expiringPolicies;
 
                             if (filteredPolicies.length === 0) {
                                 return (
                                     <p className="px-5 py-8 text-center text-sm text-surface-400">
-                                        No policies expiring in {activeExpiryTab === '7days' ? '7' : '30'} days
+                                        {activeExpiryTab === 'expired'
+                                            ? 'No expired policies'
+                                            : `No policies expiring in ${activeExpiryTab === '7days' ? '7' : '30'} days`}
                                     </p>
                                 );
                             }
@@ -240,7 +253,7 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="text-right flex-shrink-0 ml-4">
-                                        <p className={`text-xs font-medium ${daysUntil(policy.expiryDate) <= 7 ? 'text-red-600' : 'text-amber-600'}`}>
+                                        <p className={`text-xs font-medium ${activeExpiryTab === 'expired' || daysUntil(policy.expiryDate) <= 7 ? 'text-red-600' : 'text-amber-600'}`}>
                                             {formatRelativeDate(policy.expiryDate)}
                                         </p>
                                         <p className="text-xs text-surface-400">{formatDate(policy.expiryDate)}</p>
