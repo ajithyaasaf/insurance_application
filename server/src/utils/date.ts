@@ -57,7 +57,7 @@ export const buildStatusFilter = (status: string) => {
     } else if (status === 'expired') {
         return {
             OR: [
-                { status: 'expired' as PolicyStatus },
+                { status: 'expired' as PolicyStatus, expiryDate: { lt: todayIST } },
                 // An 'active' record whose expiry has passed is functionally expired
                 { status: 'active' as PolicyStatus, expiryDate: { lt: todayIST } }
             ]
