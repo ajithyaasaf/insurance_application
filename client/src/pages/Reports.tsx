@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { 
     HiOutlineChartBar, 
-    HiOutlineAdjustments 
+    HiOutlineAdjustments,
+    HiOutlineTrendingUp
 } from 'react-icons/hi';
 import DashboardTab from '../components/reports/DashboardTab';
 import ReportBuilderTab from '../components/reports/ReportBuilderTab';
+import FinancialYearTab from '../components/reports/FinancialYearTab';
 import { useAuth } from '../context/AuthContext';
 
-type TabId = 'dashboard' | 'builder';
+type TabId = 'dashboard' | 'fy-analytics' | 'builder';
 
 const Reports: React.FC = () => {
     const { user } = useAuth();
@@ -16,6 +18,7 @@ const Reports: React.FC = () => {
 
     const tabs = [
         ...(!isStaff ? [{ id: 'dashboard' as TabId, label: 'Dashboard', icon: HiOutlineChartBar }] : []),
+        ...(!isStaff ? [{ id: 'fy-analytics' as TabId, label: 'Financial Year Analytics', icon: HiOutlineTrendingUp }] : []),
         { id: 'builder' as TabId, label: 'Report Builder', icon: HiOutlineAdjustments },
     ];
 
@@ -53,6 +56,7 @@ const Reports: React.FC = () => {
             {/* Tab content */}
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {activeTab === 'dashboard' && !isStaff && <DashboardTab />}
+                {activeTab === 'fy-analytics' && !isStaff && <FinancialYearTab />}
                 {activeTab === 'builder' && <ReportBuilderTab />}
             </div>
         </div>

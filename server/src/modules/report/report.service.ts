@@ -1182,6 +1182,45 @@ export class ReportService {
                 total: groups.length,
             };
         }
+
+        if (groupBy === 'month') {
+            const dateFrom = filters?.dateFrom ? new Date(filters.dateFrom) : undefined;
+            const dateTo = filters?.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
+
+            const isGlobalRoleC = ['agent', 'staff', 'admin'].includes(role);
+            const ownershipFilterC = isGlobalRoleC
+                ? Prisma.sql`1=1`
+                : Prisma.sql`c."userId" = ${userId}::uuid`;
+
+            const results: any[] = await prisma.$queryRaw`
+                SELECT 
+                    TO_CHAR(DATE_TRUNC('month', c."claimDate"), 'Mon YYYY') AS name,
+                    COUNT(*)::INT AS count,
+                    SUM(COALESCE(c."billAmount", c."estimatedAmount", c."claimAmount", 0))::FLOAT AS "billSum",
+                    SUM(COALESCE(c."claimAmount", 0))::FLOAT AS "claimSum"
+                FROM "Claim" c
+                ${(filters?.companyId || filters?.dealerId || filters?.policyType) ? Prisma.sql`JOIN "Policy" pol ON c."policyId" = pol."id"` : Prisma.empty}
+                WHERE 
+                    ${ownershipFilterC}
+                    ${dateFrom ? Prisma.sql`AND c."claimDate" >= ${dateFrom}` : Prisma.empty}
+                    ${dateTo ? Prisma.sql`AND c."claimDate" <= ${dateTo}` : Prisma.empty}
+                    ${filters?.customerId ? Prisma.sql`AND c."customerId" = ${filters.customerId}` : Prisma.empty}
+                    ${filters?.companyId ? Prisma.sql`AND pol."companyId" = ${filters.companyId}` : Prisma.empty}
+                    ${filters?.dealerId ? Prisma.sql`AND pol."dealerId" = ${filters.dealerId}` : Prisma.empty}
+                    ${filters?.policyType ? Prisma.sql`AND pol."policyType"::text = ${filters.policyType}` : Prisma.empty}
+                GROUP BY DATE_TRUNC('month', c."claimDate")
+                ORDER BY DATE_TRUNC('month', c."claimDate") DESC
+            `;
+
+            const columns = [
+                { key: 'name', label: 'Month' },
+                { key: 'count', label: 'Total Claims' },
+                { key: 'billSum', label: 'Claimed Amount (₹)' },
+                { key: 'claimSum', label: 'Settled Amount (₹)' },
+            ];
+            return { grouped: true, groupLabel: 'Month', columns, data: results, total: results.length };
+        }
+
         return null;
     }
 
@@ -1332,6 +1371,8 @@ export class ReportService {
             renewalStats,
             periodCount,
             periodPremium,
+            vehicleClassPerformance,
+            claimsTrend,
         ] = await Promise.all([
             // Company-wise performance (filtered)
             this.groupPolicies(userId, role, periodFilters, 'company'),
@@ -1369,6 +1410,12 @@ export class ReportService {
                 where: kpiWhere,
                 _sum: { premiumAmount: true, totalPremium: true },
             }),
+
+            // Vehicle Class performance (filtered)
+            this.groupPolicies(userId, role, periodFilters, 'vehicleClass'),
+
+            // Claims month-wise trend (filtered)
+            this.groupClaims(userId, role, periodFilters, 'month'),
         ]);
 
         const [renewedCount, expiredCount] = renewalStats;
@@ -1380,6 +1427,8 @@ export class ReportService {
             dealerPerformance,
             monthlyTrend,
             paymentSummary,
+            vehicleClassPerformance,
+            claimsTrend,
             renewalStats: {
                 renewed: renewedCount,
                 expired: expiredCount,
@@ -1392,6 +1441,8 @@ export class ReportService {
             thisMonth: {
                 policiesAdded: periodCount,
                 totalPremium: totalRev,
+                netPremium: (periodPremium as any)?._sum?.premiumAmount || 0,
+                tax: ((periodPremium as any)?._sum?.totalPremium || 0) - ((periodPremium as any)?._sum?.premiumAmount || 0),
             },
         };
     }
@@ -2119,6 +2170,73 @@ export class ReportService {
 
             doc.end();
         });
+    }
+
+    async getFinancialYears(userId: string, role: string) {
+        const range = await prisma.policy.aggregate({
+            where: {
+                ...ownerFilter(userId, role),
+                deletedAt: null
+            },
+            _min: { startDate: true },
+            _max: { startDate: true }
+        });
+
+        const minDate = range._min.startDate;
+        const maxDate = range._max.startDate;
+
+        // If no data exists, default to current financial year
+        if (!minDate || !maxDate) {
+            const currentYear = new Date().getFullYear();
+            const currentMonth = new Date().getMonth();
+            const startYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+            const endYear = startYear + 1;
+            return [
+                {
+                    label: `FY ${startYear}-${endYear.toString().slice(-2)}`,
+                    dateFrom: `${startYear}-04-01`,
+                    dateTo: `${endYear}-03-31`
+                }
+            ];
+        }
+
+        const minYear = minDate.getFullYear();
+        const minMonth = minDate.getMonth();
+        const startFYYear = minMonth < 3 ? minYear - 1 : minYear;
+
+        const maxYear = maxDate.getFullYear();
+        const maxMonth = maxDate.getMonth();
+        const endFYYear = maxMonth < 3 ? maxYear - 1 : maxYear;
+
+        const fyears = [];
+        for (let y = endFYYear; y >= startFYYear; y--) {
+            const nextYearShort = (y + 1).toString().slice(-2);
+            const dateFrom = `${y}-04-01`;
+            const dateTo = `${y + 1}-03-31`;
+
+            // Calculate aggregate data for this financial year
+            const stats = await prisma.policy.aggregate({
+                where: {
+                    ...ownerFilter(userId, role),
+                    deletedAt: null,
+                    startDate: {
+                        gte: new Date(`${dateFrom}T00:00:00.000Z`),
+                        lte: new Date(`${dateTo}T23:59:59.999Z`)
+                    }
+                },
+                _count: { id: true },
+                _sum: { totalPremium: true }
+            });
+
+            fyears.push({
+                label: `FY ${y}-${nextYearShort}`,
+                dateFrom,
+                dateTo,
+                policyCount: stats._count.id || 0,
+                totalPremium: stats._sum.totalPremium || 0
+            });
+        }
+        return fyears;
     }
 }
 
