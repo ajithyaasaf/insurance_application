@@ -144,30 +144,17 @@ export class PolicyService {
                     }
                 });
             } else if (paidAmount > 0.01) {
-                // Scenario 2: Partial Payment at creation (Split into two records)
-                // A. The Paid portion
+                // Scenario 2: Partial Payment at creation (Single partial payment record)
                 await tx.payment.create({
                     data: {
                         userId,
                         policyId: policy.id,
                         customerId: data.customerId,
-                        amount: paidAmount,
+                        amount: fullPremium,
                         paidAmount: paidAmount,
                         paidDate: new Date(),
                         dueDate: policy.startDate,
-                        status: 'paid',
-                        createdBy: role,
-                    }
-                });
-                // B. The Pending balance
-                await tx.payment.create({
-                    data: {
-                        userId,
-                        policyId: policy.id,
-                        customerId: data.customerId,
-                        amount: fullPremium - paidAmount,
-                        dueDate: policy.startDate,
-                        status: 'pending',
+                        status: 'partial',
                         createdBy: role,
                     }
                 });
@@ -423,17 +410,34 @@ export class PolicyService {
                 const totalCollected = collections._sum.paidAmount || 0;
                 const newBalance = Math.max(0, newEffective - totalCollected);
 
-                // 2. Update the pending placeholder to the new balance
-                await tx.payment.updateMany({
+                // 2. Update the pending or partial placeholder to the new balance
+                const pendingPayment = await tx.payment.findFirst({
                     where: {
                         policyId: id,
                         ...ownerFilter(userId, role),
                         status: 'pending'
-                    },
-                    data: {
-                        amount: newBalance
                     }
                 });
+                if (pendingPayment) {
+                    await tx.payment.update({
+                        where: { id: pendingPayment.id },
+                        data: { amount: newBalance }
+                    });
+                } else {
+                    const partialPayment = await tx.payment.findFirst({
+                        where: {
+                            policyId: id,
+                            ...ownerFilter(userId, role),
+                            status: 'partial'
+                        }
+                    });
+                    if (partialPayment) {
+                        await tx.payment.update({
+                            where: { id: partialPayment.id },
+                            data: { amount: newEffective }
+                        });
+                    }
+                }
             }
 
             return mapPolicyStatus(updatedPolicy);
@@ -580,28 +584,17 @@ export class PolicyService {
                     }
                 });
             } else if (paidAmount > 0.01) {
-                // Scenario 2: Partial Payment at renewal
+                // Scenario 2: Partial Payment at renewal (Single partial payment record)
                 await tx.payment.create({
                     data: {
                         userId,
                         policyId: renewedPolicy.id,
                         customerId: originalPolicy.customerId,
-                        amount: paidAmount,
+                        amount: fullPremium,
                         paidAmount: paidAmount,
                         paidDate: new Date(),
                         dueDate: renewedPolicy.startDate,
-                        status: 'paid',
-                        createdBy: role,
-                    }
-                });
-                await tx.payment.create({
-                    data: {
-                        userId,
-                        policyId: renewedPolicy.id,
-                        customerId: originalPolicy.customerId,
-                        amount: fullPremium - paidAmount,
-                        dueDate: renewedPolicy.startDate,
-                        status: 'pending',
+                        status: 'partial',
                         createdBy: role,
                     }
                 });
