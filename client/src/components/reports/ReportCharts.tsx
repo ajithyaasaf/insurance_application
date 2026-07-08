@@ -1,17 +1,28 @@
 import React from 'react';
-import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-    Tooltip as RechartsTooltip, ResponsiveContainer, 
-    Cell, PieChart, Pie, Legend 
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid,
+    Tooltip as RechartsTooltip, ResponsiveContainer,
+    Cell, PieChart, Pie, Legend
 } from 'recharts';
 import { formatCurrency, formatShortCurrency } from '../../utils/format';
 
-export const BarChartRow: React.FC<{ data: any[], nameKey: string, valueKey: string, label: string }> = ({ data, nameKey, valueKey, label }) => {
+export const BarChartRow: React.FC<{
+    data: any[],
+    nameKey: string,
+    valueKey: string,
+    label: string,
+    limit?: number
+}> = ({ data, nameKey, valueKey, label, limit }) => {
     if (!data?.length) return null;
     const maxVal = Math.max(...data.map((d: any) => d[valueKey] || 0), 1);
+    const displayData = limit ? data.slice(0, limit) : data;
     return (
         <div className="space-y-2.5 mt-2">
-            {data.slice(0, 8).map((item: any, i: number) => (
+            {displayData.map((item: any, i: number) => (
+
+
+
+
                 <div key={item[nameKey] || item.id || i} className="group">
                     <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-surface-700 font-medium truncate mr-2 capitalize">

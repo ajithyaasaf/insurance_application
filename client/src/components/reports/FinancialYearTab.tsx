@@ -280,7 +280,7 @@ const FinancialYearTab: React.FC = () => {
                                 <h3 className="text-sm font-bold text-surface-900">Dealer Performance ({periodLabel})</h3>
                                 <span className="badge-info">{dealerData.length} dealers</span>
                             </div>
-                            <BarChartRow data={dealerData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
+                            <BarChartRow data={dealerData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" limit={8} />
                             {!dealerData?.length && (
                                 <p className="text-xs text-surface-400 text-center py-6">No dealer data available</p>
                             )}
