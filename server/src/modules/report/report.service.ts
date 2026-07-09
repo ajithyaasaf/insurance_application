@@ -1350,15 +1350,25 @@ export class ReportService {
         // For monthlyTrend — derive IST-aware YYYY-MM-DD strings so trendStart/trendEnd
         // align exactly with how startDate values are stored (IST midnight).
         const nowISTStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); // YYYY-MM-DD
-        const trendEndStr = filters?.dateTo ?? nowISTStr;
-        // Default: go back exactly 12 months from the current IST month start
+        const [y, m] = nowISTStr.split('-').map(Number);
+
+        // Get the last day of the current month in IST to ensure the trend includes all policies in the month
+        const lastDayOfCurrentMonth = new Date(y, m, 0).getDate();
+        const defaultTrendEndStr = `${y}-${String(m).padStart(2, '0')}-${String(lastDayOfCurrentMonth).padStart(2, '0')}`;
+        const trendEndStr = filters?.dateTo ?? defaultTrendEndStr;
+
+        // Default: go back exactly 11 months from the current IST month start to show exactly 12 months in the trend
         let trendStartStr: string;
         if (filters?.dateFrom) {
             trendStartStr = filters.dateFrom;
         } else {
-            const [y, m] = nowISTStr.split('-').map(Number);
-            const prevYear = y - 1;
-            trendStartStr = `${prevYear}-${String(m).padStart(2, '0')}-01`;
+            let startYear = y;
+            let startMonth = m - 11;
+            if (startMonth <= 0) {
+                startYear -= 1;
+                startMonth += 12;
+            }
+            trendStartStr = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
         }
 
 
