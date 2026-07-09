@@ -19,14 +19,15 @@ export const BarChartRow: React.FC<{
     return (
         <div className="space-y-2.5 mt-2">
             {displayData.map((item: any, i: number) => (
-
-
-
-
                 <div key={item[nameKey] || item.id || i} className="group">
                     <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-surface-700 font-medium truncate mr-2 capitalize">
                             {item[nameKey] || 'N/A'}
+                            {item.count !== undefined && (
+                                <span className="text-[10px] text-surface-400 font-normal lowercase ml-1.5 whitespace-nowrap">
+                                    ({item.count} {item.count === 1 ? 'policy' : 'policies'})
+                                </span>
+                            )}
                         </span>
                         <span className="text-surface-500 font-medium whitespace-nowrap">
                             {typeof item[valueKey] === 'number' && label.includes('₹')
