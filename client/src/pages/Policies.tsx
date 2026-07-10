@@ -45,7 +45,7 @@ const Policies: React.FC = () => {
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
     const [renewForm, setRenewForm] = useState({
         startDate: '', expiryDate: '', premiumAmount: '', totalPremium: '', policyNumber: '', paidAmount: '',
-        od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: ''
+        od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: '', idv: ''
     });
     const [renewingParentHadClaim, setRenewingParentHadClaim] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -235,6 +235,7 @@ const Policies: React.FC = () => {
             tax: p.tax?.toString() || '',
             policyOrigin: 'in_system_renewal',
             ncbPercentage: '',
+            idv: p.idv?.toString() || '',
         });
         const parentHadClaim = p.claims?.some((c: any) => c.status !== 'REJECTED');
         setRenewingParentHadClaim(!!parentHadClaim);
@@ -271,6 +272,7 @@ const Policies: React.FC = () => {
                 tax: renewForm.tax ? parseFloat(renewForm.tax) : undefined,
                 paidAmount: renewForm.paidAmount ? parseFloat(renewForm.paidAmount) : undefined,
                 ncbPercentage: renewForm.ncbPercentage ? parseFloat(renewForm.ncbPercentage.toString()) : undefined,
+                idv: (renewForm.idv !== '' && renewForm.idv !== undefined) ? parseFloat(renewForm.idv) : undefined,
             });
             toast.success('Policy renewed!');
             setRenewModalOpen(false); fetchPolicies(meta.page);
@@ -641,6 +643,10 @@ const Policies: React.FC = () => {
                                 <div>
                                     <label className="label">Tax (GST)</label>
                                     <input type="number" min="0" step="0.01" className="input" value={renewForm.tax} onChange={(e) => handleRenewChange('tax', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="label">IDV (Vehicle Value)</label>
+                                    <input type="number" min="0" step="0.01" className="input" value={renewForm.idv} onChange={(e) => handleRenewChange('idv', e.target.value)} />
                                 </div>
                             </>
                         )}
