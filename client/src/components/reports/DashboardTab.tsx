@@ -45,6 +45,7 @@ const DashboardTab: React.FC = () => {
     const dealerData = dash.dealerPerformance?.data || [];
     const monthlyData = dash.monthlyTrend?.data || [];
     const paymentData = dash.paymentSummary?.data || [];
+    const vehicleClassData = dash.vehicleClassPerformance?.data || [];
     const periodLabel: string = dash.periodLabel || 'This Month';
     const isFiltered = !!(appliedDashFrom || appliedDashTo);
 
@@ -162,13 +163,25 @@ const DashboardTab: React.FC = () => {
 
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Company Performance */}
+                {/* Company Performance Bar Chart */}
                 <div className="card card-body">
                     <div className="flex items-center justify-between mb-5">
                         <h3 className="text-sm font-bold text-surface-900">Company-wise Performance</h3>
                         <span className="badge-info">{companyData.length} companies</span>
                     </div>
                     <CompanyBarChart data={companyData} nameKey="name" valueKey="totalPremiumSum" />
+                </div>
+
+                {/* Company Performance List */}
+                <div className="card card-body">
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-sm font-bold text-surface-900">Company Premium & Policies</h3>
+                        <span className="badge-info">{companyData.length} companies</span>
+                    </div>
+                    <BarChartRow data={companyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
+                    {!companyData?.length && (
+                        <p className="text-xs text-surface-400 text-center py-6">No company data available</p>
+                    )}
                 </div>
 
                 {/* Policy Type Breakdown */}
@@ -192,6 +205,18 @@ const DashboardTab: React.FC = () => {
                     <BarChartRow data={dealerData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" limit={8} />
                     {!dealerData?.length && (
                         <p className="text-xs text-surface-400 text-center py-6">No dealer data available</p>
+                    )}
+                </div>
+
+                {/* Vehicle Class Performance */}
+                <div className="card card-body">
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="text-sm font-bold text-surface-900">Vehicle Class Performance</h3>
+                        <span className="badge-info">{vehicleClassData.length} classes</span>
+                    </div>
+                    <BarChartRow data={vehicleClassData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
+                    {!vehicleClassData?.length && (
+                        <p className="text-xs text-surface-400 text-center py-6">No vehicle class data available</p>
                     )}
                 </div>
 

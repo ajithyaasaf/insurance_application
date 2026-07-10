@@ -59,6 +59,7 @@ export const CompanyBarChart: React.FC<{ data: any[], nameKey: string, valueKey:
     const chartData = data.slice(0, 8).map(d => ({
         name: String(d[nameKey] || 'N/A'),
         value: Number(d[valueKey]) || 0,
+        count: d.count !== undefined ? Number(d.count) : undefined,
     }));
 
     return (
@@ -70,7 +71,7 @@ export const CompanyBarChart: React.FC<{ data: any[], nameKey: string, valueKey:
                         dataKey="name"
                         axisLine={false}
                         tickLine={false}
-                        tick={{ fill: '#6B7280', fontSize: 12, fontWeight: 500 }}
+                        tick={{ fill: '#6B7280', fontSize: 11, fontWeight: 500 }}
                         dy={10}
                     />
                     <YAxis
@@ -84,9 +85,16 @@ export const CompanyBarChart: React.FC<{ data: any[], nameKey: string, valueKey:
                         cursor={{ fill: '#F9FAFB' }}
                         content={({ active, payload }) => {
                             if (active && payload && payload.length) {
+                                const count = payload[0].payload.count;
+                                const showCount = count !== undefined && count > 0;
                                 return (
                                     <div className="bg-white px-3 py-2 shadow-lg shadow-surface-900/5 rounded-xl border border-surface-100">
-                                        <p className="text-xs font-bold text-surface-900 mb-1">{payload[0].payload.name}</p>
+                                        <p className="text-xs font-bold text-surface-900 mb-0.5">{payload[0].payload.name}</p>
+                                        {showCount && (
+                                            <p className="text-[11px] text-primary-600 font-bold mb-1">
+                                                ({count} {count === 1 ? 'policy' : 'policies'})
+                                            </p>
+                                        )}
                                         <p className="text-sm font-semibold text-primary-600">
                                             {formatCurrency(payload[0].value as number)} {label}
                                         </p>
@@ -150,7 +158,23 @@ export const PolicyPieChart: React.FC<{ data: any[], nameKey: string, valueKey: 
                             return null;
                         }}
                     />
-                    <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: 500, color: '#4B5563' }} />
+                    <Legend 
+                        verticalAlign="bottom" 
+                        height={36} 
+                        iconType="circle" 
+                        wrapperStyle={{ fontSize: '11px', fontWeight: 600 }}
+                        formatter={(value, entry: any) => {
+                            const count = entry?.payload?.value || 0;
+                            return (
+                                <span className="text-surface-700 capitalize">
+                                    {value}
+                                    <span className="text-[11px] text-primary-600 font-bold ml-1.5">
+                                        ({count} {count === 1 ? 'policy' : 'policies'})
+                                    </span>
+                                </span>
+                            );
+                        }}
+                    />
                 </PieChart>
             </ResponsiveContainer>
         </div>
