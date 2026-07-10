@@ -199,7 +199,7 @@ const DashboardTab: React.FC = () => {
                 <div className="card card-body">
                     <div className="flex items-center justify-between mb-5">
                         <h3 className="text-sm font-bold text-surface-900">Monthly Premium Trend</h3>
-                        <span className="badge-info">Last 12 months</span>
+                        <span className="badge-info">{periodLabel}</span>
                     </div>
                     <BarChartRow data={monthlyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
                     {!monthlyData?.length && (

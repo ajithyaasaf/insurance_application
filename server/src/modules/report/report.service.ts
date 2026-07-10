@@ -1323,14 +1323,15 @@ export class ReportService {
     // ── Dashboard analytics (pre-computed) ───────────────
 
     async getDashboardReport(userId: string, role: string, filters?: { dateFrom?: string; dateTo?: string }) {
-        // IST-aware month start — ensures the "This Month" boundary is midnight IST June 1st,
-        // not midnight UTC (which would be 05:30 IST and miss the first 5.5 hours of the month).
-        const thisMonthStart = getStartOfMonthIST();
+        // IST-aware month start
+        const nowISTStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); // YYYY-MM-DD
+        const [y, m] = nowISTStr.split('-').map(Number);
+        const thisMonthStartStr = `${y}-${String(m).padStart(2, '0')}-01`;
 
-        // When the user provides date filters, use those for KPIs; otherwise default to current month
-        const periodFilters: ReportFilters | undefined = filters?.dateFrom || filters?.dateTo
+        // When the user provides date filters, use those; otherwise default to current month
+        const periodFilters: ReportFilters = filters?.dateFrom || filters?.dateTo
             ? filters
-            : undefined;
+            : { dateFrom: thisMonthStartStr };
 
         const ow = ownerFilter(userId, role);
 
@@ -1339,38 +1340,12 @@ export class ReportService {
         // which would falsely inflate "This Month" figures if we counted by entry date.
         // Using startDate ensures the dashboard reflects actual business done in the period.
         const kpiWhere: any = { ...ow, deletedAt: null };
-        if (periodFilters?.dateFrom || periodFilters?.dateTo) {
-            kpiWhere.startDate = {};
-            if (periodFilters.dateFrom) kpiWhere.startDate.gte = getStartOfDayIST(periodFilters.dateFrom);
-            if (periodFilters.dateTo) kpiWhere.startDate.lte = getEndOfDayIST(periodFilters.dateTo);
-        } else {
-            kpiWhere.startDate = { gte: thisMonthStart };
+        kpiWhere.startDate = {};
+        if (periodFilters.dateFrom) kpiWhere.startDate.gte = getStartOfDayIST(periodFilters.dateFrom);
+        if (periodFilters.dateTo) kpiWhere.startDate.lte = getEndOfDayIST(periodFilters.dateTo);
+        if (Object.keys(kpiWhere.startDate).length === 0) {
+            delete kpiWhere.startDate;
         }
-
-        // For monthlyTrend — derive IST-aware YYYY-MM-DD strings so trendStart/trendEnd
-        // align exactly with how startDate values are stored (IST midnight).
-        const nowISTStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date()); // YYYY-MM-DD
-        const [y, m] = nowISTStr.split('-').map(Number);
-
-        // Get the last day of the current month in IST to ensure the trend includes all policies in the month
-        const lastDayOfCurrentMonth = new Date(y, m, 0).getDate();
-        const defaultTrendEndStr = `${y}-${String(m).padStart(2, '0')}-${String(lastDayOfCurrentMonth).padStart(2, '0')}`;
-        const trendEndStr = filters?.dateTo ?? defaultTrendEndStr;
-
-        // Default: go back exactly 11 months from the current IST month start to show exactly 12 months in the trend
-        let trendStartStr: string;
-        if (filters?.dateFrom) {
-            trendStartStr = filters.dateFrom;
-        } else {
-            let startYear = y;
-            let startMonth = m - 11;
-            if (startMonth <= 0) {
-                startYear -= 1;
-                startMonth += 12;
-            }
-            trendStartStr = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
-        }
-
 
         const [
             companyPerformance,
@@ -1393,11 +1368,8 @@ export class ReportService {
             // Dealer performance (filtered)
             this.groupPolicies(userId, role, periodFilters, 'dealer'),
 
-            // Monthly premium trend — uses IST-aware date strings for accurate month grouping
-            this.groupPolicies(userId, role, {
-                dateFrom: trendStartStr,
-                dateTo: trendEndStr,
-            }, 'month'),
+            // Monthly premium trend (filtered)
+            this.groupPolicies(userId, role, periodFilters, 'month'),
 
             // Payment collection summary (filtered)
             this.groupPayments(userId, role, periodFilters, 'status'),
