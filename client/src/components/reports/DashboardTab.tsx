@@ -9,7 +9,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../api/client';
 import { formatCurrency, formatShortCurrency } from '../../utils/format';
-import { BarChartRow, CompanyBarChart, PolicyPieChart } from './ReportCharts';
+import { BarChartRow, CompanyBarChart, PolicyPieChart, TrendAreaChart } from './ReportCharts';
 
 const DashboardTab: React.FC = () => {
     // ── Dashboard Date Filters
@@ -201,7 +201,7 @@ const DashboardTab: React.FC = () => {
                         <h3 className="text-sm font-bold text-surface-900">Monthly Premium Trend</h3>
                         <span className="badge-info">{periodLabel}</span>
                     </div>
-                    <BarChartRow data={monthlyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
+                    <TrendAreaChart data={monthlyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
                     {!monthlyData?.length && (
                         <p className="text-xs text-surface-400 text-center py-6">No monthly data available</p>
                     )}
