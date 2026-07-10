@@ -161,6 +161,7 @@ export class DashboardService {
                     ...ow,
                     deletedAt: null,
                     ...buildStatusFilter('expired'),
+                    renewals: { none: { deletedAt: null } },
                 } as any,
                 include: { customer: true, company: true },
                 orderBy: { expiryDate: 'desc' },
@@ -172,6 +173,7 @@ export class DashboardService {
                     ...ow,
                     deletedAt: null,
                     ...buildStatusFilter('expired'),
+                    renewals: { none: { deletedAt: null } },
                 } as any,
             }),
         ]);
