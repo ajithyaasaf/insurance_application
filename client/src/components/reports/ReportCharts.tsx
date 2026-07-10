@@ -25,7 +25,7 @@ export const BarChartRow: React.FC<{
                         <span className="text-surface-700 font-medium truncate mr-2 capitalize">
                             {item[nameKey] || 'N/A'}
                             {item.count !== undefined && (
-                                <span className="text-[10px] text-surface-400 font-normal lowercase ml-1.5 whitespace-nowrap">
+                                <span className="text-[11px] text-primary-600 font-bold lowercase ml-1.5 whitespace-nowrap">
                                     ({item.count} {item.count === 1 ? 'policy' : 'policies'})
                                 </span>
                             )}
