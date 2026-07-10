@@ -196,15 +196,15 @@ const DashboardTab: React.FC = () => {
                     )}
                 </div>
 
-                {/* Dealer Performance */}
+                {/* Monthly Trend */}
                 <div className="card card-body">
                     <div className="flex items-center justify-between mb-5">
-                        <h3 className="text-sm font-bold text-surface-900">Dealer Performance</h3>
-                        <span className="badge-info">{dealerData.length} dealers</span>
+                        <h3 className="text-sm font-bold text-surface-900">Monthly Premium Trend</h3>
+                        <span className="badge-info">{periodLabel}</span>
                     </div>
-                    <BarChartRow data={dealerData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" limit={8} />
-                    {!dealerData?.length && (
-                        <p className="text-xs text-surface-400 text-center py-6">No dealer data available</p>
+                    <TrendAreaChart data={monthlyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
+                    {!monthlyData?.length && (
+                        <p className="text-xs text-surface-400 text-center py-6">No monthly data available</p>
                     )}
                 </div>
 
@@ -220,15 +220,15 @@ const DashboardTab: React.FC = () => {
                     )}
                 </div>
 
-                {/* Monthly Trend */}
+                {/* Dealer Performance */}
                 <div className="card card-body">
                     <div className="flex items-center justify-between mb-5">
-                        <h3 className="text-sm font-bold text-surface-900">Monthly Premium Trend</h3>
-                        <span className="badge-info">{periodLabel}</span>
+                        <h3 className="text-sm font-bold text-surface-900">Dealer Performance</h3>
+                        <span className="badge-info">{dealerData.length} dealers</span>
                     </div>
-                    <TrendAreaChart data={monthlyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" />
-                    {!monthlyData?.length && (
-                        <p className="text-xs text-surface-400 text-center py-6">No monthly data available</p>
+                    <BarChartRow data={dealerData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" limit={8} />
+                    {!dealerData?.length && (
+                        <p className="text-xs text-surface-400 text-center py-6">No dealer data available</p>
                     )}
                 </div>
             </div>
