@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../api/client';
 import Modal from '../components/ui/Modal';
 import Pagination from '../components/ui/Pagination';
@@ -10,27 +10,78 @@ import { formatDate, formatCurrency, getStatusColor, daysUntil, formatRelativeDa
 import { POLICY_TYPES as policyTypes, PREMIUM_MODES as premiumModes, POLICY_STATUSES as statusOptions, EDITABLE_POLICY_STATUSES, VEHICLE_CLASSES } from '../utils/constants';
 import toast from 'react-hot-toast';
 import { HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentText, HiOutlineRefresh, HiOutlineEye, HiOutlineFilter } from 'react-icons/hi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useNavigationType } from 'react-router-dom';
 import Button from '../components/ui/Button';
 
 
 
 const Policies: React.FC = () => {
     const navigate = useNavigate();
+    const navType = useNavigationType();
+    const isPop = navType === 'POP';
+
     const [policies, setPolicies] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
     const [companies, setCompanies] = useState<any[]>([]);
     const [dealers, setDealers] = useState<any[]>([]);
-    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
-    const [companyFilter, setCompanyFilter] = useState<string[]>([]);
-    const [dealerFilter, setDealerFilter] = useState('');
-    const [vehicleClassFilter, setVehicleClassFilter] = useState('');
-    const [dateFromFilter, setDateFromFilter] = useState('');
-    const [dateToFilter, setDateToFilter] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
+    const [meta, setMeta] = useState(() => {
+        const page = isPop ? (Number(sessionStorage.getItem('policy_currentPage')) || 1) : 1;
+        return { page, totalPages: 1, total: 0 };
+    });
+    const [search, setSearch] = useState(() => isPop ? (sessionStorage.getItem('policy_search') || '') : '');
+    const [statusFilter, setStatusFilter] = useState(() => isPop ? (sessionStorage.getItem('policy_statusFilter') || '') : '');
+    const [typeFilter, setTypeFilter] = useState(() => isPop ? (sessionStorage.getItem('policy_typeFilter') || '') : '');
+    const [companyFilter, setCompanyFilter] = useState<string[]>(() => {
+        if (!isPop) return [];
+        const val = sessionStorage.getItem('policy_companyFilter');
+        return val ? JSON.parse(val) : [];
+    });
+    const [dealerFilter, setDealerFilter] = useState(() => isPop ? (sessionStorage.getItem('policy_dealerFilter') || '') : '');
+    const [vehicleClassFilter, setVehicleClassFilter] = useState(() => isPop ? (sessionStorage.getItem('policy_vehicleClassFilter') || '') : '');
+    const [dateFromFilter, setDateFromFilter] = useState(() => isPop ? (sessionStorage.getItem('policy_dateFromFilter') || '') : '');
+    const [dateToFilter, setDateToFilter] = useState(() => isPop ? (sessionStorage.getItem('policy_dateToFilter') || '') : '');
+    const [showFilters, setShowFilters] = useState(() => isPop ? (sessionStorage.getItem('policy_showFilters') === 'true') : false);
+
+    // Persist filter states in sessionStorage to survive navigating back/forward
+    useEffect(() => {
+        sessionStorage.setItem('policy_search', search);
+    }, [search]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_statusFilter', statusFilter);
+    }, [statusFilter]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_typeFilter', typeFilter);
+    }, [typeFilter]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_companyFilter', JSON.stringify(companyFilter));
+    }, [companyFilter]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_dealerFilter', dealerFilter);
+    }, [dealerFilter]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_vehicleClassFilter', vehicleClassFilter);
+    }, [vehicleClassFilter]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_dateFromFilter', dateFromFilter);
+    }, [dateFromFilter]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_dateToFilter', dateToFilter);
+    }, [dateToFilter]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_showFilters', String(showFilters));
+    }, [showFilters]);
+
+    useEffect(() => {
+        sessionStorage.setItem('policy_currentPage', String(meta.page));
+    }, [meta.page]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [renewModalOpen, setRenewModalOpen] = useState(false);
@@ -77,7 +128,18 @@ const Policies: React.FC = () => {
         } catch { toast.error('Failed to fetch policies'); } finally { setLoading(false); }
     }, [search, statusFilter, typeFilter, companyFilter, dealerFilter, vehicleClassFilter, dateFromFilter, dateToFilter]);
 
-    useEffect(() => { fetchPolicies(); }, [fetchPolicies]);
+    const isMounted = useRef(false);
+    useEffect(() => {
+        if (isMounted.current) {
+            setMeta(prev => ({ ...prev, page: 1 }));
+        } else {
+            isMounted.current = true;
+        }
+    }, [search, statusFilter, typeFilter, companyFilter, dealerFilter, vehicleClassFilter, dateFromFilter, dateToFilter]);
+
+    useEffect(() => {
+        fetchPolicies(meta.page);
+    }, [fetchPolicies, meta.page]);
 
     useEffect(() => {
         const loadDropdowns = async () => {
@@ -525,7 +587,7 @@ const Policies: React.FC = () => {
                             </div>
                         ))}
                     </div>
-                    <Pagination page={meta.page} totalPages={meta.totalPages} onPageChange={(p) => fetchPolicies(p)} />
+                    <Pagination page={meta.page} totalPages={meta.totalPages} onPageChange={(p) => setMeta(prev => ({ ...prev, page: p }))} />
                 </>
             )}
 
