@@ -17,8 +17,10 @@ export class DashboardService {
                 where: {
                     ...ow,
                     deletedAt: null,
-                    ...buildStatusFilter('active'),
-                    expiryDate: { gte: now, lte: thirtyDaysFromNow },
+                    AND: [
+                        buildStatusFilter('active'),
+                        { expiryDate: { lte: thirtyDaysFromNow } }
+                    ]
                 } as any,
                 include: { customer: true, company: true },
                 orderBy: { expiryDate: 'asc' },
@@ -29,8 +31,10 @@ export class DashboardService {
                 where: {
                     ...ow,
                     deletedAt: null,
-                    ...buildStatusFilter('active'),
-                    expiryDate: { gte: now, lte: thirtyDaysFromNow },
+                    AND: [
+                        buildStatusFilter('active'),
+                        { expiryDate: { lte: thirtyDaysFromNow } }
+                    ]
                 } as any,
             }),
 
