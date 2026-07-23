@@ -281,7 +281,9 @@ const PolicyDetail: React.FC = () => {
                                                     <p className="text-xs font-bold text-surface-400">PREVIOUS POLICY</p>
                                                     <span className="text-[10px] px-1.5 py-0.5 bg-surface-200 text-surface-600 rounded capitalize">{policy.parentPolicy.status}</span>
                                                 </div>
-                                                <p className="text-sm font-medium text-surface-900">{policy.parentPolicy.policyNumber || 'No Number'}</p>
+                                                <p className="text-sm font-medium text-surface-900">
+                                                    {policy.parentPolicy.company?.name ? `${policy.parentPolicy.company.name} — ` : ''}{policy.parentPolicy.policyNumber || 'No Number'}
+                                                </p>
                                                 <p className="text-xs text-surface-500">{formatDate(policy.parentPolicy.startDate)} - {formatDate(policy.parentPolicy.expiryDate)}</p>
                                             </div>
                                         </div>
@@ -298,7 +300,9 @@ const PolicyDetail: React.FC = () => {
                                                 <p className="text-xs font-bold text-primary-600">CURRENT POLICY</p>
                                                 <span className={getStatusColor(policy.status)}>{policy.status}</span>
                                             </div>
-                                            <p className="text-sm font-medium text-surface-900">{policy.policyNumber || 'No Number'}</p>
+                                            <p className="text-sm font-medium text-surface-900">
+                                                {policy.company?.name ? `${policy.company.name} — ` : ''}{policy.policyNumber || 'No Number'}
+                                            </p>
                                             <p className="text-xs text-surface-500">{formatDate(policy.startDate)} - {formatDate(policy.expiryDate)}</p>
                                         </div>
                                     </div>
@@ -316,7 +320,9 @@ const PolicyDetail: React.FC = () => {
                                                     <p className="text-xs font-bold text-emerald-600 uppercase">RENEWED TO</p>
                                                     <span className={getStatusColor(renewal.status)}>{renewal.status}</span>
                                                 </div>
-                                                <p className="text-sm font-medium text-surface-900">{renewal.policyNumber || 'No Number'}</p>
+                                                <p className="text-sm font-medium text-surface-900">
+                                                    {renewal.company?.name ? `${renewal.company.name} — ` : ''}{renewal.policyNumber || 'No Number'}
+                                                </p>
                                                 <p className="text-xs text-surface-500">{formatDate(renewal.startDate)} - {formatDate(renewal.expiryDate)}</p>
                                             </div>
                                         </div>

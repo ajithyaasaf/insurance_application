@@ -95,7 +95,7 @@ const Policies: React.FC = () => {
     });
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
     const [renewForm, setRenewForm] = useState({
-        startDate: '', expiryDate: '', premiumAmount: '', totalPremium: '', policyNumber: '', paidAmount: '',
+        companyId: '', startDate: '', expiryDate: '', premiumAmount: '', totalPremium: '', policyNumber: '', paidAmount: '',
         od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: '', idv: ''
     });
     const [renewingParentHadClaim, setRenewingParentHadClaim] = useState(false);
@@ -286,6 +286,7 @@ const Policies: React.FC = () => {
         const newExpiry = new Date(start);
         newExpiry.setFullYear(newExpiry.getFullYear() + 1);
         setRenewForm({
+            companyId: p.companyId || '',
             startDate: start.toISOString().split('T')[0],
             expiryDate: newExpiry.toISOString().split('T')[0],
             premiumAmount: p.premiumAmount.toString(),
@@ -307,6 +308,7 @@ const Policies: React.FC = () => {
 
     const validateRenew = () => {
         const errs: Record<string, string> = {};
+        if (!renewForm.companyId) errs.companyId = 'Please select a company';
         if (!renewForm.policyNumber) errs.policyNumber = 'New policy number is required';
         if (!renewForm.startDate) errs.startDate = 'Start date is required';
         if (!renewForm.expiryDate) errs.expiryDate = 'Expiry date is required';
@@ -327,6 +329,7 @@ const Policies: React.FC = () => {
         try {
             await api.post(`/policies/${renewingPolicy.id}/renew`, {
                 ...renewForm,
+                companyId: renewForm.companyId || undefined,
                 premiumAmount: parseFloat(renewForm.premiumAmount),
                 totalPremium: renewForm.totalPremium ? parseFloat(renewForm.totalPremium) : undefined,
                 od: renewForm.od ? parseFloat(renewForm.od) : undefined,
@@ -644,7 +647,26 @@ const Policies: React.FC = () => {
                     <p className="text-sm text-surface-500">Renewing policy for <strong>{renewingPolicy?.customer?.name}</strong></p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="col-span-full">
+                        <div>
+                            <label className="label">Insurance Company *</label>
+                            <SearchableSelect
+                                options={companies
+                                    .filter(c => {
+                                        if (renewingPolicy?.policyType === 'life') return c.name === 'LIC';
+                                        if (renewingPolicy?.policyType === 'health') return ['Star Health Insurance', 'New India Assurance', 'Care Insurance'].includes(c.name);
+                                        if (renewingPolicy?.policyType === 'motor') return !['Star Health Insurance', 'Care Insurance', 'LIC'].includes(c.name);
+                                        return true;
+                                    })
+                                    .map(c => ({ value: c?.id, label: c?.name }))
+                                }
+                                value={renewForm.companyId || ''}
+                                onChange={(val) => handleRenewChange('companyId', val)}
+                                hasError={!!renewErrors.companyId}
+                            />
+                            {renewErrors.companyId && <p className="text-xs text-red-500 mt-1">{renewErrors.companyId}</p>}
+                        </div>
+
+                        <div>
                             <label className="label">New Policy Number *</label>
                             <input className={`input ${renewErrors.policyNumber ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.policyNumber} onChange={(e) => handleRenewChange('policyNumber', e.target.value)} />
                             {renewErrors.policyNumber && <p className="text-xs text-red-500 mt-1">{renewErrors.policyNumber}</p>}
