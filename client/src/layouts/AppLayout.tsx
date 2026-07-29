@@ -15,6 +15,7 @@ import {
     HiOutlineTrendingUp,
     HiOutlineChartBar,
     HiOutlineCalculator,
+    HiOutlineClock,
 } from 'react-icons/hi';
 
 import GlobalSearch from '../components/ui/GlobalSearch';
@@ -22,6 +23,7 @@ import ExpiringBanner from '../components/ui/ExpiringBanner';
 
 const navItems = [
     { to: '/', icon: HiOutlineViewGrid, label: 'Dashboard' },
+    // { to: '/activities', icon: HiOutlineClock, label: 'Activity Log' }, // Hidden until launch next week
     { to: '/leads', icon: HiOutlineTrendingUp, label: 'Leads' },
     { to: '/customers', icon: HiOutlineUsers, label: 'Customers' },
     { to: '/policies', icon: HiOutlineDocumentText, label: 'Policies' },

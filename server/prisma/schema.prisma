@@ -16,6 +16,7 @@ model User {
   role         Role         @default(agent)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+  activityLogs ActivityLog[]
   claims       Claim[]
   commissions  Commission[]
   customers    Customer[]
@@ -369,3 +370,26 @@ enum PolicyOrigin {
   external_renewal
   in_system_renewal
 }
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  userRole    String   @default("agent")
+  action      String   // CREATE, UPDATE, DELETE, STATUS_CHANGE, LOGIN, EXPORT, CONVERT, PAYMENT_REC, CLAIM_FILED
+  entityType  String   // lead, customer, policy, payment, claim, followup, dealer, commission, auth
+  entityId    String?
+  title       String
+  description String?
+  metadata    Json?    // Stores snapshot diffs: { oldStatus, newStatus, changedFields, amount, etc. }
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([entityType])
+  @@index([action])
+  @@index([createdAt])
+}
+

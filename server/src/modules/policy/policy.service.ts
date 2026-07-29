@@ -2,6 +2,7 @@ import prisma from '../../utils/prisma';
 import { Prisma } from '@prisma/client';
 import { buildStatusFilter, mapPolicyStatus, getStartOfTodayIST, getStartOfDayIST, getEndOfDayIST } from '../../utils/date';
 import { ownerFilter } from '../../utils/rbac';
+import { ActivityService } from '../activity/activity.service';
 
 interface CreatePolicyInput {
     customerId: string;
@@ -174,6 +175,23 @@ export class PolicyService {
             }
 
             return policy;
+        });
+
+        ActivityService.logActivity({
+            userId,
+            userRole: role,
+            action: 'CREATE',
+            entityType: 'policy',
+            entityId: result.id,
+            title: `New Policy Issued: ${result.policyNumber || 'Draft'}`,
+            description: `Policy issued for ${result.customer?.name || 'Customer'} (${result.policyType}) - Amount: ${result.totalPremium || result.premiumAmount}`,
+            metadata: {
+                policyId: result.id,
+                policyNumber: result.policyNumber,
+                customerId: result.customerId,
+                vehicleNumber: result.vehicleNumber,
+                amount: result.totalPremium || result.premiumAmount,
+            },
         });
 
         return result;
@@ -440,7 +458,20 @@ export class PolicyService {
                 }
             }
 
-            return mapPolicyStatus(updatedPolicy);
+            const resPolicy = mapPolicyStatus(updatedPolicy);
+
+            ActivityService.logActivity({
+                userId,
+                userRole: role,
+                action: 'UPDATE',
+                entityType: 'policy',
+                entityId: updatedPolicy.id,
+                title: `Policy Updated: ${updatedPolicy.policyNumber || 'Draft'}`,
+                description: `Updated policy details for ${updatedPolicy.customer?.name || 'Customer'} (Status: ${updatedPolicy.status})`,
+                metadata: { policyId: updatedPolicy.id, policyNumber: updatedPolicy.policyNumber, status: updatedPolicy.status },
+            });
+
+            return resPolicy;
         });
 
         return result;
@@ -468,10 +499,23 @@ export class PolicyService {
                 where: { policyId: id, ...ownerFilter(userId, role) }
             });
 
-            return tx.policy.update({
+            const deletedPolicy = await tx.policy.update({
                 where: { id },
                 data: { deletedAt: now }
             });
+
+            ActivityService.logActivity({
+                userId,
+                userRole: role,
+                action: 'DELETE',
+                entityType: 'policy',
+                entityId: id,
+                title: `Policy Deleted: ${deletedPolicy.policyNumber || 'Draft'}`,
+                description: `Soft deleted policy ${deletedPolicy.policyNumber || 'Draft'} and related records`,
+                metadata: { policyId: id, policyNumber: deletedPolicy.policyNumber },
+            });
+
+            return deletedPolicy;
         });
     }
 
@@ -612,6 +656,17 @@ export class PolicyService {
                     }
                 });
             }
+
+            ActivityService.logActivity({
+                userId,
+                userRole: role,
+                action: 'UPDATE',
+                entityType: 'policy',
+                entityId: renewedPolicy.id,
+                title: `Policy Renewed: ${renewedPolicy.policyNumber || 'Draft'}`,
+                description: `Policy renewed from parent policy ID ${id}`,
+                metadata: { policyId: renewedPolicy.id, parentPolicyId: id, policyNumber: renewedPolicy.policyNumber },
+            });
 
             return renewedPolicy;
         });
