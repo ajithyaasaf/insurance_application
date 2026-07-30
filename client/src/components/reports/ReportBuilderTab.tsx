@@ -48,7 +48,7 @@ const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[
     { value: 'claims', label: 'Claims', icon: HiOutlineDocumentDownload },
     { value: 'customers', label: 'Customers', icon: HiOutlineTable },
     { value: 'followups', label: 'Follow-ups', icon: HiOutlineRefresh },
-    { value: 'offers', label: 'Offers & Discounts', icon: HiOutlineTag },
+    // { value: 'offers', label: 'Offers & Discounts', icon: HiOutlineTag },
     { value: 'customer-snapshot', label: 'Customer Statement', icon: HiOutlineUser },
 ];
 
