@@ -19,6 +19,7 @@ import dealerRoutes from './modules/dealer/dealer.routes';
 import reportRoutes from './modules/report/report.routes';
 import commissionRoutes from './modules/commission/commission.routes';
 import activityRoutes from './modules/activity/activity.routes';
+import offerRoutes from './modules/offer/offer.routes';
 import { initCronJobs } from './utils/cron';
 import prisma from './utils/prisma';
 
@@ -51,6 +52,7 @@ app.use('/api/dealers', dealerRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/commissions', commissionRoutes);
 app.use('/api/activities', activityRoutes);
+app.use('/api/offers', offerRoutes);
 
 // ─── Health & Keep-Alive ────────────────────────────────
 /**

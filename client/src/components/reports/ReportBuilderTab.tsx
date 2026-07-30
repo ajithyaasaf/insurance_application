@@ -7,7 +7,8 @@ import {
     HiOutlineAdjustments,
     HiOutlineDocumentDownload,
     HiOutlineUser,
-    HiOutlineDatabase
+    HiOutlineDatabase,
+    HiOutlineTag,
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import api from '../../api/client';
@@ -23,7 +24,7 @@ import {
     PAYMENT_STATUSES, CLAIM_STATUSES, FOLLOWUP_STATUSES
 } from '../../utils/constants';
 
-type Source = 'policies' | 'policies-expired' | 'payments' | 'claims' | 'customers' | 'followups' | 'customer-snapshot';
+type Source = 'policies' | 'policies-expired' | 'payments' | 'claims' | 'customers' | 'followups' | 'customer-snapshot' | 'offers';
 type GroupBy = 'company' | 'dealer' | 'policyType' | 'vehicleClass' | 'status' | 'month' | 'policyOrigin' | '';
 
 interface Column { key: string; label: string }
@@ -47,6 +48,7 @@ const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[
     { value: 'claims', label: 'Claims', icon: HiOutlineDocumentDownload },
     { value: 'customers', label: 'Customers', icon: HiOutlineTable },
     { value: 'followups', label: 'Follow-ups', icon: HiOutlineRefresh },
+    { value: 'offers', label: 'Offers & Discounts', icon: HiOutlineTag },
     { value: 'customer-snapshot', label: 'Customer Statement', icon: HiOutlineUser },
 ];
 
@@ -74,7 +76,11 @@ function getGroupOptions(source: Source): { value: GroupBy; label: string }[] {
             { value: 'month', label: 'By Month' },
         ];
         case 'payments': return [
-            { value: 'status', label: 'By Status' },
+            { value: 'status', label: 'Status' },
+            { value: 'month', label: 'Month' },
+        ];
+        case 'offers': return [
+            { value: 'company', label: 'By Company' },
             { value: 'month', label: 'By Month' },
         ];
         default: return [];
@@ -806,12 +812,14 @@ const ReportBuilderTab: React.FC = () => {
                                     )}
                                     {report.chartsData.status && report.chartsData.status.length > 0 && (
                                         <div className="card card-body">
-                                            <p className="text-sm font-bold text-surface-900 mb-1">Analytics by Status</p>
+                                            <p className="text-sm font-bold text-surface-900 mb-1">
+                                                {source === 'offers' ? 'Offers & Discounts by Insurer' : 'Analytics by Status'}
+                                            </p>
                                             <CompanyBarChart
                                                 data={report.chartsData.status}
                                                 nameKey="name"
-                                                valueKey={source === 'payments' ? 'amountSum' : source === 'claims' ? 'claimSum' : source === 'followups' ? 'count' : 'totalPremiumSum'}
-                                                label={source === 'payments' ? 'Amount (₹)' : source === 'claims' ? 'Claim Amount (₹)' : source === 'followups' ? 'Follow-ups' : 'Premium (₹)'}
+                                                valueKey={source === 'offers' ? 'offerSum' : source === 'payments' ? 'amountSum' : source === 'claims' ? 'claimSum' : source === 'followups' ? 'count' : 'totalPremiumSum'}
+                                                label={source === 'offers' ? 'Discounts Given (₹)' : source === 'payments' ? 'Amount (₹)' : source === 'claims' ? 'Claim Amount (₹)' : source === 'followups' ? 'Follow-ups' : 'Premium (₹)'}
                                             />
                                         </div>
                                     )}
@@ -888,13 +896,13 @@ const ReportBuilderTab: React.FC = () => {
                             ) : (
                                 <ReportTable
                                     data={report.data}
-                                    columns={report.columns.filter((c: Column) => !hiddenColumns.includes(c.key))}
+                                    columns={(report.columns || []).filter((c: Column) => !hiddenColumns.includes(c.key))}
                                 />
                             )
                         ) : (
                             <ReportTable
                                 data={report.data}
-                                columns={report.columns.filter((c: Column) => !report.grouped ? !hiddenColumns.includes(c.key) : true)}
+                                columns={(report.columns || []).filter((c: Column) => !report.grouped ? !hiddenColumns.includes(c.key) : true)}
                             />
                         )}
 

@@ -16,6 +16,7 @@ import {
     HiOutlineChartBar,
     HiOutlineCalculator,
     HiOutlineClock,
+    HiOutlineTag,
 } from 'react-icons/hi';
 
 import GlobalSearch from '../components/ui/GlobalSearch';
@@ -31,6 +32,7 @@ const navItems = [
     { to: '/claims', icon: HiOutlineShieldCheck, label: 'Claims' },
     { to: '/follow-ups', icon: HiOutlinePhone, label: 'Follow-ups' },
     { to: '/dealers', icon: HiOutlineUserGroup, label: 'Dealers' },
+    { to: '/offers', icon: HiOutlineTag, label: 'Offers' },
     { to: '/commissions', icon: HiOutlineCalculator, label: 'Commissions' },
     { to: '/reports', icon: HiOutlineChartBar, label: 'Reports' },
 ];
@@ -86,7 +88,7 @@ const AppLayout: React.FC = () => {
                         {navItems
                             .filter(item => {
                                 if (user?.role === 'staff') {
-                                    return !['/commissions'].includes(item.to);
+                                    return !['/commissions', '/offers'].includes(item.to);
                                 }
                                 return true;
                             })

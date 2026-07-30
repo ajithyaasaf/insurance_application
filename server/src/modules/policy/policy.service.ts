@@ -266,6 +266,7 @@ export class PolicyService {
                 customer: true,
                 company: true,
                 dealer: true,
+                offer: true,
                 _count: {
                     select: {
                         renewals: { where: { deletedAt: null } },

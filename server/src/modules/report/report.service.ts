@@ -133,6 +133,16 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'status', label: 'Status' },
         { key: 'notes', label: 'Notes' },
     ],
+    offers: [
+        { key: 'customerName', label: 'Customer' },
+        { key: 'policyNumber', label: 'Policy No.' },
+        { key: 'companyName', label: 'Company' },
+        { key: 'grossPremium', label: 'Gross Premium (₹)' },
+        { key: 'offerAmount', label: 'Offer Discount (₹)' },
+        { key: 'customerPayable', label: 'Net Payable (₹)' },
+        { key: 'createdAt', label: 'Offer Date' },
+        { key: 'notes', label: 'Notes' },
+    ],
 };
 
 function getColumnsForSource(source: string, policyType?: string): { key: string; label: string }[] {
@@ -376,6 +386,32 @@ function buildFollowUpWhere(userId: string, role: string, filters?: ReportFilter
             where.policy.companyId = filters.companyId;
         }
         if (filters?.policyType) where.policy.policyType = filters.policyType;
+    }
+    return where;
+}
+
+function buildOfferWhere(userId: string, role: string, filters?: ReportFilters) {
+    const where: any = {
+        ...ownerFilter(userId, role),
+        policy: { deletedAt: null },
+    };
+    if (filters?.companyId) where.companyId = filters.companyId;
+    if (filters?.companyIds) {
+        const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
+        where.companyId = { in: ids };
+    }
+    if (filters?.dateFrom || filters?.dateTo) {
+        where.createdAt = {};
+        if (filters?.dateFrom) where.createdAt.gte = getStartOfDayIST(filters.dateFrom);
+        if (filters?.dateTo) where.createdAt.lte = getEndOfDayIST(filters.dateTo);
+    }
+    if (filters?.customerId) where.policy.customerId = filters.customerId;
+    if (filters?.policyType) where.policy.policyType = filters.policyType;
+    if (filters?.vehicleClass) where.policy.vehicleClass = filters.vehicleClass;
+    if (filters?.dealerId === 'direct') {
+        where.policy.dealerId = null;
+    } else if (filters?.dealerId) {
+        where.policy.dealerId = filters.dealerId;
     }
     return where;
 }
@@ -789,9 +825,126 @@ export class ReportService {
         return { data, total, columns: getColumnsForSource('followups', filters?.policyType) };
     }
 
+    private async queryOffers(userId: string, role: string, filters?: ReportFilters, page = 1, limit = 50) {
+        const where = buildOfferWhere(userId, role, filters);
+        const [rows, total] = await Promise.all([
+            prisma.policyOffer.findMany({
+                where,
+                include: {
+                    policy: { include: { customer: true } },
+                    company: true,
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * limit,
+                take: limit,
+            }),
+            prisma.policyOffer.count({ where }),
+        ]);
+
+        const data = rows.map((r: any) => ({
+            policyNumber: r.policy?.policyNumber || r.policy?.vehicleNumber || '—',
+            customerName: r.policy?.customer?.name || '—',
+            customerPhone: r.policy?.customer?.phone || '—',
+            companyName: r.company?.name || '—',
+            policyType: r.policy?.policyType ? r.policy.policyType.charAt(0).toUpperCase() + r.policy.policyType.slice(1) : 'Motor',
+            vehicleNumber: r.policy?.vehicleNumber || '—',
+            grossPremium: r.grossPremium,
+            offerAmount: r.offerAmount,
+            customerPayable: r.customerPayable,
+            createdAt: fmtDate(r.createdAt),
+            notes: r.notes || '—',
+        }));
+
+        return { data, total, columns: SOURCE_COLUMNS.offers };
+    }
+
+    private async groupOffers(userId: string, role: string, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        const where = buildOfferWhere(userId, role, filters);
+
+        if (groupBy === 'company') {
+            const groups = await prisma.policyOffer.groupBy({
+                by: ['companyId'],
+                where,
+                _count: { _all: true },
+                _sum: { grossPremium: true, offerAmount: true, customerPayable: true },
+            });
+            const companyIds = groups.map((g: any) => g.companyId);
+            const companies = await prisma.company.findMany({
+                where: { id: { in: companyIds } },
+                select: { id: true, name: true },
+            });
+
+            return {
+                grouped: true,
+                groupLabel: 'Company',
+                columns: [
+                    { key: 'name', label: 'Company' },
+                    { key: 'count', label: 'Offers Count' },
+                    { key: 'grossSum', label: 'Gross Premium (₹)' },
+                    { key: 'offerSum', label: 'Total Discounts (₹)' },
+                    { key: 'netSum', label: 'Net Customer Payable (₹)' },
+                ],
+                data: groups.map((g: any) => ({
+                    name: companies.find((c) => c.id === g.companyId)?.name || 'Unknown',
+                    count: g._count._all,
+                    grossSum: g._sum.grossPremium || 0,
+                    offerSum: g._sum.offerAmount || 0,
+                    netSum: g._sum.customerPayable || 0,
+                })).sort((a: any, b: any) => b.offerSum - a.offerSum),
+                total: groups.length,
+            };
+        }
+
+        if (groupBy === 'month') {
+            const dateFrom = filters?.dateFrom ? new Date(filters.dateFrom) : undefined;
+            const dateTo = filters?.dateTo ? new Date(filters.dateTo + 'T23:59:59.999Z') : undefined;
+
+            const isGlobalRole = ['agent', 'staff', 'admin'].includes(role);
+            const ownershipFilter = isGlobalRole
+                ? Prisma.sql`1=1`
+                : Prisma.sql`o."userId" = ${userId}::uuid`;
+
+            const results: any[] = await prisma.$queryRaw`
+                SELECT 
+                    TO_CHAR(DATE_TRUNC('month', o."createdAt"), 'Mon YYYY') AS name,
+                    COUNT(*)::INT AS count,
+                    SUM(o."grossPremium")::FLOAT AS "grossSum",
+                    SUM(o."offerAmount")::FLOAT AS "offerSum",
+                    SUM(o."customerPayable")::FLOAT AS "netSum"
+                FROM "PolicyOffer" o
+                WHERE 
+                    ${ownershipFilter}
+                    ${dateFrom ? Prisma.sql`AND o."createdAt" >= ${dateFrom}` : Prisma.empty}
+                    ${dateTo ? Prisma.sql`AND o."createdAt" <= ${dateTo}` : Prisma.empty}
+                    ${filters?.companyId ? Prisma.sql`AND o."companyId" = ${filters.companyId}` : Prisma.empty}
+                GROUP BY DATE_TRUNC('month', o."createdAt")
+                ORDER BY DATE_TRUNC('month', o."createdAt") DESC
+            `;
+
+            return {
+                grouped: true,
+                groupLabel: 'Month',
+                columns: [
+                    { key: 'name', label: 'Month' },
+                    { key: 'count', label: 'Offers Count' },
+                    { key: 'grossSum', label: 'Gross Premium (₹)' },
+                    { key: 'offerSum', label: 'Total Discounts (₹)' },
+                    { key: 'netSum', label: 'Net Customer Payable (₹)' },
+                ],
+                data: results,
+                total: results.length,
+            };
+        }
+
+        return null;
+    }
+
     // ── Grouped aggregation queries ──────────────────────
 
     private async queryGrouped(userId: string, role: string, source: ReportSource, filters: ReportFilters | undefined, groupBy: ReportGroupBy) {
+        if (source === 'offers') {
+            return this.groupOffers(userId, role, filters, groupBy);
+        }
         // We only support grouping on policies source for now (most common use case)
         // Other sources can be added the same way
         if (source === 'policies') {
@@ -1243,6 +1396,7 @@ export class ReportService {
             claims: () => this.queryClaims(userId, role, filters, page, limit),
             customers: () => this.queryCustomers(userId, role, filters, page, limit),
             followups: () => this.queryFollowUps(userId, role, filters, page, limit),
+            offers: () => this.queryOffers(userId, role, filters, page, limit),
             'customer-snapshot': () => this.queryCustomerSnapshot(userId, role, filters),
             'customer-snapshot-full': () => this.queryCustomerSnapshot(userId, role, filters),
             'customer-snapshot-claims': async () => {
@@ -1306,6 +1460,14 @@ export class ReportService {
                 const statusGroup = await this.groupFollowUps(userId, role, filters, 'status');
                 chartsData = {
                     status: statusGroup?.data || []
+                };
+            } else if (source === 'offers') {
+                const companyGroup = await this.groupOffers(userId, role, filters, 'company');
+                chartsData = {
+                    status: (companyGroup?.data || []).map((d: any) => ({
+                        ...d,
+                        totalPremiumSum: d.offerSum || 0,
+                    }))
                 };
             }
         }

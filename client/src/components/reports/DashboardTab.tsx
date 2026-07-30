@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-    HiOutlineClipboardCheck, 
-    HiOutlineCurrencyRupee, 
-    HiOutlineRefresh, 
-    HiOutlineOfficeBuilding 
+import {
+    HiOutlineClipboardCheck,
+    HiOutlineCurrencyRupee,
+    HiOutlineRefresh,
+    HiOutlineOfficeBuilding
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import api from '../../api/client';

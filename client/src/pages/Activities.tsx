@@ -553,8 +553,7 @@ const Activities: React.FC = () => {
             ) : activities.length === 0 ? (
                 <div className="bg-white p-12 rounded-2xl border border-surface-200">
                     <EmptyState
-                        title="No Activity Logs Found"
-                        description="No activity actions recorded matching your current filter criteria."
+                        message="No activity actions recorded matching your current filter criteria."
                     />
                 </div>
             ) : (
@@ -745,7 +744,7 @@ const Activities: React.FC = () => {
                         </div>
 
                         <Pagination
-                            currentPage={meta.page}
+                            page={meta.page}
                             totalPages={meta.totalPages}
                             onPageChange={(p) => fetchActivities(p)}
                         />

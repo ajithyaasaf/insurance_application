@@ -25,6 +25,7 @@ model User {
   leads        Lead[]
   payments     Payment[]
   policies     Policy[]
+  policyOffers PolicyOffer[]
 
   @@index([email])
 }
@@ -113,12 +114,13 @@ model Customer {
 }
 
 model Company {
-  id          String       @id @default(uuid())
-  name        String
-  type        String?
-  category    String?
-  commissions Commission[]
-  policies    Policy[]
+  id           String        @id @default(uuid())
+  name         String
+  type         String?
+  category     String?
+  commissions  Commission[]
+  policies     Policy[]
+  policyOffers PolicyOffer[]
 
   @@index([name])
 }
@@ -157,6 +159,7 @@ model Policy {
   vehicleClass       PolicyVehicleClass?
   cancelledAt        DateTime?
   registrationDate   DateTime?
+  offer              PolicyOffer?
   ncbPercentage      Float?
   policyOrigin       PolicyOrigin        @default(fresh)
   claims             Claim[]
@@ -393,3 +396,32 @@ model ActivityLog {
   @@index([createdAt])
 }
 
+/**
+ * PolicyOffer tracks promotional discount offers applied to a Motor Policy.
+ * - Offer is attached post-issuance by Agent/Admin on the /offers page.
+ * - grossPremium: Original full premium (e.g. ₹40,000)
+ * - offerAmount: Discount fronted by agency (e.g. ₹20,000)
+ * - customerPayable: Amount customer actually pays (grossPremium - offerAmount, e.g. ₹20,000)
+ * - Customer Payment records are set to customerPayable — existing PaymentService is untouched.
+ */
+model PolicyOffer {
+  id               String   @id @default(uuid())
+  userId           String
+  policyId         String   @unique
+  companyId        String
+  grossPremium     Float
+  offerAmount      Float
+  customerPayable  Float
+  notes            String?
+  createdBy        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  policy  Policy  @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([companyId])
+  @@index([createdAt])
+}
