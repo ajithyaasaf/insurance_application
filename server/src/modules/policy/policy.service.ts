@@ -32,6 +32,8 @@ interface CreatePolicyInput {
     registrationDate?: string;
     policyOrigin?: string;
     ncbPercentage?: number | null;
+    tpStartDate?: string | null;
+    tpEndDate?: string | null;
 }
 
 /** Only these two statuses can be set manually on an existing policy. */
@@ -116,6 +118,8 @@ export class PolicyService {
                     policyOrigin: (data.policyOrigin as any) || 'fresh',
                     ncbPercentage: data.ncbPercentage ?? null,
                     dealerId: data.dealerId,
+                    tpStartDate: data.tpStartDate ? new Date(data.tpStartDate) : null,
+                    tpEndDate: data.tpEndDate ? new Date(data.tpEndDate) : null,
                     createdBy: role,
                     updatedBy: role,
                 },
@@ -242,7 +246,10 @@ export class PolicyService {
             }),
             ...(isExpiringSoon ? {
                 status: 'active',
-                expiryDate: { gte: todayIST, lte: thirtyDaysFromNow }
+                OR: [
+                    { expiryDate: { gte: todayIST, lte: thirtyDaysFromNow } },
+                    { tpEndDate: { gte: todayIST, lte: thirtyDaysFromNow } }
+                ]
             } : (status ? buildStatusFilter(status) : {})),
             ...(policyType && { policyType: policyType as any }),
             ...(companyId && { companyId }),
@@ -402,6 +409,8 @@ export class PolicyService {
                     ...data,
                     startDate: data.startDate ? new Date(data.startDate) : undefined,
                     expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+                    tpStartDate: data.tpStartDate === null ? null : (data.tpStartDate ? new Date(data.tpStartDate) : undefined),
+                    tpEndDate: data.tpEndDate === null ? null : (data.tpEndDate ? new Date(data.tpEndDate) : undefined),
                     noOfYears: Math.max(1, Math.round(Math.abs(newExpiry.getTime() - newStart.getTime()) / (1000 * 60 * 60 * 24 * 365))),
                     policyType: data.policyType as any,
                     premiumMode: data.premiumMode as any,
@@ -599,6 +608,8 @@ export class PolicyService {
                     policyOrigin: 'in_system_renewal',
                     ncbPercentage: data.ncbPercentage ?? null,
                     dealerId: data.dealerId || originalPolicy.dealerId,
+                    tpStartDate: data.tpStartDate ? new Date(data.tpStartDate) : (originalPolicy.tpStartDate ? new Date(originalPolicy.tpStartDate) : null),
+                    tpEndDate: data.tpEndDate ? new Date(data.tpEndDate) : (originalPolicy.tpEndDate ? new Date(originalPolicy.tpEndDate) : null),
                     createdBy: role,
                     updatedBy: role,
                 },

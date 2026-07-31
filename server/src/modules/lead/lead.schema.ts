@@ -28,6 +28,8 @@ export const createLeadSchema = z.object({
         dealerId: z.string().optional().or(z.literal('')),
         policyOrigin: z.enum(['new_vehicle', 'fresh', 'external_renewal', 'in_system_renewal']).optional(),
         ncbPercentage: z.number().min(0).max(50).optional().nullable(),
+        tpStartDate: z.string().optional().nullable(),
+        tpEndDate: z.string().optional().nullable(),
     }),
 });
 
@@ -59,6 +61,8 @@ export const updateLeadSchema = z.object({
         dealerId: z.string().optional().or(z.literal('')),
         policyOrigin: z.enum(['new_vehicle', 'fresh', 'external_renewal', 'in_system_renewal']).optional(),
         ncbPercentage: z.number().min(0).max(50).optional().nullable(),
+        tpStartDate: z.string().optional().nullable(),
+        tpEndDate: z.string().optional().nullable(),
     }),
     params: z.object({
         id: z.string().uuid(),
@@ -91,5 +95,7 @@ export const convertLeadSchema = z.object({
         tax: z.number().min(0).optional().nullable(),
         totalPremium: z.number().min(0).optional().nullable(),
         dealerId: z.string().optional().nullable(),
+        tpStartDate: z.string().optional().nullable(),
+        tpEndDate: z.string().optional().nullable(),
     }),
 });

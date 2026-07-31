@@ -250,14 +250,33 @@ const PolicyDetail: React.FC = () => {
                                 <p className="text-xs text-surface-500 mb-1">Total Premium</p>
                                 <p className="text-lg font-black text-primary-600">{formatCurrency(policy.totalPremium || policy.premiumAmount)}</p>
                             </div>
-                            <div>
-                                <p className="text-xs text-surface-500 mb-1">Start Date</p>
-                                <p className="text-sm font-medium text-surface-900">{formatDate(policy.startDate)}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs text-surface-500 mb-1">Expiry Date</p>
-                                <p className="text-sm font-medium text-surface-900">{formatDate(policy.expiryDate)}</p>
-                            </div>
+                            {(() => {
+                                const isSaod = policy.vehicleClass === 'SAOD_TW' || policy.vehicleClass === 'SAOD_PVT';
+                                return (
+                                    <>
+                                        <div>
+                                            <p className="text-xs text-surface-500 mb-1">{isSaod ? 'OD Start Date' : 'Start Date'}</p>
+                                            <p className="text-sm font-medium text-surface-900">{formatDate(policy.startDate)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-surface-500 mb-1">{isSaod ? 'OD End Date' : 'Expiry Date'}</p>
+                                            <p className="text-sm font-medium text-surface-900">{formatDate(policy.expiryDate)}</p>
+                                        </div>
+                                        {isSaod && policy.tpStartDate && (
+                                            <div>
+                                                <p className="text-xs text-surface-500 mb-1">TP Start Date</p>
+                                                <p className="text-sm font-medium text-surface-900">{formatDate(policy.tpStartDate)}</p>
+                                            </div>
+                                        )}
+                                        {isSaod && policy.tpEndDate && (
+                                            <div>
+                                                <p className="text-xs text-surface-500 mb-1">TP End Date</p>
+                                                <p className="text-sm font-medium text-surface-900">{formatDate(policy.tpEndDate)}</p>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
 
@@ -403,12 +422,24 @@ const PolicyDetail: React.FC = () => {
                             <h3 className="text-sm font-bold text-surface-900">Timeline</h3>
                         </div>
                         <div className="space-y-4">
-                            <div>
-                                <p className="text-xs text-surface-500">Days Left</p>
-                                <p className={`text-xl font-bold ${daysUntil(policy.expiryDate) <= 30 ? 'text-red-600' : 'text-surface-900'}`}>
-                                    {daysUntil(policy.expiryDate)} <span className="text-xs font-normal">days until expiry</span>
-                                </p>
-                            </div>
+                            {(() => {
+                                const isSaod = policy.vehicleClass === 'SAOD_TW' || policy.vehicleClass === 'SAOD_PVT';
+                                const odDays = daysUntil(policy.expiryDate);
+                                const tpDays = isSaod && policy.tpEndDate ? daysUntil(policy.tpEndDate) : 9999;
+                                const minDays = isSaod && policy.tpEndDate ? Math.min(odDays, tpDays) : odDays;
+                                const isTpSoonest = isSaod && policy.tpEndDate && tpDays < odDays;
+
+                                return (
+                                    <div>
+                                        <p className="text-xs text-surface-500">
+                                            {isSaod && policy.tpEndDate ? (isTpSoonest ? 'Days Left (TP Cover)' : 'Days Left (OD Cover)') : 'Days Left'}
+                                        </p>
+                                        <p className={`text-xl font-bold ${minDays <= 30 ? 'text-red-600' : 'text-surface-900'}`}>
+                                            {minDays} <span className="text-xs font-normal">days until expiry</span>
+                                        </p>
+                                    </div>
+                                );
+                            })()}
                             <div>
                                 <p className="text-xs text-surface-500">Created</p>
                                 <p className="text-sm text-surface-700">{formatDate(policy.createdAt)} by {policy.createdBy}</p>

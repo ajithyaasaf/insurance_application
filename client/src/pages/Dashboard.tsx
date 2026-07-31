@@ -360,7 +360,7 @@ const Dashboard: React.FC = () => {
                                     onClick={() => setActiveExpiryTab('7days')}
                                     className={`px-2.5 py-1 rounded-md transition-all duration-150 ${activeExpiryTab === '7days' ? 'bg-white text-red-600 shadow-sm border border-surface-200 font-bold' : 'text-surface-500 hover:text-surface-900'}`}
                                 >
-                                    7 Days ({data.expiringPolicies.filter(p => daysUntil(p.expiryDate) <= 7).length})
+                                    7 Days ({data.expiringPolicies.filter((p: any) => Math.min(daysUntil(p.expiryDate), p.tpEndDate ? daysUntil(p.tpEndDate) : 9999) <= 7).length})
                                 </button>
                                 <button
                                     type="button"
@@ -385,7 +385,7 @@ const Dashboard: React.FC = () => {
                     <div className="divide-y divide-surface-100 max-h-[400px] overflow-y-auto">
                         {(() => {
                             const filteredPolicies = activeExpiryTab === '7days'
-                                ? data.expiringPolicies.filter(p => daysUntil(p.expiryDate) <= 7)
+                                ? data.expiringPolicies.filter((p: any) => Math.min(daysUntil(p.expiryDate), p.tpEndDate ? daysUntil(p.tpEndDate) : 9999) <= 7)
                                 : activeExpiryTab === 'expired'
                                 ? data.expiredPolicies || []
                                 : data.expiringPolicies;
@@ -419,10 +419,21 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="text-right flex-shrink-0 ml-4">
-                                        <p className={`text-xs font-medium ${activeExpiryTab === 'expired' || daysUntil(policy.expiryDate) <= 7 ? 'text-red-600' : 'text-amber-600'}`}>
-                                            {formatRelativeDate(policy.expiryDate)}
-                                        </p>
-                                        <p className="text-xs text-surface-400">{formatDate(policy.expiryDate)}</p>
+                                        {(() => {
+                                            const odDays = daysUntil(policy.expiryDate);
+                                            const tpDays = policy.tpEndDate ? daysUntil(policy.tpEndDate) : 9999;
+                                            const isTpSoonest = tpDays < odDays;
+                                            const targetDate = isTpSoonest ? policy.tpEndDate : policy.expiryDate;
+                                            const isUrgent = activeExpiryTab === 'expired' || Math.min(odDays, tpDays) <= 7;
+                                            return (
+                                                <>
+                                                    <p className={`text-xs font-medium ${isUrgent ? 'text-red-600' : 'text-amber-600'}`}>
+                                                        {isTpSoonest ? 'TP: ' : ''}{formatRelativeDate(targetDate)}
+                                                    </p>
+                                                    <p className="text-xs text-surface-400">{formatDate(targetDate)}</p>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             ));

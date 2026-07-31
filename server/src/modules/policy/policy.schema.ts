@@ -30,6 +30,8 @@ export const createPolicySchema = z.object({
         dealerId: z.string().optional().or(z.literal('')),
         policyOrigin: z.enum(['new_vehicle', 'fresh', 'external_renewal', 'in_system_renewal']).optional().default('fresh'),
         ncbPercentage: z.number().min(0).max(50).optional().nullable(),
+        tpStartDate: z.string().optional().nullable(),
+        tpEndDate: z.string().optional().nullable(),
     }),
 });
 
@@ -63,6 +65,8 @@ export const updatePolicySchema = z.object({
         dealerId: z.string().optional().or(z.literal('')),
         policyOrigin: z.enum(['new_vehicle', 'fresh', 'external_renewal', 'in_system_renewal']).optional(),
         ncbPercentage: z.number().min(0).max(50).optional().nullable(),
+        tpStartDate: z.string().optional().nullable(),
+        tpEndDate: z.string().optional().nullable(),
     }),
 });
 

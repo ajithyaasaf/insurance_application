@@ -12,14 +12,15 @@ export class DashboardService {
         const sevenDaysFromNow = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         const results = await Promise.all([
-            // 0: Policies expiring in next 30 days
+            // 0: Policies expiring in next 30 days (OD or TP)
             prisma.policy.findMany({
                 where: {
                     ...ow,
                     deletedAt: null,
-                    AND: [
-                        buildStatusFilter('active'),
-                        { expiryDate: { lte: thirtyDaysFromNow } }
+                    status: 'active',
+                    OR: [
+                        { expiryDate: { gte: todayStart, lte: thirtyDaysFromNow } },
+                        { tpEndDate: { gte: todayStart, lte: thirtyDaysFromNow } }
                     ]
                 } as any,
                 include: { customer: true, company: true },
@@ -31,9 +32,10 @@ export class DashboardService {
                 where: {
                     ...ow,
                     deletedAt: null,
-                    AND: [
-                        buildStatusFilter('active'),
-                        { expiryDate: { lte: thirtyDaysFromNow } }
+                    status: 'active',
+                    OR: [
+                        { expiryDate: { gte: todayStart, lte: thirtyDaysFromNow } },
+                        { tpEndDate: { gte: todayStart, lte: thirtyDaysFromNow } }
                     ]
                 } as any,
             }),

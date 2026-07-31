@@ -29,6 +29,8 @@ interface CreateLeadInput {
     dealerId?: string;
     policyOrigin?: 'new_vehicle' | 'fresh' | 'external_renewal' | 'in_system_renewal';
     ncbPercentage?: number | null;
+    tpStartDate?: string | null;
+    tpEndDate?: string | null;
 }
 
 interface UpdateLeadInput {
@@ -57,6 +59,8 @@ interface UpdateLeadInput {
     dealerId?: string;
     policyOrigin?: 'new_vehicle' | 'fresh' | 'external_renewal' | 'in_system_renewal';
     ncbPercentage?: number | null;
+    tpStartDate?: string | null;
+    tpEndDate?: string | null;
 }
 
 export class LeadService {
@@ -89,6 +93,8 @@ export class LeadService {
                 premiumAmount: data.premiumAmount,
                 startDate: data.startDate ? new Date(data.startDate) : null,
                 expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+                tpStartDate: data.tpStartDate ? new Date(data.tpStartDate) : null,
+                tpEndDate: data.tpEndDate ? new Date(data.tpEndDate) : null,
                 dealerId: data.dealerId || null,
                 policyOrigin: data.policyOrigin as any || null,
                 ncbPercentage: data.ncbPercentage ?? null,
@@ -196,6 +202,8 @@ export class LeadService {
                 // Process dates if provided
                 startDate: data.startDate ? new Date(data.startDate) : undefined,
                 expiryDate: data.expiryDate ? new Date(data.expiryDate) : undefined,
+                tpStartDate: data.tpStartDate === null ? null : (data.tpStartDate ? new Date(data.tpStartDate) : undefined),
+                tpEndDate: data.tpEndDate === null ? null : (data.tpEndDate ? new Date(data.tpEndDate) : undefined),
                 companyId: data.companyId || undefined,
                 vehicleNumber: data.vehicleNumber || undefined,
                 make: data.make || undefined,
@@ -273,6 +281,8 @@ export class LeadService {
             tax?: number | null;
             totalPremium?: number | null;
             dealerId?: string | null;
+            tpStartDate?: string | null;
+            tpEndDate?: string | null;
         }
     ) {
         const lead = await this.findById(userId, role, id);
@@ -388,6 +398,8 @@ export class LeadService {
                         dealerId: lead.dealerId || extra.dealerId || null,
                         policyOrigin: (extra.policyOrigin || lead.policyOrigin || 'fresh') as any,
                         ncbPercentage: extra.ncbPercentage ?? lead.ncbPercentage ?? null,
+                        tpStartDate: lead.tpStartDate || (extra.tpStartDate ? new Date(extra.tpStartDate) : null),
+                        tpEndDate: lead.tpEndDate || (extra.tpEndDate ? new Date(extra.tpEndDate) : null),
 
                         status: 'active',
                         createdBy: role,

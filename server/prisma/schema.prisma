@@ -81,6 +81,8 @@ model Lead {
   registrationDate  DateTime?
   ncbPercentage     Float?
   policyOrigin      PolicyOrigin?
+  tpStartDate       DateTime?
+  tpEndDate         DateTime?
   user              User                @relation(fields: [userId], references: [id])
 
   @@index([userId])
@@ -162,6 +164,8 @@ model Policy {
   offer              PolicyOffer?
   ncbPercentage      Float?
   policyOrigin       PolicyOrigin        @default(fresh)
+  tpStartDate        DateTime?
+  tpEndDate          DateTime?
   claims             Claim[]
   commissionPolicies CommissionPolicy[]
   followUps          FollowUp[]

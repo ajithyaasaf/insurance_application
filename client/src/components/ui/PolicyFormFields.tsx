@@ -327,23 +327,64 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 {errors.totalPremium && <p className="text-xs text-red-500 mt-1">{errors.totalPremium}</p>}
             </div>
             
-            <div><label className="label">Start Date {isRequired ? '*' : ''}</label>
-                <input type="date" className={`input ${errors.startDate ? 'border-red-500 focus:ring-red-400' : ''}`} data-error-field={errors.startDate ? 'true' : undefined} value={form.startDate?.split('T')[0] || ''} onChange={(e) => handleChange('startDate', e.target.value)} />
-                {errors.startDate && <p className="text-xs text-red-500 mt-1">{errors.startDate}</p>}
-            </div>
-            
-            <div>
-                <label className="label">Expiry Date {isRequired ? '*' : ''}</label>
-                <input
-                    type="date"
-                    className={`input ${dateError || errors.expiryDate ? 'border-red-500 focus:ring-red-400' : ''}`}
-                    data-error-field={(dateError || errors.expiryDate) ? 'true' : undefined}
-                    min={form.startDate || undefined}
-                    value={form.expiryDate?.split('T')[0] || ''}
-                    onChange={(e) => handleChange('expiryDate', e.target.value)}
-                />
-                {(dateError || errors.expiryDate) && <p className="text-xs text-red-500 mt-1">{dateError || errors.expiryDate}</p>}
-            </div>
+            {(() => {
+                const isSaod = form.vehicleClass === 'SAOD_TW' || form.vehicleClass === 'SAOD_PVT';
+                return (
+                    <>
+                        <div>
+                            <label className="label">
+                                {isSaod ? 'OD Start Date' : 'Start Date'} {isRequired ? '*' : ''}
+                            </label>
+                            <input
+                                type="date"
+                                className={`input ${errors.startDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                data-error-field={errors.startDate ? 'true' : undefined}
+                                value={form.startDate?.split('T')[0] || ''}
+                                onChange={(e) => handleChange('startDate', e.target.value)}
+                            />
+                            {errors.startDate && <p className="text-xs text-red-500 mt-1">{errors.startDate}</p>}
+                        </div>
+
+                        <div>
+                            <label className="label">
+                                {isSaod ? 'OD End Date' : 'Expiry Date'} {isRequired ? '*' : ''}
+                            </label>
+                            <input
+                                type="date"
+                                className={`input ${dateError || errors.expiryDate ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                data-error-field={(dateError || errors.expiryDate) ? 'true' : undefined}
+                                min={form.startDate || undefined}
+                                value={form.expiryDate?.split('T')[0] || ''}
+                                onChange={(e) => handleChange('expiryDate', e.target.value)}
+                            />
+                            {(dateError || errors.expiryDate) && <p className="text-xs text-red-500 mt-1">{dateError || errors.expiryDate}</p>}
+                        </div>
+
+                        {isSaod && (
+                            <>
+                                <div>
+                                    <label className="label">TP Start Date</label>
+                                    <input
+                                        type="date"
+                                        className="input"
+                                        value={form.tpStartDate?.split('T')[0] || ''}
+                                        onChange={(e) => handleChange('tpStartDate', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label">TP End Date</label>
+                                    <input
+                                        type="date"
+                                        className="input"
+                                        value={form.tpEndDate?.split('T')[0] || ''}
+                                        onChange={(e) => handleChange('tpEndDate', e.target.value)}
+                                    />
+                                </div>
+                            </>
+                        )}
+                    </>
+                );
+            })()}
 
             <div><label className="label">Payment Method</label>
                 <SearchableSelect

@@ -91,12 +91,12 @@ const Policies: React.FC = () => {
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
         sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '',
         make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '',
-        registrationDate: '', policyOrigin: 'fresh', ncbPercentage: ''
+        registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '', tpStartDate: '', tpEndDate: ''
     });
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
     const [renewForm, setRenewForm] = useState({
         companyId: '', startDate: '', expiryDate: '', premiumAmount: '', totalPremium: '', policyNumber: '', paidAmount: '',
-        od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: '', idv: ''
+        od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: '', idv: '', tpStartDate: '', tpEndDate: ''
     });
     const [renewingParentHadClaim, setRenewingParentHadClaim] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -155,7 +155,7 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '', tpStartDate: '', tpEndDate: '' });
         setEditStatus('active');
         setErrors({});
         setModalOpen(true);
@@ -173,7 +173,9 @@ const Policies: React.FC = () => {
             paymentMethod: p.paymentMethod || '', paidAmount: '', dealerId: p.dealerId || '',
             registrationDate: p.registrationDate || '',
             policyOrigin: p.policyOrigin || 'fresh',
-            ncbPercentage: p.ncbPercentage !== null && p.ncbPercentage !== undefined ? p.ncbPercentage.toString() : ''
+            ncbPercentage: p.ncbPercentage !== null && p.ncbPercentage !== undefined ? p.ncbPercentage.toString() : '',
+            tpStartDate: p.tpStartDate ? p.tpStartDate.split('T')[0] : '',
+            tpEndDate: p.tpEndDate ? p.tpEndDate.split('T')[0] : ''
         });
         setEditStatus((p.status === 'cancelled' ? 'cancelled' : 'active') as 'active' | 'cancelled');
         setErrors({});
@@ -228,6 +230,8 @@ const Policies: React.FC = () => {
                 dealerId: form.dealerId || undefined,
                 policyOrigin: form.policyOrigin,
                 ncbPercentage: form.ncbPercentage ? parseFloat(form.ncbPercentage as string) : undefined,
+                tpStartDate: (form.vehicleClass === 'SAOD_TW' || form.vehicleClass === 'SAOD_PVT') && form.tpStartDate ? form.tpStartDate : null,
+                tpEndDate: (form.vehicleClass === 'SAOD_TW' || form.vehicleClass === 'SAOD_PVT') && form.tpEndDate ? form.tpEndDate : null,
                 ...(editing ? { status: editStatus } : {}),
             };
             if (editing) {
@@ -299,6 +303,8 @@ const Policies: React.FC = () => {
             policyOrigin: 'in_system_renewal',
             ncbPercentage: '',
             idv: p.idv?.toString() || '',
+            tpStartDate: p.tpStartDate ? start.toISOString().split('T')[0] : '',
+            tpEndDate: p.tpEndDate ? newExpiry.toISOString().split('T')[0] : '',
         });
         const parentHadClaim = p.claims?.some((c: any) => c.status !== 'REJECTED');
         setRenewingParentHadClaim(!!parentHadClaim);
@@ -327,6 +333,7 @@ const Policies: React.FC = () => {
         setRenewErrors({});
         setIsRenewing(true);
         try {
+            const isSaod = renewingPolicy?.vehicleClass === 'SAOD_TW' || renewingPolicy?.vehicleClass === 'SAOD_PVT';
             await api.post(`/policies/${renewingPolicy.id}/renew`, {
                 ...renewForm,
                 companyId: renewForm.companyId || undefined,
@@ -338,6 +345,8 @@ const Policies: React.FC = () => {
                 paidAmount: renewForm.paidAmount ? parseFloat(renewForm.paidAmount) : undefined,
                 ncbPercentage: renewForm.ncbPercentage ? parseFloat(renewForm.ncbPercentage.toString()) : undefined,
                 idv: (renewForm.idv !== '' && renewForm.idv !== undefined) ? parseFloat(renewForm.idv) : undefined,
+                tpStartDate: isSaod && renewForm.tpStartDate ? renewForm.tpStartDate : null,
+                tpEndDate: isSaod && renewForm.tpEndDate ? renewForm.tpEndDate : null,
             });
             toast.success('Policy renewed!');
             setRenewModalOpen(false); fetchPolicies(meta.page);
@@ -672,17 +681,37 @@ const Policies: React.FC = () => {
                             {renewErrors.policyNumber && <p className="text-xs text-red-500 mt-1">{renewErrors.policyNumber}</p>}
                         </div>
 
-                        <div>
-                            <label className="label">Start Date *</label>
-                            <input type="date" className={`input ${renewErrors.startDate ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.startDate} onChange={(e) => handleRenewChange('startDate', e.target.value)} />
-                            {renewErrors.startDate && <p className="text-xs text-red-500 mt-1">{renewErrors.startDate}</p>}
-                        </div>
+                        {(() => {
+                            const isSaod = renewingPolicy?.vehicleClass === 'SAOD_TW' || renewingPolicy?.vehicleClass === 'SAOD_PVT';
+                            return (
+                                <>
+                                    <div>
+                                        <label className="label">{isSaod ? 'OD Start Date *' : 'Start Date *'}</label>
+                                        <input type="date" className={`input ${renewErrors.startDate ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.startDate} onChange={(e) => handleRenewChange('startDate', e.target.value)} />
+                                        {renewErrors.startDate && <p className="text-xs text-red-500 mt-1">{renewErrors.startDate}</p>}
+                                    </div>
 
-                        <div>
-                            <label className="label">Expiry Date *</label>
-                            <input type="date" className={`input ${renewErrors.expiryDate ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.expiryDate} onChange={(e) => handleRenewChange('expiryDate', e.target.value)} />
-                            {renewErrors.expiryDate && <p className="text-xs text-red-500 mt-1">{renewErrors.expiryDate}</p>}
-                        </div>
+                                    <div>
+                                        <label className="label">{isSaod ? 'OD End Date *' : 'Expiry Date *'}</label>
+                                        <input type="date" className={`input ${renewErrors.expiryDate ? 'border-red-500 focus:ring-red-400' : ''}`} value={renewForm.expiryDate} onChange={(e) => handleRenewChange('expiryDate', e.target.value)} />
+                                        {renewErrors.expiryDate && <p className="text-xs text-red-500 mt-1">{renewErrors.expiryDate}</p>}
+                                    </div>
+
+                                    {isSaod && (
+                                        <>
+                                            <div>
+                                                <label className="label">TP Start Date</label>
+                                                <input type="date" className="input" value={renewForm.tpStartDate || ''} onChange={(e) => handleRenewChange('tpStartDate', e.target.value)} />
+                                            </div>
+                                            <div>
+                                                <label className="label">TP End Date</label>
+                                                <input type="date" className="input" value={renewForm.tpEndDate || ''} onChange={(e) => handleRenewChange('tpEndDate', e.target.value)} />
+                                            </div>
+                                        </>
+                                    )}
+                                </>
+                            );
+                        })()}
 
                         {renewingPolicy?.policyType === 'motor' && (
                             <>
