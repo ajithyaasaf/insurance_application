@@ -430,7 +430,7 @@ const Policies: React.FC = () => {
                             <label className="text-[11px] font-bold text-surface-500 uppercase tracking-wider">Type</label>
                             <SearchableSelect
                                 className="w-full"
-                                options={policyTypes.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                                options={policyTypes.map(t => ({ value: t, label: t === 'non_motor' ? 'Non Motor' : t.charAt(0).toUpperCase() + t.slice(1) }))}
                                 value={typeFilter}
                                 onChange={setTypeFilter}
                                 allLabel="All Types"
@@ -527,7 +527,7 @@ const Policies: React.FC = () => {
                                         <td className="capitalize">
                                             <div className="flex flex-wrap items-center gap-1.5">
                                                 {p.policyType}
-                                                {p.policyType === 'motor' && p.vehicleClass && (
+                                                {p.vehicleClass && (
                                                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-surface-100 text-surface-700 border border-surface-200 uppercase">
                                                         {formatVehicleClass(p.vehicleClass)}
                                                     </span>

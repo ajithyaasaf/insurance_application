@@ -348,6 +348,7 @@ enum PolicyType {
   motor
   health
   life
+  non_motor
   other
 }
 
@@ -364,6 +365,7 @@ enum PolicyVehicleClass {
   SAOD_PVT
   CPA
   Home_Insurance
+  RAK_Policy
   Others
 }
 

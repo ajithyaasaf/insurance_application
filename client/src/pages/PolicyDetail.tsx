@@ -189,7 +189,7 @@ const PolicyDetail: React.FC = () => {
                             )}
                         </div>
 
-                        {policy.policyType === 'motor' && (policy.make || policy.model || policy.vehicleClass || policy.paymentMethod) && (
+                        {(policy.policyType === 'motor' || policy.vehicleClass) && (policy.make || policy.model || policy.vehicleClass || policy.paymentMethod) && (
                             <div className="pt-4 border-t border-surface-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
                                 {policy.make && <div>
                                     <p className="text-xs text-surface-500 mb-1">Make</p>

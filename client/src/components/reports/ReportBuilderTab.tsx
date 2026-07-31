@@ -529,13 +529,15 @@ const ReportBuilderTab: React.FC = () => {
                                 <div>
                                     <label className="label">Policy Type</label>
                                     <SearchableSelect
-                                        options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                                        options={POLICY_TYPES.map(t => ({ value: t, label: t === 'non_motor' ? 'Non Motor' : t.charAt(0).toUpperCase() + t.slice(1) }))}
                                         value={localFilters.policyType || ''}
                                         onChange={val => {
                                             updateLocalFilter('policyType', val);
-                                            // Auto-clear vehicle class and origin if switching away from motor
-                                            if (val !== 'motor') {
+                                            // Auto-clear vehicle class if switching away from motor and non_motor
+                                            if (val !== 'motor' && val !== 'non_motor') {
                                                 updateLocalFilter('vehicleClass', '');
+                                            }
+                                            if (val !== 'motor') {
                                                 updateLocalFilter('policyOrigin', '');
                                             }
                                         }}
@@ -570,12 +572,12 @@ const ReportBuilderTab: React.FC = () => {
                                 <div>
                                     <label className="label">Vehicle Class</label>
                                     <SearchableSelect
-                                        disabled={!!(localFilters.policyType && localFilters.policyType !== 'motor')}
+                                        disabled={!!(localFilters.policyType && localFilters.policyType !== 'motor' && localFilters.policyType !== 'non_motor')}
                                         options={VEHICLE_CLASSES.map(t => ({ value: t, label: formatVehicleClass(t) }))}
                                         value={localFilters.vehicleClass || ''}
                                         onChange={val => updateLocalFilter('vehicleClass', val)}
                                         allLabel="All Classes"
-                                        placeholder={localFilters.policyType && localFilters.policyType !== 'motor' ? "N/A (Motor Only)" : "Select vehicle class..."}
+                                        placeholder={localFilters.policyType && localFilters.policyType !== 'motor' && localFilters.policyType !== 'non_motor' ? "N/A" : "Select vehicle class..."}
                                     />
                                 </div>
                             )}

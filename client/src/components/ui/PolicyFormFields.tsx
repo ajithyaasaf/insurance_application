@@ -1,6 +1,6 @@
 import React from 'react';
 import SearchableSelect from './SearchableSelect';
-import { POLICY_TYPES, VEHICLE_CLASSES, PREMIUM_MODES } from '../../utils/constants';
+import { POLICY_TYPES, VEHICLE_CLASSES, MOTOR_VEHICLE_CLASSES, NON_MOTOR_VEHICLE_CLASSES, PREMIUM_MODES } from '../../utils/constants';
 import { formatDateInput, formatVehicleClass } from '../../utils/format';
 
 interface PolicyFormFieldsProps {
@@ -19,6 +19,7 @@ interface PolicyFormFieldsProps {
 
 const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false, isRenewal = false, parentHadClaim = false, errors = {}, setErrors }) => {
     const isMotor = form.policyType === 'motor';
+    const isNonMotor = form.policyType === 'non_motor';
     const isRequired = !showQuoteHeader;
 
     const dateError = form.expiryDate && form.startDate && form.expiryDate <= form.startDate
@@ -60,9 +61,9 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
         setForm((prev: any) => ({
             ...prev,
             policyType: val,
-            ...(val === 'health' || val === 'life' ? {
-                vehicleNumber: '', make: '', model: '', vehicleClass: '',
-                idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: '', registrationDate: ''
+            ...(val === 'health' || val === 'life' || val === 'non_motor' ? {
+                vehicleNumber: '', make: '', model: '', registrationDate: '',
+                idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: ''
             } : val === 'other' ? {
                 vehicleNumber: '', make: '', model: '', vehicleClass: '',
                 idv: '', registrationDate: '',
@@ -105,7 +106,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 <label className="label">Policy Type {isRequired ? '*' : ''}</label>
                 <SearchableSelect
                     disabled={isEditing || isRenewal}
-                    options={POLICY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+                    options={POLICY_TYPES.map(t => ({ value: t, label: t === 'non_motor' ? 'Non Motor' : t.charAt(0).toUpperCase() + t.slice(1) }))}
                     value={form.policyType || ''}
                     onChange={handleTypeChange}
                     placeholder="Select Type"
@@ -236,6 +237,19 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 </div>
             )}
 
+            {isNonMotor && (
+                <div>
+                    <label className="label">Vehicle Class</label>
+                    <SearchableSelect
+                        options={VEHICLE_CLASSES.map(c => ({ value: c, label: formatVehicleClass(c) }))}
+                        value={form.vehicleClass || ''}
+                        onChange={(val) => handleChange('vehicleClass', val)}
+                        allLabel="Select Class"
+                        hasError={!!errors.vehicleClass}
+                    />
+                </div>
+            )}
+
             {isMotor && (
                 <>
                     <div><label className="label">Vehicle Number {isRequired ? '*' : ''}</label>
@@ -262,7 +276,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     </div>
                     <div><label className="label">Vehicle Class</label>
                         <SearchableSelect
-                            options={VEHICLE_CLASSES.map(c => ({ value: c, label: formatVehicleClass(c) }))}
+                            options={MOTOR_VEHICLE_CLASSES.map(c => ({ value: c, label: formatVehicleClass(c) }))}
                             value={form.vehicleClass || ''}
                             onChange={(val) => handleChange('vehicleClass', val)}
                             allLabel="Select Class"
@@ -289,7 +303,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 </>
             )}
 
-            {(form.policyType === 'health' || form.policyType === 'life') && (
+            {(form.policyType === 'health' || form.policyType === 'life' || form.policyType === 'non_motor') && (
                 <div>
                     <label className="label">Sum Insured</label>
                     <input 

@@ -548,7 +548,9 @@ const Leads: React.FC = () => {
                                             options={[
                                                 { value: 'motor', label: 'Motor' },
                                                 { value: 'health', label: 'Health' },
-                                                { value: 'life', label: 'Life' }
+                                                { value: 'life', label: 'Life' },
+                                                { value: 'non_motor', label: 'Non Motor' },
+                                                { value: 'other', label: 'Other' }
                                             ]}
                                             value={convertForm.policyType}
                                             onChange={(val) => {
