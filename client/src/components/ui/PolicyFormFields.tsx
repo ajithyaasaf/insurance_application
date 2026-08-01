@@ -297,10 +297,13 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     <div><label className="label">TP Premium</label>
                         <input type="number" min="0" step="0.01" className="input" value={form.tp || ''} onChange={(e) => handleChange('tp', e.target.value)} />
                     </div>
-                    <div><label className="label">Tax (GST)</label>
-                        <input type="number" min="0" step="0.01" className="input" value={form.tax || ''} onChange={(e) => handleChange('tax', e.target.value)} />
-                    </div>
                 </>
+            )}
+
+            {(isMotor || form.policyType === 'other' || isNonMotor) && (
+                <div><label className="label">Tax (GST)</label>
+                    <input type="number" min="0" step="0.01" className="input" value={form.tax || ''} onChange={(e) => handleChange('tax', e.target.value)} />
+                </div>
             )}
 
             {(form.policyType === 'health' || form.policyType === 'life' || form.policyType === 'non_motor' || form.policyType === 'other') && (
