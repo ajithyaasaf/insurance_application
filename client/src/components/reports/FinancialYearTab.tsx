@@ -259,7 +259,10 @@ const FinancialYearTab: React.FC = () => {
                                 <h3 className="text-sm font-bold text-surface-900">Company-wise Performance ({periodLabel})</h3>
                                 <span className="badge-info">{companyData.length} companies</span>
                             </div>
-                            <CompanyBarChart data={companyData} nameKey="name" valueKey="totalPremiumSum" />
+                            <BarChartRow data={companyData} nameKey="name" valueKey="totalPremiumSum" label="Premium (₹)" limit={8} />
+                            {!companyData?.length && (
+                                <p className="text-xs text-surface-400 text-center py-6">No company data available</p>
+                            )}
                         </div>
 
                         {/* Policy Type Breakdown */}
