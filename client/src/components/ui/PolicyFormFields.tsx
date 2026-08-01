@@ -241,7 +241,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 <div>
                     <label className="label">Vehicle Class</label>
                     <SearchableSelect
-                        options={VEHICLE_CLASSES.map(c => ({ value: c, label: formatVehicleClass(c) }))}
+                        options={NON_MOTOR_VEHICLE_CLASSES.map(c => ({ value: c, label: formatVehicleClass(c) }))}
                         value={form.vehicleClass || ''}
                         onChange={(val) => handleChange('vehicleClass', val)}
                         allLabel="Select Class"
