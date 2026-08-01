@@ -218,6 +218,10 @@ const PolicyDetail: React.FC = () => {
                         <div className="pt-4 border-t border-surface-100">
                             <h3 className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mb-3">Premium Breakdown</h3>
                             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                                {policy.sumInsured > 0 && <div>
+                                    <p className="text-xs text-surface-500 mb-1">Sum Insured</p>
+                                    <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.sumInsured)}</p>
+                                </div>}
                                 {policy.idv > 0 && <div>
                                     <p className="text-xs text-surface-500 mb-1">IDV</p>
                                     <p className="text-sm font-medium text-surface-900">{formatCurrency(policy.idv)}</p>

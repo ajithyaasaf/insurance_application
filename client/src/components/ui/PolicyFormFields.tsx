@@ -303,7 +303,7 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 </>
             )}
 
-            {(form.policyType === 'health' || form.policyType === 'life' || form.policyType === 'non_motor') && (
+            {(form.policyType === 'health' || form.policyType === 'life' || form.policyType === 'non_motor' || form.policyType === 'other') && (
                 <div>
                     <label className="label">Sum Insured</label>
                     <input 
