@@ -130,7 +130,7 @@ export class PaymentService {
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: { dueDate: 'desc' },
-                include: { customer: true, policy: true },
+                include: { customer: true, policy: { include: { offer: true } } },
             }),
             prisma.payment.count({ where }),
         ]);
@@ -141,7 +141,7 @@ export class PaymentService {
     async findById(userId: string, role: string, id: string) {
         const payment = await prisma.payment.findFirst({
             where: { id, ...ownerFilter(userId, role) },
-            include: { customer: true, policy: true },
+            include: { customer: true, policy: { include: { offer: true } } },
         });
         if (!payment) throw Object.assign(new Error('Payment not found'), { statusCode: 404 });
         return mapPaymentStatus(payment);
