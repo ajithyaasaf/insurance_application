@@ -24,7 +24,7 @@ const Payments: React.FC = () => {
     const [customers, setCustomers] = useState<any[]>([]);
     const [policies, setPolicies] = useState<any[]>([]);
     const [dealers, setDealers] = useState<any[]>([]);
-    const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
+    const [meta, setMeta] = useState<{ page: number; totalPages: number; total: number; totalOutstanding?: number }>({ page: 1, totalPages: 1, total: 0, totalOutstanding: 0 });
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [dealerFilter, setDealerFilter] = useState('');
@@ -277,6 +277,24 @@ const Payments: React.FC = () => {
                     )}
                     <Button onClick={handleDetectOverdue} isLoading={isDetecting} className="btn-secondary text-amber-600">Detect Overdue</Button>
                     <button onClick={openCreate} className="btn-primary"><HiOutlinePlus className="w-4 h-4" /> Add Payment</button>
+                </div>
+            </div>
+
+            {/* Overall Outstanding KPI Summary Card */}
+            <div className="bg-white rounded-2xl p-4 sm:p-5 border border-surface-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100">
+                        <HiOutlineCreditCard className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-surface-500 uppercase tracking-wider">Overall Total Outstanding</p>
+                        <p className="text-xl sm:text-2xl font-black text-red-600 tracking-tight mt-0.5">
+                            {formatCurrency(meta.totalOutstanding || 0)}
+                        </p>
+                    </div>
+                </div>
+                <div className="text-xs text-surface-600 bg-surface-50 px-3 py-1.5 rounded-lg border border-surface-200/80 font-semibold">
+                    Across all {meta.total} {meta.total === 1 ? 'record' : 'records'} matching current filters
                 </div>
             </div>
 

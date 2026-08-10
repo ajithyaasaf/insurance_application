@@ -124,7 +124,7 @@ export class PaymentService {
             }),
         };
 
-        const [data, total] = await Promise.all([
+        const [data, total, summary] = await Promise.all([
             prisma.payment.findMany({
                 where,
                 skip: (page - 1) * limit,
@@ -133,9 +133,26 @@ export class PaymentService {
                 include: { customer: true, policy: { include: { offer: true } } },
             }),
             prisma.payment.count({ where }),
+            prisma.payment.aggregate({
+                where,
+                _sum: { amount: true, paidAmount: true },
+            }),
         ]);
 
-        return { data: data.map(mapPaymentStatus), meta: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+        const totalAmount = summary._sum.amount || 0;
+        const totalPaidAmount = summary._sum.paidAmount || 0;
+        const totalOutstanding = Math.max(0, totalAmount - totalPaidAmount);
+
+        return {
+            data: data.map(mapPaymentStatus),
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                totalOutstanding,
+            },
+        };
     }
 
     async findById(userId: string, role: string, id: string) {
