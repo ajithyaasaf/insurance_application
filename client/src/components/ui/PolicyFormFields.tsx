@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import SearchableSelect from './SearchableSelect';
+import QuickCustomerModal from './QuickCustomerModal';
+import { HiOutlinePlus } from 'react-icons/hi';
 import { POLICY_TYPES, VEHICLE_CLASSES, MOTOR_VEHICLE_CLASSES, NON_MOTOR_VEHICLE_CLASSES, PREMIUM_MODES } from '../../utils/constants';
 import { formatDateInput, formatVehicleClass } from '../../utils/format';
 
@@ -15,12 +17,31 @@ interface PolicyFormFieldsProps {
     parentHadClaim?: boolean;
     errors?: Record<string, string>;
     setErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+    onCustomerCreated?: (newCustomer: any) => void;
 }
 
-const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false, isRenewal = false, parentHadClaim = false, errors = {}, setErrors }) => {
+const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, companies = [], dealers = [], customers = [], isEditing = false, showQuoteHeader = false, isRenewal = false, parentHadClaim = false, errors = {}, setErrors, onCustomerCreated }) => {
     const isMotor = form.policyType === 'motor';
     const isNonMotor = form.policyType === 'non_motor';
     const isRequired = !showQuoteHeader;
+
+    const [customerList, setCustomerList] = useState<any[]>(customers);
+    const [quickCustomerModalOpen, setQuickCustomerModalOpen] = useState(false);
+
+    useEffect(() => {
+        setCustomerList(customers);
+    }, [customers]);
+
+    const handleCustomerCreated = (newCustomer: any) => {
+        setCustomerList(prev => [newCustomer, ...prev.filter(c => c.id !== newCustomer.id)]);
+        handleChange('customerId', newCustomer.id);
+        if (typeof setErrors === 'function') {
+            setErrors((prev: any) => ({ ...prev, customerId: '' }));
+        }
+        if (onCustomerCreated) {
+            onCustomerCreated(newCustomer);
+        }
+    };
 
     const dateError = form.expiryDate && form.startDate && form.expiryDate <= form.startDate
         ? 'Expiry date must be after start date'
@@ -88,11 +109,22 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                 </div>
             )}
             
-            {customers && customers.length > 0 && (
+            {customers !== undefined && (
                 <div>
-                    <label className="label">Customer *</label>
+                    <div className="flex items-center justify-between mb-1">
+                        <label className="label mb-0">Customer *</label>
+                        {!isEditing && !isRenewal && (
+                            <button
+                                type="button"
+                                onClick={() => setQuickCustomerModalOpen(true)}
+                                className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1 hover:underline cursor-pointer"
+                            >
+                                <HiOutlinePlus className="w-3.5 h-3.5" /> New Customer
+                            </button>
+                        )}
+                    </div>
                     <SearchableSelect
-                        options={customers.map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` }))}
+                        options={customerList.map(c => ({ value: c.id, label: `${c.name}${c.phone ? ` (${c.phone})` : ''}` }))}
                         value={form.customerId || ''}
                         onChange={(val) => handleChange('customerId', val)}
                         placeholder="Select Customer"
@@ -414,6 +446,12 @@ const PolicyFormFields: React.FC<PolicyFormFieldsProps> = ({ form, setForm, comp
                     />
                 </div>
             )}
+
+            <QuickCustomerModal
+                isOpen={quickCustomerModalOpen}
+                onClose={() => setQuickCustomerModalOpen(false)}
+                onCustomerCreated={handleCustomerCreated}
+            />
 
         </div>
     );
