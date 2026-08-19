@@ -88,7 +88,7 @@ const AppLayout: React.FC = () => {
                         {navItems
                             .filter(item => {
                                 if (user?.role === 'staff') {
-                                    return !['/commissions', '/offers', '/payments'].includes(item.to);
+                                    return !['/commissions', '/offers'].includes(item.to);
                                 }
                                 return true;
                             })

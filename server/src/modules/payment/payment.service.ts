@@ -111,7 +111,13 @@ export class PaymentService {
             ...(status === 'pending' && { status: { in: ['pending', 'overdue', 'partial'] } }),
             ...(status && status !== 'overdue' && status !== 'pending' && { status: status as any }),
             ...(Object.keys(dueDateFilter).length > 0 && { dueDate: dueDateFilter }),
-            ...(dealerId === 'direct' ? { policy: { dealerId: null } } : dealerId ? { policy: { dealerId } } : {}),
+            ...(role === 'staff'
+                ? { policy: { dealerId: dealerId && dealerId !== 'direct' ? dealerId : { not: null } } }
+                : dealerId === 'direct'
+                    ? { policy: { dealerId: null } }
+                    : dealerId
+                        ? { policy: { dealerId } }
+                        : {}),
             ...(policyNumber && { policy: { policyNumber: { contains: policyNumber, mode: 'insensitive' } } }),
             ...(vehicleNumber && { policy: { vehicleNumber: { contains: vehicleNumber, mode: 'insensitive' } } }),
             ...(vehicleClass && { policy: { vehicleClass: vehicleClass as any } }),

@@ -317,7 +317,7 @@ const Payments: React.FC = () => {
                 <SearchableSelect
                     className="w-full sm:w-48"
                     options={[
-                        { value: 'direct', label: '⭐ Direct' },
+                        ...(isStaff ? [] : [{ value: 'direct', label: '⭐ Direct' }]),
                         ...dealers.map(d => ({ value: d.id, label: d.name }))
                     ]}
                     value={dealerFilter}
@@ -376,7 +376,7 @@ const Payments: React.FC = () => {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="font-semibold text-surface-900 text-xs">{formatCurrency(grossPremium)}</td>
+                                            <td className="font-semibold text-surface-900 text-xs">{formatCurrency(isStaff ? p.amount : grossPremium)}</td>
                                             <td className="text-xs">{formatDate(p.dueDate)}</td>
                                             <td className="text-xs">{p.paidAmount ? formatCurrency(p.paidAmount) : '—'}</td>
                                             <td className="text-xs">
@@ -384,7 +384,7 @@ const Payments: React.FC = () => {
                                                     <span className={`font-bold ${outstanding > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                                                         {formatCurrency(outstanding)}
                                                     </span>
-                                                    {offer && (
+                                                    {!isStaff && offer && (
                                                         <div className="flex items-center gap-1 text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 mt-0.5 w-max">
                                                             <HiOutlineTag className="w-3 h-3 text-emerald-600 shrink-0" />
                                                             <span>-{formatCurrency(offer.offerAmount)} Offer</span>
@@ -442,14 +442,14 @@ const Payments: React.FC = () => {
                                     </div>
                                     <p className="text-xs text-surface-500 mb-2">Due: {formatDate(p.dueDate)}</p>
                                     <div className="flex justify-between items-center text-sm">
-                                        <span>Amount: <strong>{formatCurrency(grossPremium)}</strong></span>
+                                        <span>Amount: <strong>{formatCurrency(isStaff ? p.amount : grossPremium)}</strong></span>
                                         {p.paidAmount ? <span className="text-emerald-600 font-medium">Paid: {formatCurrency(p.paidAmount)}</span> : null}
                                     </div>
                                     {outstanding > 0 && (
                                         <div className="mt-2 pt-2 border-t border-dashed border-surface-200 flex justify-between items-center text-sm">
                                             <div className="flex flex-col">
                                                 <span className="text-surface-500 font-medium">Outstanding:</span>
-                                                {offer && (
+                                                {!isStaff && offer && (
                                                     <div className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 inline-flex items-center gap-1 mt-0.5">
                                                         <HiOutlineTag className="w-3 h-3 text-emerald-600 shrink-0" /> -{formatCurrency(offer.offerAmount)} Offer
                                                     </div>
