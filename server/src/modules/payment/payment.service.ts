@@ -101,6 +101,25 @@ export class PaymentService {
             };
         }
 
+        const policyWhere: any = {};
+        if (role === 'staff') {
+            policyWhere.dealerId = dealerId && dealerId !== 'direct' ? dealerId : { not: null };
+        } else if (dealerId === 'direct') {
+            policyWhere.dealerId = null;
+        } else if (dealerId) {
+            policyWhere.dealerId = dealerId;
+        }
+
+        if (policyNumber) {
+            policyWhere.policyNumber = { contains: policyNumber, mode: 'insensitive' };
+        }
+        if (vehicleNumber) {
+            policyWhere.vehicleNumber = { contains: vehicleNumber, mode: 'insensitive' };
+        }
+        if (vehicleClass) {
+            policyWhere.vehicleClass = vehicleClass as any;
+        }
+
         const where: any = {
             ...ownerFilter(userId, role),
             // Status filter logic:
@@ -111,16 +130,7 @@ export class PaymentService {
             ...(status === 'pending' && { status: { in: ['pending', 'overdue', 'partial'] } }),
             ...(status && status !== 'overdue' && status !== 'pending' && { status: status as any }),
             ...(Object.keys(dueDateFilter).length > 0 && { dueDate: dueDateFilter }),
-            ...(role === 'staff'
-                ? { policy: { dealerId: dealerId && dealerId !== 'direct' ? dealerId : { not: null } } }
-                : dealerId === 'direct'
-                    ? { policy: { dealerId: null } }
-                    : dealerId
-                        ? { policy: { dealerId } }
-                        : {}),
-            ...(policyNumber && { policy: { policyNumber: { contains: policyNumber, mode: 'insensitive' } } }),
-            ...(vehicleNumber && { policy: { vehicleNumber: { contains: vehicleNumber, mode: 'insensitive' } } }),
-            ...(vehicleClass && { policy: { vehicleClass: vehicleClass as any } }),
+            ...(Object.keys(policyWhere).length > 0 && { policy: policyWhere }),
             ...(search && {
                 OR: [
                     { customer: { name: { contains: search, mode: 'insensitive' }, deletedAt: null } },

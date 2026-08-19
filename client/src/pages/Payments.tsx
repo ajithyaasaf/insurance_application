@@ -501,7 +501,7 @@ const Payments: React.FC = () => {
                             <div>
                                 <label className="label">Policy *</label>
                                 <SearchableSelect
-                                    options={policies.filter(p => !form.customerId || p.customerId === form.customerId).map(p => ({
+                                    options={policies.filter(p => (!form.customerId || p.customerId === form.customerId) && (!isStaff || p.dealerId)).map(p => ({
                                         value: p.id,
                                         label: `${p.policyNumber ? p.policyNumber + ' - ' : ''}${p.vehicleNumber ? p.vehicleNumber + ' - ' : ''}${p.customer?.name || ''}${p.customer?.phone ? ` (${p.customer.phone})` : ''} (${p.productName || p.policyType})`
                                     }))}
