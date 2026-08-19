@@ -627,9 +627,9 @@ const Dashboard: React.FC = () => {
                                         </div>
                                         {(claim.surveyorName || claim.workshopName) && (
                                             <p className="text-[11px] text-surface-400 mt-0.5 truncate">
-                                                {claim.surveyorName && `Surveyor: ${claim.surveyorName}${claim.surveyorPhone ? ` (${claim.surveyorPhone})` : ''}`}
+                                                {claim.surveyorName && `${claim.policy?.policyType === 'health' ? 'TPA' : 'Surveyor'}: ${claim.surveyorName}${claim.surveyorPhone ? ` (${claim.surveyorPhone})` : ''}`}
                                                 {claim.surveyorName && claim.workshopName && ' • '}
-                                                {claim.workshopName && `Workshop: ${claim.workshopName}`}
+                                                {claim.workshopName && `${claim.policy?.policyType === 'health' ? 'Hospital' : 'Workshop'}: ${claim.workshopName}`}
                                             </p>
                                         )}
                                     </div>
