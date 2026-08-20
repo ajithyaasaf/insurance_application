@@ -21,6 +21,7 @@ import {
 
 import GlobalSearch from '../components/ui/GlobalSearch';
 import ExpiringBanner from '../components/ui/ExpiringBanner';
+import BirthdayModal from '../components/ui/BirthdayModal';
 
 const navItems = [
     { to: '/', icon: HiOutlineViewGrid, label: 'Dashboard' },
@@ -49,6 +50,9 @@ const AppLayout: React.FC = () => {
 
     return (
         <div className="flex h-screen overflow-hidden bg-surface-50">
+            {/* Birthday Celebration Splash Modal */}
+            <BirthdayModal />
+
             {/* Overlay for mobile */}
             {sidebarOpen && (
                 <div
