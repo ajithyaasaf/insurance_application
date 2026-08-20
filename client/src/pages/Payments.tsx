@@ -401,11 +401,9 @@ const Payments: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td>
-                                                {!isStaff && (
-                                                    <button onClick={() => openEdit(p)} className="btn-ghost btn-sm" title="Edit Payment">
-                                                        <HiOutlinePencil className="w-3.5 h-3.5" />
-                                                    </button>
-                                                )}
+                                                <button onClick={() => openEdit(p)} className="btn-ghost btn-sm" title="Edit Payment">
+                                                    <HiOutlinePencil className="w-3.5 h-3.5" />
+                                                </button>
                                             </td>
                                         </tr>
                                     );
@@ -430,7 +428,7 @@ const Payments: React.FC = () => {
                             const grossPremium = offer?.grossPremium || p.policy?.totalPremium || p.policy?.premiumAmount || p.amount;
 
                             return (
-                                <div key={p.id} className="card card-body" onClick={!isStaff ? () => openEdit(p) : undefined}>
+                                <div key={p.id} className="card card-body hover:border-surface-300 transition-colors cursor-pointer" onClick={() => openEdit(p)}>
                                     <div className="flex justify-between items-start mb-1">
                                         <p className="font-semibold text-surface-900">{p.customer?.name}</p>
                                         <div className="flex items-center gap-2">
