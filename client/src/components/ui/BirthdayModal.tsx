@@ -5,11 +5,27 @@ interface BirthdayModalProps {
     onClose?: () => void;
 }
 
+const isBirthdayDate = () => {
+    const today = new Date();
+    // August is Month Index 7 in JS (Jan=0, Aug=7) and Date is 20
+    return today.getMonth() === 7 && today.getDate() === 20;
+};
+
 const BirthdayModal: React.FC<BirthdayModalProps> = ({ onClose }) => {
-    const [isOpen, setIsOpen] = useState(true);
+    const [isOpen, setIsOpen] = useState(() => {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        // Check if today is August 20th
+        if (!isBirthdayDate()) return false;
+        // Check if dismissed for current year
+        const dismissed = localStorage.getItem(`birthday_modal_dismissed_${currentYear}`);
+        return !dismissed;
+    });
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     const handleDismiss = () => {
+        const currentYear = new Date().getFullYear();
+        localStorage.setItem(`birthday_modal_dismissed_${currentYear}`, 'true');
         setIsOpen(false);
         if (onClose) onClose();
     };
