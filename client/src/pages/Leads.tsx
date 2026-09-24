@@ -433,7 +433,6 @@ const Leads: React.FC = () => {
                                                 {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
                                                 {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Own Renewal</span>}
                                                 {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
-                                                {lead.referenceName && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">👤 {lead.referenceName}</span>}
                                             </div>
                                         </td>
                                         <td>{lead.phone || '—'}</td>
@@ -465,7 +464,6 @@ const Leads: React.FC = () => {
                                             {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
                                             {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Own Renewal</span>}
                                             {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-surface-200 text-[10px] font-medium bg-surface-50 text-surface-600">Fresh</span>}
-                                            {lead.referenceName && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-700">👤 {lead.referenceName}</span>}
                                         </p>
                                         <p className="text-xs text-surface-500">{lead.phone || 'No phone'}</p>
                                     </div>

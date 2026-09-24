@@ -542,11 +542,6 @@ const Policies: React.FC = () => {
                                             <p className="font-medium text-surface-900">{p.customer?.name}</p>
                                             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                                                 <span className="text-xs text-surface-500">{p.productName || p.policyNumber || ''}</span>
-                                                {p.referenceName && (
-                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100" title={p.referenceLocation ? `Location: ${p.referenceLocation}` : 'Reference'}>
-                                                        Ref: {p.referenceName}
-                                                    </span>
-                                                )}
                                             </div>
                                         </td>
                                         <td className="capitalize">
@@ -594,7 +589,6 @@ const Policies: React.FC = () => {
                                         <p className="font-semibold text-surface-900">{p.customer?.name}</p>
                                         <p className="text-xs text-surface-500 capitalize flex items-center gap-1.5">
                                             {p.policyType} • {p.company?.name}
-                                            {p.referenceName && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-700">Ref: {p.referenceName}</span>}
                                             {p.policyOrigin === 'new_vehicle' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-200 text-[10px] font-medium bg-green-50 text-green-800">New Vehicle</span>}
                                             {p.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
                                             {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Own Renewal</span>}

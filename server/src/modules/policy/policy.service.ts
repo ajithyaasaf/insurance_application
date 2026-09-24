@@ -614,6 +614,8 @@ export class PolicyService {
                     policyOrigin: 'in_system_renewal',
                     ncbPercentage: data.ncbPercentage ?? null,
                     dealerId: data.dealerId || originalPolicy.dealerId,
+                    referenceName: (data as any).referenceName !== undefined ? (data as any).referenceName : originalPolicy.referenceName,
+                    referenceLocation: (data as any).referenceLocation !== undefined ? (data as any).referenceLocation : originalPolicy.referenceLocation,
                     tpStartDate: data.tpStartDate ? new Date(data.tpStartDate) : (originalPolicy.tpStartDate ? new Date(originalPolicy.tpStartDate) : null),
                     tpEndDate: data.tpEndDate ? new Date(data.tpEndDate) : (originalPolicy.tpEndDate ? new Date(originalPolicy.tpEndDate) : null),
                     createdBy: role,
