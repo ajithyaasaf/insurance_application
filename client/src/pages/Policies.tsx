@@ -375,11 +375,11 @@ const Policies: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
                     <div className="relative flex-1 max-w-xl">
                         <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-                        <input 
-                            className="input pl-10 w-full" 
-                            placeholder="Search by customer, policy no, vehicle..." 
-                            value={search} 
-                            onChange={(e) => setSearch(e.target.value)} 
+                        <input
+                            className="input pl-10 w-full"
+                            placeholder="Search by customer, policy no, vehicle..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <div className="flex items-center gap-3">
@@ -392,22 +392,20 @@ const Policies: React.FC = () => {
                                     setStatusFilter('expiring_soon');
                                 }
                             }}
-                            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
-                                statusFilter === 'expiring_soon'
+                            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${statusFilter === 'expiring_soon'
                                     ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-inner'
                                     : 'bg-white border-surface-200 text-surface-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 shadow-sm'
-                            }`}
+                                }`}
                         >
                             <span>⏱️ Expiring Soon</span>
                         </button>
                         <button
                             type="button"
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`btn-secondary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
-                                showFilters 
-                                    ? 'bg-primary-50 border-primary-300 text-primary-700 shadow-inner' 
+                            className={`btn-secondary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${showFilters
+                                    ? 'bg-primary-50 border-primary-300 text-primary-700 shadow-inner'
                                     : 'bg-white border-surface-200 text-surface-700 hover:bg-surface-50 shadow-sm'
-                            }`}
+                                }`}
                         >
                             <HiOutlineFilter className="w-4 h-4" />
                             <span>Filters</span>
@@ -418,8 +416,8 @@ const Policies: React.FC = () => {
                             )}
                         </button>
                         {((search || statusFilter || typeFilter || companyFilter.length > 0 || dealerFilter || vehicleClassFilter || dateFromFilter || dateToFilter)) && (
-                            <button 
-                                onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setCompanyFilter([]); setDealerFilter(''); setVehicleClassFilter(''); setDateFromFilter(''); setDateToFilter(''); }} 
+                            <button
+                                onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter(''); setCompanyFilter([]); setDealerFilter(''); setVehicleClassFilter(''); setDateFromFilter(''); setDateToFilter(''); }}
                                 className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors uppercase tracking-wider px-2 py-1"
                             >
                                 Clear All
