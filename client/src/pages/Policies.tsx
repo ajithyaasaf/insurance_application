@@ -91,7 +91,8 @@ const Policies: React.FC = () => {
         customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '',
         sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '',
         make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '',
-        registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '', tpStartDate: '', tpEndDate: ''
+        registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '', tpStartDate: '', tpEndDate: '',
+        referenceName: '', referenceLocation: ''
     });
     const [editStatus, setEditStatus] = useState<'active' | 'cancelled'>('active');
     const [renewForm, setRenewForm] = useState({
@@ -155,7 +156,7 @@ const Policies: React.FC = () => {
 
     const openCreate = () => {
         setEditing(null);
-        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '', tpStartDate: '', tpEndDate: '' });
+        setForm({ customerId: '', companyId: '', policyNumber: '', policyType: 'motor', vehicleNumber: '', startDate: '', expiryDate: '', sumInsured: '', premiumAmount: '', premiumMode: 'yearly', productName: '', make: '', model: '', vehicleClass: '', idv: '', od: '', tp: '', tax: '', totalPremium: '', paymentMethod: '', paidAmount: '', dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '', tpStartDate: '', tpEndDate: '', referenceName: '', referenceLocation: '' });
         setEditStatus('active');
         setErrors({});
         setModalOpen(true);
@@ -175,7 +176,9 @@ const Policies: React.FC = () => {
             policyOrigin: p.policyOrigin || 'fresh',
             ncbPercentage: p.ncbPercentage !== null && p.ncbPercentage !== undefined ? p.ncbPercentage.toString() : '',
             tpStartDate: p.tpStartDate ? p.tpStartDate.split('T')[0] : '',
-            tpEndDate: p.tpEndDate ? p.tpEndDate.split('T')[0] : ''
+            tpEndDate: p.tpEndDate ? p.tpEndDate.split('T')[0] : '',
+            referenceName: p.referenceName || '',
+            referenceLocation: p.referenceLocation || ''
         });
         setEditStatus((p.status === 'cancelled' ? 'cancelled' : 'active') as 'active' | 'cancelled');
         setErrors({});
@@ -228,6 +231,8 @@ const Policies: React.FC = () => {
                 paymentMethod: form.paymentMethod || undefined,
                 paidAmount: form.paidAmount ? parseFloat(form.paidAmount) : undefined,
                 dealerId: form.dealerId || undefined,
+                referenceName: form.referenceName || undefined,
+                referenceLocation: form.referenceLocation || undefined,
                 policyOrigin: form.policyOrigin,
                 ncbPercentage: form.ncbPercentage ? parseFloat(form.ncbPercentage as string) : undefined,
                 tpStartDate: DUAL_DATE_VEHICLE_CLASSES.includes(form.vehicleClass) && form.tpStartDate ? form.tpStartDate : null,
@@ -472,6 +477,7 @@ const Policies: React.FC = () => {
                                 className="w-full"
                                 options={[
                                     { value: 'direct', label: '⭐ Direct' },
+                                    { value: 'reference', label: '👤 Reference' },
                                     ...dealers.map(d => ({ value: d.id, label: d.name }))
                                 ]}
                                 value={dealerFilter}
@@ -532,7 +538,17 @@ const Policies: React.FC = () => {
                             <tbody>
                                 {policies.map((p) => (
                                     <tr key={p.id}>
-                                        <td><p className="font-medium text-surface-900">{p.customer?.name}</p><p className="text-xs text-surface-500">{p.productName || p.policyNumber || ''}</p></td>
+                                        <td>
+                                            <p className="font-medium text-surface-900">{p.customer?.name}</p>
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                                <span className="text-xs text-surface-500">{p.productName || p.policyNumber || ''}</span>
+                                                {p.referenceName && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100" title={p.referenceLocation ? `Location: ${p.referenceLocation}` : 'Reference'}>
+                                                        Ref: {p.referenceName}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="capitalize">
                                             <div className="flex flex-wrap items-center gap-1.5">
                                                 {p.policyType}
@@ -578,6 +594,7 @@ const Policies: React.FC = () => {
                                         <p className="font-semibold text-surface-900">{p.customer?.name}</p>
                                         <p className="text-xs text-surface-500 capitalize flex items-center gap-1.5">
                                             {p.policyType} • {p.company?.name}
+                                            {p.referenceName && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-700">Ref: {p.referenceName}</span>}
                                             {p.policyOrigin === 'new_vehicle' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-green-200 text-[10px] font-medium bg-green-50 text-green-800">New Vehicle</span>}
                                             {p.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
                                             {p.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Own Renewal</span>}

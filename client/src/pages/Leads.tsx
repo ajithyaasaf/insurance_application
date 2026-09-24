@@ -43,7 +43,8 @@ const Leads: React.FC = () => {
         idv: '', od: '', tp: '', tax: '', totalPremium: '', premiumAmount: '', startDate: '', expiryDate: '',
         dealerId: '', registrationDate: '', policyOrigin: 'fresh', ncbPercentage: '',
         productName: '', sumInsured: '',
-        tpStartDate: '', tpEndDate: ''
+        tpStartDate: '', tpEndDate: '',
+        referenceName: '', referenceLocation: ''
     };
     const [form, setForm] = useState(initialFormState);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -66,6 +67,9 @@ const Leads: React.FC = () => {
         vehicleClass: '',
         tpStartDate: '',
         tpEndDate: '',
+        dealerId: '',
+        referenceName: '',
+        referenceLocation: '',
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isConverting, setIsConverting] = useState(false);
@@ -172,6 +176,8 @@ const Leads: React.FC = () => {
             startDate: safeDateInput(lead.startDate),
             expiryDate: safeDateInput(lead.expiryDate),
             dealerId: lead.dealerId || '',
+            referenceName: lead.referenceName || '',
+            referenceLocation: lead.referenceLocation || '',
             registrationDate: safeDateInput(lead.registrationDate),
             policyOrigin: lead.policyOrigin || 'fresh',
             ncbPercentage: lead.ncbPercentage !== null && lead.ncbPercentage !== undefined ? lead.ncbPercentage.toString() : '',
@@ -209,6 +215,8 @@ const Leads: React.FC = () => {
                 tpStartDate: DUAL_DATE_VEHICLE_CLASSES.includes(form.vehicleClass) && form.tpStartDate ? form.tpStartDate : null,
                 tpEndDate: DUAL_DATE_VEHICLE_CLASSES.includes(form.vehicleClass) && form.tpEndDate ? form.tpEndDate : null,
                 dealerId: form.dealerId || undefined,
+                referenceName: form.referenceName?.trim() || undefined,
+                referenceLocation: form.referenceLocation?.trim() || undefined,
                 idv: form.policyType === 'motor' && form.idv ? parseFloat(form.idv) : undefined,
                 od: form.policyType === 'motor' && form.od ? parseFloat(form.od) : undefined,
                 tp: form.policyType === 'motor' && form.tp ? parseFloat(form.tp) : undefined,
@@ -274,6 +282,9 @@ const Leads: React.FC = () => {
             vehicleClass: lead.vehicleClass || '',
             tpStartDate: safeDateInput(lead.tpStartDate),
             tpEndDate: safeDateInput(lead.tpEndDate),
+            dealerId: lead.dealerId || '',
+            referenceName: lead.referenceName || '',
+            referenceLocation: lead.referenceLocation || '',
         });
         setErrors({});
         setConvertModalOpen(true);
@@ -335,6 +346,9 @@ const Leads: React.FC = () => {
                 ncbPercentage: policyType === 'motor' && convertForm.ncbPercentage ? parseFloat(convertForm.ncbPercentage) : undefined,
                 tpStartDate: isDualDate ? (convertingLead?.tpStartDate || convertForm.tpStartDate || null) : null,
                 tpEndDate: isDualDate ? (convertingLead?.tpEndDate || convertForm.tpEndDate || null) : null,
+                dealerId: convertForm.dealerId || convertingLead?.dealerId || undefined,
+                referenceName: convertForm.referenceName?.trim() || convertingLead?.referenceName || undefined,
+                referenceLocation: convertForm.referenceLocation?.trim() || convertingLead?.referenceLocation || undefined,
                 
                 // Dynamically append any missing details provided inline in the modal
                 ...(!convertingLead?.policyType && { policyType: convertForm.policyType }),
@@ -419,6 +433,7 @@ const Leads: React.FC = () => {
                                                 {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800">External</span>}
                                                 {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800">Own Renewal</span>}
                                                 {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-surface-100 text-surface-600">Fresh</span>}
+                                                {lead.referenceName && <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">👤 {lead.referenceName}</span>}
                                             </div>
                                         </td>
                                         <td>{lead.phone || '—'}</td>
@@ -450,6 +465,7 @@ const Leads: React.FC = () => {
                                             {lead.policyOrigin === 'external_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-800">External</span>}
                                             {lead.policyOrigin === 'in_system_renewal' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-blue-200 text-[10px] font-medium bg-blue-50 text-blue-800">Own Renewal</span>}
                                             {lead.policyOrigin === 'fresh' && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-surface-200 text-[10px] font-medium bg-surface-50 text-surface-600">Fresh</span>}
+                                            {lead.referenceName && <span className="inline-flex items-center px-1.5 py-0.5 rounded border border-amber-200 text-[10px] font-medium bg-amber-50 text-amber-700">👤 {lead.referenceName}</span>}
                                         </p>
                                         <p className="text-xs text-surface-500">{lead.phone || 'No phone'}</p>
                                     </div>
