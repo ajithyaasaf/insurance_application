@@ -2044,7 +2044,8 @@ export class ReportService {
             doc.moveDown(0.5);
 
             const isPaymentsReport = title?.includes('Payments') || title?.includes('payments');
-            const neededSpace = isPaymentsReport ? 100 : 60;
+            const isClaimsReport = source === 'claims' || source === 'customer-snapshot-claims' || (title?.toLowerCase().includes('claim') ?? false);
+            const neededSpace = isPaymentsReport || isClaimsReport ? 100 : 60;
             if (doc.y > doc.page.height - neededSpace) {
                 doc.addPage();
                 doc.y = 40;
@@ -2107,6 +2108,47 @@ export class ReportService {
                         .text('Total Pending:', startX + 10, footerY + 50);
                     doc.font('Helvetica-Bold').fillColor('#b91c1c')
                         .text(`Rs. ${totalPending.toLocaleString('en-IN')}`, startX + 100, footerY + 50, { width: cardWidth - 110, align: 'right' });
+                } else if (isClaimsReport) {
+                    const parseAmount = (val: any) => {
+                        if (typeof val === 'number') return isNaN(val) ? 0 : val;
+                        if (!val || val === '—' || val === '-') return 0;
+                        const cleaned = String(val).replace(/[^0-9.-]+/g, '');
+                        const num = Number(cleaned);
+                        return isNaN(num) ? 0 : num;
+                    };
+
+                    const totalBill = data.reduce((sum, row) => sum + parseAmount(row.billAmount), 0);
+                    const totalSettled = data.reduce((sum, row) => sum + parseAmount(row.claimAmount), 0);
+                    const totalClaimsCount = data.length;
+
+                    const cardWidth = 260;
+                    const cardHeight = 65;
+
+                    // Draw a standalone summary card on the bottom-left
+                    doc.rect(startX, footerY + 5, cardWidth, cardHeight).fill('#f8fafc');
+                    doc.lineWidth(0.5).rect(startX, footerY + 5, cardWidth, cardHeight).stroke('#cbd5e1');
+
+                    // Card Title
+                    doc.fontSize(8).font('Helvetica-Bold').fillColor('#1e1b4b')
+                        .text('CLAIMS SUMMARY', startX + 10, footerY + 12);
+
+                    // Row 1: Total Claims Filed
+                    doc.fontSize(8).font('Helvetica').fillColor('#475569')
+                        .text('Total Claims Filed:', startX + 10, footerY + 26);
+                    doc.font('Helvetica-Bold').fillColor('#1e1b4b')
+                        .text(`${totalClaimsCount} ${totalClaimsCount === 1 ? 'Claim' : 'Claims'}`, startX + 120, footerY + 26, { width: cardWidth - 130, align: 'right' });
+
+                    // Row 2: Overall Claimed (Bill Amount)
+                    doc.fontSize(8).font('Helvetica').fillColor('#475569')
+                        .text('Overall Claim (Bill):', startX + 10, footerY + 38);
+                    doc.font('Helvetica-Bold').fillColor('#1e1b4b')
+                        .text(`Rs. ${totalBill.toLocaleString('en-IN')}`, startX + 120, footerY + 38, { width: cardWidth - 130, align: 'right' });
+
+                    // Row 3: Overall Settled Amount
+                    doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#16a34a')
+                        .text('Overall Settled:', startX + 10, footerY + 50);
+                    doc.font('Helvetica-Bold').fillColor('#16a34a')
+                        .text(`Rs. ${totalSettled.toLocaleString('en-IN')}`, startX + 120, footerY + 50, { width: cardWidth - 130, align: 'right' });
                 }
             }
 
