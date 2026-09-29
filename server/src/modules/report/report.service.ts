@@ -481,36 +481,49 @@ export class ReportService {
     // ── Flat data queries (no grouping) ──────────────────
 
     private async queryCustomerSnapshot(userId: string, role: string, filters?: ReportFilters) {
-        if (!filters?.customerId) {
-            throw Object.assign(new Error('Customer ID is required for Customer Snapshot'), { statusCode: 400 });
+        // Extract customer ID(s) supporting both customerId and customerIds
+        let targetCustomerIds: string[] = [];
+        if (filters?.customerIds) {
+            const raw = filters.customerIds;
+            targetCustomerIds = typeof raw === 'string'
+                ? raw.split(',').map(s => s.trim()).filter(Boolean)
+                : (Array.isArray(raw) ? raw.filter(Boolean) : []);
+        } else if (filters?.customerId) {
+            targetCustomerIds = [filters.customerId];
         }
 
-        const dateFrom = filters.dateFrom ? getStartOfDayIST(filters.dateFrom) : undefined;
-        const dateTo = filters.dateTo ? getEndOfDayIST(filters.dateTo) : undefined;
+        if (targetCustomerIds.length === 0) {
+            throw Object.assign(new Error('At least one Customer is required for Customer Statement'), { statusCode: 400 });
+        }
+
+        const dateFrom = filters?.dateFrom ? getStartOfDayIST(filters.dateFrom) : undefined;
+        const dateTo = filters?.dateTo ? getEndOfDayIST(filters.dateTo) : undefined;
 
         const ow = ownerFilter(userId, role);
-        const policyWhere: any = { ...ow, customerId: filters.customerId, deletedAt: null };
+        const customerFilter = targetCustomerIds.length === 1 ? targetCustomerIds[0] : { in: targetCustomerIds };
+        const policyWhere: any = { ...ow, customerId: customerFilter, deletedAt: null };
+
         if (dateFrom || dateTo) {
             policyWhere.startDate = {};
             if (dateFrom) policyWhere.startDate.gte = dateFrom;
             if (dateTo) policyWhere.startDate.lte = dateTo;
         }
-        if (filters.companyIds) {
+        if (filters?.companyIds) {
             const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
             policyWhere.companyId = { in: ids };
-        } else if (filters.companyId) {
+        } else if (filters?.companyId) {
             policyWhere.companyId = filters.companyId;
         }
-        if (filters.policyType) policyWhere.policyType = filters.policyType;
-        if (filters.vehicleClass) policyWhere.vehicleClass = filters.vehicleClass;
+        if (filters?.policyType) policyWhere.policyType = filters.policyType;
+        if (filters?.vehicleClass) policyWhere.vehicleClass = filters.vehicleClass;
 
-        const claimWhere: any = { ...ow, customerId: filters.customerId };
+        const claimWhere: any = { ...ow, customerId: customerFilter };
         if (dateFrom || dateTo) {
             claimWhere.claimDate = {};
             if (dateFrom) claimWhere.claimDate.gte = dateFrom;
             if (dateTo) claimWhere.claimDate.lte = dateTo;
         }
-        if (filters.companyIds || filters.companyId || filters.policyType || filters.vehicleClass) {
+        if (filters?.companyIds || filters?.companyId || filters?.policyType || filters?.vehicleClass) {
             claimWhere.policy = { deletedAt: null };
             if (filters.companyIds) {
                 const ids = typeof filters.companyIds === 'string' ? filters.companyIds.split(',') : filters.companyIds;
@@ -526,21 +539,22 @@ export class ReportService {
         const sixtyDaysFromNow = new Date();
         sixtyDaysFromNow.setDate(sixtyDaysFromNow.getDate() + 60);
 
-        const [customer, policies, claims, expiringPolicies] = await Promise.all([
-            prisma.customer.findFirst({ where: { id: filters.customerId, ...ow } }),
+        const [customers, policies, claims, expiringPolicies] = await Promise.all([
+            prisma.customer.findMany({ where: { id: { in: targetCustomerIds }, ...ow } }),
             prisma.policy.findMany({ 
                 where: policyWhere, 
-                include: { company: true },
+                include: { company: true, customer: { select: { id: true, name: true, phone: true } } },
                 orderBy: { startDate: 'asc' }
             }),
             prisma.claim.findMany({ 
                 where: claimWhere, 
-                include: { policy: true },
+                include: { policy: true, customer: { select: { id: true, name: true, phone: true } } },
                 orderBy: { claimDate: 'asc' }
             }),
             prisma.policy.findMany({
                 where: {
-                    customerId: filters.customerId,
+                    ...ow,
+                    customerId: customerFilter,
                     deletedAt: null,
                     status: 'active',
                     expiryDate: {
@@ -548,12 +562,16 @@ export class ReportService {
                         lte: sixtyDaysFromNow
                     }
                 },
-                include: { company: true },
+                include: { company: true, customer: { select: { id: true, name: true, phone: true } } },
                 orderBy: { expiryDate: 'asc' }
             })
         ]);
 
-        if (!customer) throw new Error("Customer not found");
+        if (!customers || customers.length === 0) throw new Error("Customer not found");
+
+        const isMultiple = customers.length > 1;
+        const customerNames = customers.map(c => c.name);
+        const primaryCustomer = customers[0];
 
         const totalPremium = policies.reduce((sum, p) => sum + (p.totalPremium || p.premiumAmount || 0), 0);
         const totalClaimed = claims.reduce((sum, c) => sum + (c.claimAmount || 0), 0);
@@ -578,8 +596,14 @@ export class ReportService {
         }, {});
 
         const summary = {
-            customerName: customer.name,
-            phone: customer.phone,
+            customerName: isMultiple 
+                ? `${customers.length} Customers (${customerNames.slice(0, 3).join(', ')}${customers.length > 3 ? '...' : ''})`
+                : primaryCustomer.name,
+            phone: isMultiple 
+                ? `${customers.length} Accounts`
+                : (primaryCustomer.phone || '—'),
+            customerCount: customers.length,
+            isMultiple,
             totalPolicies: policies.length,
             totalPremium,
             totalClaims: claims.length,
@@ -592,7 +616,7 @@ export class ReportService {
         const mappedPolicies = policies.map((p: any) => ({
             id: p.id,
             policyNumber: p.policyNumber,
-            customerName: customer.name,
+            customerName: p.customer?.name || primaryCustomer.name,
             companyName: p.company?.name || '—',
             policyType: p.policyType.charAt(0).toUpperCase() + p.policyType.slice(1),
             productName: p.policyType === 'motor' ? `${p.make || ''} ${p.model || ''}`.trim() || 'Motor' : p.productName || '—',
@@ -608,6 +632,7 @@ export class ReportService {
         const mappedClaims = claims.map((c: any) => ({
             id: c.id,
             claimNumber: c.claimNumber || '—',
+            customerName: c.customer?.name || primaryCustomer.name,
             policyNumber: c.policy?.policyNumber || '—',
             policyType: c.policy?.policyType || 'motor',
             productName: c.policy?.policyType === 'motor' ? `${c.policy.make || ''} ${c.policy.model || ''}`.trim() || 'Motor' : c.policy?.productName || '—',
@@ -625,6 +650,7 @@ export class ReportService {
             return {
                 id: p.id,
                 policyNumber: p.policyNumber,
+                customerName: p.customer?.name || primaryCustomer.name,
                 policyType: p.policyType,
                 productName: p.policyType === 'motor' ? `${p.make || ''} ${p.model || ''}`.trim() || 'Motor' : p.productName || '—',
                 companyName: p.company?.name || '—',
@@ -1458,6 +1484,7 @@ export class ReportService {
                 const res = await this.queryCustomerSnapshot(userId, role, filters);
                 return {
                     columns: [
+                        { key: 'customerName', label: 'Customer' },
                         { key: 'claimNumber', label: 'Claim No' },
                         { key: 'policyNumber', label: 'Policy No' },
                         { key: 'vehicleNumber', label: 'Vehicle No' },
@@ -1474,6 +1501,7 @@ export class ReportService {
                 const res = await this.queryCustomerSnapshot(userId, role, filters);
                 return {
                     columns: [
+                        { key: 'customerName', label: 'Customer' },
                         { key: 'policyNumber', label: 'Policy No' },
                         { key: 'companyName', label: 'Insurer' },
                         { key: 'vehicleClass', label: 'Vehicle Class' },
@@ -2158,6 +2186,7 @@ export class ReportService {
         const policiesSheet = workbook.addWorksheet('Policies Written');
         policiesSheet.columns = [
             { header: 'Policy Number', key: 'policyNumber', width: 25 },
+            { header: 'Customer', key: 'customerName', width: 25 },
             { header: 'Insurer', key: 'companyName', width: 25 },
             { header: 'Type', key: 'policyType', width: 15 },
             { header: 'Product / Plan Name', key: 'productName', width: 25 },
@@ -2175,8 +2204,8 @@ export class ReportService {
             policiesSheet.addRow(row);
         }
         for (let i = 2; i <= policiesSheet.rowCount; i++) {
-            policiesSheet.getRow(i).getCell(7).numFmt = '"₹"#,##0'; // Sum Insured
-            policiesSheet.getRow(i).getCell(8).numFmt = '"₹"#,##0'; // Gross Premium
+            policiesSheet.getRow(i).getCell(8).numFmt = '"₹"#,##0'; // Sum Insured
+            policiesSheet.getRow(i).getCell(9).numFmt = '"₹"#,##0'; // Gross Premium
             if (i % 2 === 0) policiesSheet.getRow(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } };
         }
 
@@ -2184,6 +2213,7 @@ export class ReportService {
         const claimsSheet = workbook.addWorksheet('Claims Filed');
         claimsSheet.columns = [
             { header: 'Claim Number', key: 'claimNumber', width: 25 },
+            { header: 'Customer', key: 'customerName', width: 25 },
             { header: 'Policy Number', key: 'policyNumber', width: 25 },
             { header: 'Vehicle No', key: 'vehicleNumber', width: 18 },
             { header: 'Claim Date', key: 'claimDate', width: 15 },
@@ -2197,8 +2227,8 @@ export class ReportService {
             claimsSheet.addRow(row);
         }
         for (let i = 2; i <= claimsSheet.rowCount; i++) {
-            claimsSheet.getRow(i).getCell(5).numFmt = '"₹"#,##0';
             claimsSheet.getRow(i).getCell(6).numFmt = '"₹"#,##0';
+            claimsSheet.getRow(i).getCell(7).numFmt = '"₹"#,##0';
             if (i % 2 === 0) claimsSheet.getRow(i).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F3FF' } };
         }
 
@@ -2206,6 +2236,7 @@ export class ReportService {
         const expiringSheet = workbook.addWorksheet('Expiring Soon');
         expiringSheet.columns = [
             { header: 'Policy Number', key: 'policyNumber', width: 25 },
+            { header: 'Customer', key: 'customerName', width: 25 },
             { header: 'Insurer', key: 'companyName', width: 25 },
             { header: 'Type', key: 'policyType', width: 15 },
             { header: 'Product / Plan Name', key: 'productName', width: 25 },
