@@ -100,6 +100,8 @@ const Policies: React.FC = () => {
         paymentMethod: 'Online',
         od: '', tp: '', tax: '', policyOrigin: 'in_system_renewal', ncbPercentage: '', idv: '', tpStartDate: '', tpEndDate: ''
     });
+    type PaymentMode = 'pending' | 'partial' | 'paid';
+    const [renewPaymentMode, setRenewPaymentMode] = useState<PaymentMode>('pending');
     const [renewingParentHadClaim, setRenewingParentHadClaim] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [renewErrors, setRenewErrors] = useState<Record<string, string>>({});
@@ -284,10 +286,27 @@ const Policies: React.FC = () => {
                 }
                 const net = parseFloat(updated.premiumAmount || prev.premiumAmount) || 0;
                 updated.totalPremium = (net + tax).toString();
+                if (renewPaymentMode === 'paid') {
+                    updated.paidAmount = updated.totalPremium;
+                }
+            } else if (field === 'totalPremium') {
+                if (renewPaymentMode === 'paid') {
+                    updated.paidAmount = value;
+                }
             }
             return updated;
         });
         setRenewErrors(prev => ({ ...prev, [field]: '' }));
+    };
+
+    const handleRenewPaymentModeChange = (mode: PaymentMode) => {
+        setRenewPaymentMode(mode);
+        const fullPremium = parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0;
+        if (mode === 'paid') {
+            handleRenewChange('paidAmount', fullPremium > 0 ? String(fullPremium) : '');
+        } else {
+            handleRenewChange('paidAmount', '');
+        }
     };
 
     const openRenew = (p: any) => {
@@ -297,6 +316,7 @@ const Policies: React.FC = () => {
         const start = expiry > now ? expiry : now;
         const newExpiry = new Date(start);
         newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+        setRenewPaymentMode('pending');
         setRenewForm({
             companyId: p.companyId || '',
             startDate: start.toISOString().split('T')[0],
@@ -328,6 +348,15 @@ const Policies: React.FC = () => {
         if (!renewForm.startDate) errs.startDate = 'Start date is required';
         if (!renewForm.expiryDate) errs.expiryDate = 'Expiry date is required';
         if (!renewForm.premiumAmount || parseFloat(renewForm.premiumAmount) <= 0) errs.premiumAmount = 'Valid premium amount is required';
+        if (renewPaymentMode === 'partial') {
+            const paid = parseFloat(renewForm.paidAmount);
+            const total = parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0;
+            if (isNaN(paid) || paid <= 0) {
+                errs.paidAmount = 'Enter amount collected so far';
+            } else if (paid >= total && total > 0) {
+                errs.paidAmount = 'Partial amount must be less than total premium (or choose Fully Paid)';
+            }
+        }
         return errs;
     };
 
@@ -666,7 +695,7 @@ const Policies: React.FC = () => {
             </Modal>
 
             {/* Renew Modal */}
-            <Modal isOpen={renewModalOpen} onClose={() => setRenewModalOpen(false)} title="Renew Policy">
+            <Modal isOpen={renewModalOpen} onClose={() => setRenewModalOpen(false)} title="Renew Policy" size="lg">
                 <form onSubmit={handleRenew} className="space-y-4" noValidate>
                     <p className="text-sm text-surface-500">Renewing policy for <strong>{renewingPolicy?.customer?.name}</strong></p>
 
@@ -793,31 +822,6 @@ const Policies: React.FC = () => {
                         </div>
 
                         <div>
-                            <div className="flex items-center justify-between mb-1.5">
-                                <label className="text-sm font-medium text-surface-700">Initial Paid Amount (₹)</label>
-                                {(parseFloat(renewForm.totalPremium || renewForm.premiumAmount) > 0) && (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRenewChange('paidAmount', renewForm.totalPremium || renewForm.premiumAmount)}
-                                        className="text-xs text-primary-600 hover:text-primary-700 font-semibold"
-                                    >
-                                        Fill Full (₹{renewForm.totalPremium || renewForm.premiumAmount})
-                                    </button>
-                                )}
-                            </div>
-                            <input
-                                type="number"
-                                min="0"
-                                max={parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0}
-                                step="0.01"
-                                className="input"
-                                placeholder="Leave empty if pending"
-                                value={renewForm.paidAmount}
-                                onChange={(e) => handleRenewChange('paidAmount', e.target.value)}
-                            />
-                        </div>
-
-                        <div>
                             <label className="label">Payment Method</label>
                             <SearchableSelect
                                 dropUp={true}
@@ -826,6 +830,74 @@ const Policies: React.FC = () => {
                                 onChange={(val) => handleRenewChange('paymentMethod', val)}
                                 placeholder="Select Payment Method"
                             />
+                        </div>
+
+                        {/* 3-Button Payment Status Selector */}
+                        <div className="col-span-full">
+                            <label className="label">Payment Collected at Renewal</label>
+                            <div className="grid grid-cols-3 gap-2 mb-3">
+                                {([
+                                    { mode: 'pending', label: 'Pending', description: 'Not yet collected' },
+                                    { mode: 'partial', label: 'Partial', description: 'Part amount collected' },
+                                    { mode: 'paid', label: 'Fully Paid', description: 'Full amount collected' },
+                                ] as { mode: PaymentMode; label: string; description: string }[]).map(({ mode, label, description }) => (
+                                    <button
+                                        key={mode}
+                                        type="button"
+                                        onClick={() => handleRenewPaymentModeChange(mode)}
+                                        className={`flex flex-col items-center justify-center px-3 py-2.5 rounded-xl border-2 text-center transition-all cursor-pointer ${renewPaymentMode === mode
+                                            ? mode === 'paid'
+                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                                : mode === 'partial'
+                                                    ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                                    : 'border-surface-400 bg-surface-100 text-surface-700'
+                                            : 'border-surface-200 bg-white text-surface-500 hover:border-surface-300'
+                                            }`}
+                                    >
+                                        <span className="text-sm font-semibold">{label}</span>
+                                        <span className="text-[10px] mt-0.5 opacity-70">{description}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Fully Paid: show auto-filled read-only confirmation */}
+                            {renewPaymentMode === 'paid' && (parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0) > 0 && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                    <span className="text-xs text-emerald-700 font-medium">
+                                        Full premium of <strong>₹{(parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0).toLocaleString('en-IN')}</strong> will be recorded as collected.
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Fully Paid: warn if premium not yet entered */}
+                            {renewPaymentMode === 'paid' && (parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0) === 0 && (
+                                <div className="px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <span className="text-xs text-amber-700">Enter Total Premium above first to auto-fill the paid amount.</span>
+                                </div>
+                            )}
+
+                            {/* Partial: show manual amount input */}
+                            {renewPaymentMode === 'partial' && (
+                                <div>
+                                    <label className="label">Amount Collected (₹) *</label>
+                                    <input
+                                        type="number"
+                                        min="0.01"
+                                        max={parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || undefined}
+                                        step="0.01"
+                                        className={`input ${renewErrors.paidAmount ? 'border-red-500 focus:ring-red-400' : ''}`}
+                                        placeholder="Enter amount collected so far..."
+                                        value={renewForm.paidAmount || ''}
+                                        onChange={(e) => handleRenewChange('paidAmount', e.target.value)}
+                                    />
+                                    {renewErrors.paidAmount && <p className="text-xs text-red-500 mt-1">{renewErrors.paidAmount}</p>}
+                                    {(parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0) > 0 && (
+                                        <p className="text-[11px] text-surface-400 mt-1">
+                                            Outstanding after this: ₹{((parseFloat(renewForm.totalPremium || renewForm.premiumAmount) || 0) - (parseFloat(renewForm.paidAmount) || 0)).toLocaleString('en-IN')}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
