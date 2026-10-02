@@ -14,13 +14,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useAuth } from '../context/AuthContext';
 import BatchCollectionModal from '../components/payments/BatchCollectionModal';
-
-
-
+import BatchHistoryTab from '../components/payments/BatchHistoryTab';
 
 const Payments: React.FC = () => {
     const { user } = useAuth();
     const isStaff = user?.role === 'staff';
+    const [activeTab, setActiveTab] = useState<'individual' | 'batches'>('individual');
+    const [batchRefreshTrigger, setBatchRefreshTrigger] = useState(0);
     const [payments, setPayments] = useState<any[]>([]);
     const [customers, setCustomers] = useState<any[]>([]);
     const [policies, setPolicies] = useState<any[]>([]);
@@ -288,7 +288,49 @@ const Payments: React.FC = () => {
                 </div>
             </div>
 
-            {/* Overall Outstanding KPI Summary Card */}
+            {/* Tab Navigation */}
+            <div className="flex border-b border-surface-200 gap-6">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('individual')}
+                    className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+                        activeTab === 'individual'
+                            ? 'border-primary-600 text-primary-600'
+                            : 'border-transparent text-surface-500 hover:text-surface-800'
+                    }`}
+                >
+                    <HiOutlineCreditCard className="w-4 h-4" />
+                    <span>Payment Records</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-surface-100 text-surface-600">
+                        {meta.total}
+                    </span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('batches')}
+                    className={`pb-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+                        activeTab === 'batches'
+                            ? 'border-primary-600 text-primary-600'
+                            : 'border-transparent text-surface-500 hover:text-surface-800'
+                    }`}
+                >
+                    <HiOutlineCollection className="w-4 h-4" />
+                    <span>Batch Payment History</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wide">
+                        Receipts
+                    </span>
+                </button>
+            </div>
+
+            {activeTab === 'batches' ? (
+                <BatchHistoryTab
+                    onOpenNewBatch={() => setBatchModalOpen(true)}
+                    refreshTrigger={batchRefreshTrigger}
+                />
+            ) : (
+                <>
+                    {/* Overall Outstanding KPI Summary Card */}
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-surface-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
                     <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center shrink-0 border border-red-100">
@@ -486,6 +528,8 @@ const Payments: React.FC = () => {
                     <Pagination page={meta.page} totalPages={meta.totalPages} onPageChange={(p) => fetchPayments(p)} />
                 </>
             )}
+            </>
+            )}
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Update Payment' : 'New Payment'}>
                 <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -594,7 +638,10 @@ const Payments: React.FC = () => {
             <BatchCollectionModal
                 isOpen={batchModalOpen}
                 onClose={() => setBatchModalOpen(false)}
-                onSuccess={() => fetchPayments(meta.page)}
+                onSuccess={() => {
+                    fetchPayments(meta.page);
+                    setBatchRefreshTrigger(prev => prev + 1);
+                }}
             />
 
             <button onClick={openCreate} className="fab lg:hidden"><HiOutlinePlus className="w-6 h-6" /></button>
