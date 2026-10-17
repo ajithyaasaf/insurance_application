@@ -40,6 +40,7 @@ interface ReportFilters {
     dateFrom?: string;
     dateTo?: string;
     policyOrigin?: string;
+    renewalStatus?: string;
 }
 
 const SOURCE_OPTIONS: { value: Source; label: string; icon: React.ElementType }[] = [
@@ -161,14 +162,15 @@ const ReportBuilderTab: React.FC = () => {
     }, [localFilters, localGroupBy, source]);
 
     const clearFilters = useCallback(() => {
-        setLocalFilters({});
-        setAppliedFilters({});
+        const resetFilters = source === 'policies-expired' ? { renewalStatus: 'pending' } : {};
+        setLocalFilters(resetFilters);
+        setAppliedFilters(resetFilters);
         setLocalGroupBy('');
         setAppliedGroupBy('');
         setPage(1);
         setHiddenColumns([]);
         setIsDirty(false);
-    }, []);
+    }, [source]);
 
     const handleExport = useCallback(async (format: 'xlsx' | 'pdf', cols: Column[]) => {
         try {
@@ -246,6 +248,7 @@ const ReportBuilderTab: React.FC = () => {
                         { key: 'expiryDate', label: 'Expiry Date' },
                         { key: 'customerName', label: 'Customer' },
                         { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'renewalStatus', label: 'Renewal Status' },
                         { key: 'productName', label: 'Product Name' },
                         { key: 'sumInsured', label: 'Sum Insured' },
                         { key: 'companyName', label: 'Company' },
@@ -258,6 +261,7 @@ const ReportBuilderTab: React.FC = () => {
                         { key: 'expiryDate', label: 'Expiry Date' },
                         { key: 'customerName', label: 'Customer' },
                         { key: 'policyNumber', label: 'Policy No.' },
+                        { key: 'renewalStatus', label: 'Renewal Status' },
                         { key: 'make', label: 'Make' },
                         { key: 'model', label: 'Model' },
                         { key: 'vehicleNumber', label: 'Vehicle No.' },
@@ -376,8 +380,9 @@ const ReportBuilderTab: React.FC = () => {
                                 setSubTab('policies');
                                 setLocalGroupBy('');
                                 setAppliedGroupBy('');
-                                setLocalFilters({});
-                                setAppliedFilters({});
+                                const initialFilters = opt.value === 'policies-expired' ? { renewalStatus: 'pending' } : {};
+                                setLocalFilters(initialFilters);
+                                setAppliedFilters(initialFilters);
                                 setPage(1);
                                 setHiddenColumns([]);
                                 setShowColumns(false);
@@ -430,7 +435,7 @@ const ReportBuilderTab: React.FC = () => {
 
                 <div className={`space-y-4 ${!showFilters ? 'hidden lg:block' : ''}`}>
                     {/* Primary Filters Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 ${source === 'policies-expired' ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3`}>
                         {/* Group By */}
                         {groupOptions.length > 0 && !isSnapshot && (
                             <div>
@@ -455,6 +460,23 @@ const ReportBuilderTab: React.FC = () => {
                                     onChange={val => updateLocalFilter('status', val)}
                                     allLabel="All Statuses"
                                     placeholder="Select status..."
+                                />
+                            </div>
+                        )}
+
+                        {/* Renewal Status (Expired Policies) */}
+                        {source === 'policies-expired' && (
+                            <div>
+                                <label className="label">Renewal Status</label>
+                                <SearchableSelect
+                                    options={[
+                                        { value: 'pending', label: '⏳ Pending Renewal (Unrenewed)' },
+                                        { value: 'renewed', label: '✅ Already Renewed' },
+                                        { value: 'all', label: '📋 All (Audit Mode)' },
+                                    ]}
+                                    value={localFilters.renewalStatus || 'pending'}
+                                    onChange={val => updateLocalFilter('renewalStatus', val || 'pending')}
+                                    placeholder="Select renewal status..."
                                 />
                             </div>
                         )}

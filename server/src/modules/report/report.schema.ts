@@ -44,6 +44,7 @@ const filtersSchema = z.object({
     policyOrigin: z.string().optional(),
     dateFrom:     z.string().optional(),   // ISO date string
     dateTo:       z.string().optional(),
+    renewalStatus: z.string().optional(),
 }).strict().optional();
 
 // ─── POST /api/reports/generate ──────────────────────────

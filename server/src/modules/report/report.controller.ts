@@ -85,6 +85,8 @@ export class ReportController {
                     ];
                     if (source === 'policies-expired') {
                         reportColumns.push({ key: 'ncbPercentage', label: 'NCB (%)' });
+                        reportColumns.push({ key: 'renewalStatus', label: 'Renewal Status' });
+                        reportColumns.push({ key: 'renewedPolicyNumber', label: 'Renewed Policy No.' });
                     }
                 } else {
                     reportColumns = [
@@ -108,6 +110,8 @@ export class ReportController {
                     ];
                     if (source === 'policies-expired') {
                         reportColumns.push({ key: 'ncbPercentage', label: 'NCB (%)' });
+                        reportColumns.push({ key: 'renewalStatus', label: 'Renewal Status' });
+                        reportColumns.push({ key: 'renewedPolicyNumber', label: 'Renewed Policy No.' });
                     }
                 }
             }

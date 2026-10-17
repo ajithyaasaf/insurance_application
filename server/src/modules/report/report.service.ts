@@ -20,6 +20,7 @@ interface ReportFilters {
     policyOrigin?: string;
     dateFrom?: string;
     dateTo?: string;
+    renewalStatus?: string;
 }
 
 interface GenerateParams {
@@ -85,6 +86,8 @@ const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
         { key: 'status', label: 'Status' },
         { key: 'policyOrigin', label: 'Origin' },
         { key: 'ncbPercentage', label: 'NCB (%)' },
+        { key: 'renewalStatus', label: 'Renewal Status' },
+        { key: 'renewedPolicyNumber', label: 'Renewed Policy No.' },
         { key: 'dealerName', label: 'Dealer / Source' },
         { key: 'referenceName', label: 'Reference' },
         { key: 'referenceLocation', label: 'Ref. Location' },
@@ -195,6 +198,8 @@ function getColumnsForSource(source: string, policyType?: string): { key: string
                 { key: 'status', label: 'Status' },
                 { key: 'policyOrigin', label: 'Origin' },
                 { key: 'ncbPercentage', label: 'NCB (%)' },
+                { key: 'renewalStatus', label: 'Renewal Status' },
+                { key: 'renewedPolicyNumber', label: 'Renewed Policy No.' },
             ];
         }
         if (source === 'payments') {
@@ -317,6 +322,24 @@ function buildPolicyExpiredWhere(userId: string, role: string, filters?: ReportF
         if (filters?.dateFrom) where.expiryDate.gte = getStartOfDayIST(filters.dateFrom);
         if (filters?.dateTo) where.expiryDate.lte = getEndOfDayIST(filters.dateTo);
     }
+
+    const renewalStatus = filters?.renewalStatus || 'pending';
+    if (renewalStatus === 'pending') {
+        where.renewals = {
+            none: {
+                deletedAt: null,
+                status: { not: 'cancelled' }
+            }
+        };
+    } else if (renewalStatus === 'renewed') {
+        where.renewals = {
+            some: {
+                deletedAt: null,
+                status: { not: 'cancelled' }
+            }
+        };
+    }
+
     return where;
 }
 
@@ -729,7 +752,15 @@ export class ReportService {
         const [rows, total] = await Promise.all([
             prisma.policy.findMany({
                 where,
-                include: { customer: true, company: true, dealer: true },
+                include: {
+                    customer: true,
+                    company: true,
+                    dealer: true,
+                    renewals: {
+                        where: { deletedAt: null, status: { not: 'cancelled' } },
+                        select: { id: true, policyNumber: true, status: true }
+                    }
+                },
                 orderBy: { expiryDate: 'asc' },
                 skip: (page - 1) * limit,
                 take: limit,
@@ -737,35 +768,42 @@ export class ReportService {
             prisma.policy.count({ where }),
         ]);
 
-        const data = rows.map(mapPolicyStatus).map((r: any) => ({
-            policyNumber: r.policyNumber || '—',
-            customerName: r.customer?.name || '—',
-            customerPhone: r.customer?.phone || '—',
-            companyName: r.company?.name || '—',
-            dealerName: r.dealer?.name || (r.referenceName ? `Ref: ${r.referenceName}` : 'Direct'),
-            referenceName: r.referenceName || '—',
-            referenceLocation: r.referenceLocation || '—',
-            policyType: r.policyType,
-            productName: r.policyType === 'motor' ? `${r.make || ''} ${r.model || ''}`.trim() || 'Motor' : r.productName || '—',
-            make: r.make || '—',
-            model: r.model || '—',
-            vehicleNumber: r.vehicleNumber || '—',
-            vehicleClass: r.vehicleClass?.replace(/_/g, ' ') || '—',
-            od: r.od || 0,
-            tp: r.tp || 0,
-            premiumAmount: r.premiumAmount,
-            tax: r.tax || 0,
-            totalPremium: r.totalPremium || r.premiumAmount,
-            sumInsured: r.policyType === 'motor' ? (r.idv || 0) : (r.sumInsured || 0),
-            startDate: fmtDate(r.startDate),
-            expiryDate: fmtDate(r.expiryDate),
-            status: r.status,
-            ncbPercentage: r.ncbPercentage !== null && r.ncbPercentage !== undefined ? `${r.ncbPercentage}%` : '0%',
-            policyOrigin: r.policyOrigin === 'new_vehicle' ? 'New Vehicle'
-                : r.policyOrigin === 'external_renewal' ? 'External Renewal'
-                    : r.policyOrigin === 'in_system_renewal' ? 'Own Renewal'
-                        : 'Fresh',
-        }));
+        const data = rows.map(mapPolicyStatus).map((r: any) => {
+            const isRenewed = r.renewals && r.renewals.length > 0;
+            const renewedPolicy = isRenewed ? r.renewals[0] : null;
+
+            return {
+                policyNumber: r.policyNumber || '—',
+                customerName: r.customer?.name || '—',
+                customerPhone: r.customer?.phone || '—',
+                companyName: r.company?.name || '—',
+                dealerName: r.dealer?.name || (r.referenceName ? `Ref: ${r.referenceName}` : 'Direct'),
+                referenceName: r.referenceName || '—',
+                referenceLocation: r.referenceLocation || '—',
+                policyType: r.policyType,
+                productName: r.policyType === 'motor' ? `${r.make || ''} ${r.model || ''}`.trim() || 'Motor' : r.productName || '—',
+                make: r.make || '—',
+                model: r.model || '—',
+                vehicleNumber: r.vehicleNumber || '—',
+                vehicleClass: r.vehicleClass?.replace(/_/g, ' ') || '—',
+                od: r.od || 0,
+                tp: r.tp || 0,
+                premiumAmount: r.premiumAmount,
+                tax: r.tax || 0,
+                totalPremium: r.totalPremium || r.premiumAmount,
+                sumInsured: r.policyType === 'motor' ? (r.idv || 0) : (r.sumInsured || 0),
+                startDate: fmtDate(r.startDate),
+                expiryDate: fmtDate(r.expiryDate),
+                status: r.status,
+                ncbPercentage: r.ncbPercentage !== null && r.ncbPercentage !== undefined ? `${r.ncbPercentage}%` : '0%',
+                policyOrigin: r.policyOrigin === 'new_vehicle' ? 'New Vehicle'
+                    : r.policyOrigin === 'external_renewal' ? 'External Renewal'
+                        : r.policyOrigin === 'in_system_renewal' ? 'Own Renewal'
+                            : 'Fresh',
+                renewalStatus: isRenewed ? 'Renewed' : 'Pending Renewal',
+                renewedPolicyNumber: renewedPolicy?.policyNumber || '—',
+            };
+        });
 
         return { data, total, columns: getColumnsForSource('policies-expired', filters?.policyType) };
     }
@@ -1885,15 +1923,16 @@ export class ReportService {
                         sNo: 25,
                         startDate: 50,
                         expiryDate: 50,
-                        customerName: 120,
-                        policyNumber: 100,
-                        make: 45,
-                        model: 45,
+                        customerName: 110,
+                        policyNumber: 95,
+                        renewalStatus: 55,
+                        make: 40,
+                        model: 40,
                         vehicleNumber: 60,
                         vehicleClass: 45,
-                        companyName: 75,
+                        companyName: 70,
                         customerPhone: 55,
-                        totalPremium: 75,
+                        totalPremium: 65,
                         ncbPercentage: 30
                     };
                     return widths[colKey] || otherColWidth;

@@ -49,7 +49,17 @@ const ReportTable: React.FC<ReportTableProps> = ({ data, columns, isLoading }) =
                                 <td key={col.key}>
                                     {typeof row[col.key] === 'number' && col.label.includes('₹')
                                         ? formatCurrency(row[col.key])
-                                        : row[col.key] ?? '—'}
+                                        : col.key === 'renewalStatus'
+                                            ? (
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                                    row.renewalStatus === 'Renewed'
+                                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                                }`}>
+                                                    {row.renewalStatus}
+                                                </span>
+                                            )
+                                            : row[col.key] ?? '—'}
                                 </td>
                             ))}
                         </tr>
