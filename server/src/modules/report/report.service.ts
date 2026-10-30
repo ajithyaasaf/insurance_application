@@ -17,7 +17,8 @@ interface ReportFilters {
     policyType?: string;
     vehicleClass?: string;
     status?: string;
-    policyOrigin?: string;
+    policyOrigin?: string | string[];
+    policyOrigins?: string | string[];
     dateFrom?: string;
     dateTo?: string;
     renewalStatus?: string;
@@ -278,7 +279,20 @@ function buildPolicyWhere(userId: string, role: string, filters?: ReportFilters)
     }
     if (filters?.policyType) where.policyType = filters.policyType;
     if (filters?.vehicleClass) where.vehicleClass = filters.vehicleClass;
-    if (filters?.policyOrigin) where.policyOrigin = filters.policyOrigin;
+    const rawOrigin = filters?.policyOrigins ?? filters?.policyOrigin;
+    if (rawOrigin) {
+        const origins = Array.isArray(rawOrigin)
+            ? rawOrigin.map(s => String(s).trim()).filter(Boolean)
+            : (typeof rawOrigin === 'string' && rawOrigin.includes(','))
+                ? rawOrigin.split(',').map(s => s.trim()).filter(Boolean)
+                : [String(rawOrigin).trim()].filter(Boolean);
+
+        if (origins.length === 1) {
+            where.policyOrigin = origins[0];
+        } else if (origins.length > 1) {
+            where.policyOrigin = { in: origins };
+        }
+    }
     if (filters?.status) {
         Object.assign(where, buildStatusFilter(filters.status));
     }
@@ -313,7 +327,20 @@ function buildPolicyExpiredWhere(userId: string, role: string, filters?: ReportF
     }
     if (filters?.policyType) where.policyType = filters.policyType;
     if (filters?.vehicleClass) where.vehicleClass = filters.vehicleClass;
-    if (filters?.policyOrigin) where.policyOrigin = filters.policyOrigin;
+    const rawOrigin = filters?.policyOrigins ?? filters?.policyOrigin;
+    if (rawOrigin) {
+        const origins = Array.isArray(rawOrigin)
+            ? rawOrigin.map(s => String(s).trim()).filter(Boolean)
+            : (typeof rawOrigin === 'string' && rawOrigin.includes(','))
+                ? rawOrigin.split(',').map(s => s.trim()).filter(Boolean)
+                : [String(rawOrigin).trim()].filter(Boolean);
+
+        if (origins.length === 1) {
+            where.policyOrigin = origins[0];
+        } else if (origins.length > 1) {
+            where.policyOrigin = { in: origins };
+        }
+    }
     if (filters?.status) {
         Object.assign(where, buildStatusFilter(filters.status));
     }

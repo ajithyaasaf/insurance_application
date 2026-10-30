@@ -40,6 +40,7 @@ interface ReportFilters {
     dateFrom?: string;
     dateTo?: string;
     policyOrigin?: string;
+    policyOrigins?: string[];
     renewalStatus?: string;
 }
 
@@ -360,8 +361,9 @@ const ReportBuilderTab: React.FC = () => {
     const showCustomerFilter = ['policies', 'policies-expired', 'payments', 'claims', 'followups', 'leads', 'customer-snapshot', 'offers'].includes(source);
     const showPolicyTypeFilter = ['policies', 'policies-expired', 'payments', 'claims', 'followups', 'customer-snapshot', 'offers'].includes(source);
     const showVehicleClassFilter = ['policies', 'policies-expired', 'payments', 'claims', 'customer-snapshot', 'offers'].includes(source);
+    const showOriginFilter = ['policies', 'policies-expired'].includes(source);
     const isSnapshot = source === 'customer-snapshot';
-    const hasAdvancedFilters = showCompanyFilter || showCustomerFilter || showDealerFilter || showPolicyTypeFilter || showVehicleClassFilter;
+    const hasAdvancedFilters = showCompanyFilter || showCustomerFilter || showDealerFilter || showPolicyTypeFilter || showVehicleClassFilter || showOriginFilter;
 
     return (
         <div className="space-y-6">
@@ -573,7 +575,8 @@ const ReportBuilderTab: React.FC = () => {
                                                 updateLocalFilter('vehicleClass', '');
                                             }
                                             if (val !== 'motor') {
-                                                updateLocalFilter('policyOrigin', '');
+                                                updateLocalFilter('policyOrigin', undefined);
+                                                updateLocalFilter('policyOrigins', undefined);
                                             }
                                         }}
                                         allLabel="All Types"
@@ -583,7 +586,7 @@ const ReportBuilderTab: React.FC = () => {
                             )}
 
                             {/* Origin */}
-                            {source === 'policies' && (
+                            {showOriginFilter && (
                                 <div>
                                     <label className="label">Origin</label>
                                     <SearchableSelect
@@ -594,10 +597,18 @@ const ReportBuilderTab: React.FC = () => {
                                             { value: 'external_renewal', label: 'External Renewal' },
                                             { value: 'in_system_renewal', label: 'Own Renewal' },
                                         ]}
-                                        value={localFilters.policyOrigin || ''}
-                                        onChange={val => updateLocalFilter('policyOrigin', val)}
-                                        allLabel="All Origins"
-                                        placeholder={localFilters.policyType && localFilters.policyType !== 'motor' ? "N/A (Motor Only)" : "Select origin..."}
+                                        value={localFilters.policyOrigins || (localFilters.policyOrigin ? [localFilters.policyOrigin] : [])}
+                                        onChange={val => {
+                                            const arr = Array.isArray(val) ? val : (val ? [val] : []);
+                                            setLocalFilters(prev => ({
+                                                ...prev,
+                                                policyOrigins: arr.length > 0 ? arr : undefined,
+                                                policyOrigin: arr.length === 1 ? arr[0] : undefined,
+                                            }));
+                                            setIsDirty(true);
+                                        }}
+                                        multiple={true}
+                                        placeholder={localFilters.policyType && localFilters.policyType !== 'motor' ? "N/A (Motor Only)" : "Select origins..."}
                                     />
                                 </div>
                             )}
