@@ -41,6 +41,14 @@ interface ExportParams {
     title?: string;
 }
 
+// ─── Format helper for vehicle classes ───────────────────
+export const formatReportVehicleClass = (v?: string | null): string => {
+    if (!v) return '—';
+    if (v === 'THREE_WHEELER_PCV') return '3 Wheeler PCV';
+    if (v === 'THREE_WHEELER_GCV') return '3 Wheeler GCV';
+    return v.replace(/_/g, ' ');
+};
+
 // ─── Column definitions per source ───────────────────────
 
 const SOURCE_COLUMNS: Record<string, { key: string; label: string }[]> = {
@@ -671,7 +679,7 @@ export class ReportService {
             policyType: p.policyType.charAt(0).toUpperCase() + p.policyType.slice(1),
             productName: p.policyType === 'motor' ? `${p.make || ''} ${p.model || ''}`.trim() || 'Motor' : p.vehicleClass === 'CPM' ? (`${p.make || ''} ${p.model || ''}`.trim() || p.productName || 'CPM') : p.productName || '—',
             sumInsured: p.policyType === 'motor' ? (p.idv || 0) : (p.sumInsured || 0),
-            vehicleClass: p.vehicleClass ? p.vehicleClass.replace(/_/g, ' ') : '—',
+            vehicleClass: formatReportVehicleClass(p.vehicleClass),
             vehicleNo: p.vehicleNumber || '—',
             totalPremium: p.totalPremium || p.premiumAmount || 0,
             startDate: fmtDate(p.startDate),
@@ -704,7 +712,7 @@ export class ReportService {
                 policyType: p.policyType,
                 productName: p.policyType === 'motor' ? `${p.make || ''} ${p.model || ''}`.trim() || 'Motor' : p.productName || '—',
                 companyName: p.company?.name || '—',
-                vehicleClass: p.vehicleClass ? p.vehicleClass.replace(/_/g, ' ') : '—',
+                vehicleClass: formatReportVehicleClass(p.vehicleClass),
                 vehicleNo: p.vehicleNumber || '—',
                 expiryDate: fmtDate(p.expiryDate),
                 daysRemaining: diffDays > 0 ? `${diffDays} days` : 'Expiring today'
@@ -755,7 +763,7 @@ export class ReportService {
             make: r.make || '—',
             model: r.model || '—',
             vehicleNumber: r.vehicleNumber || '—',
-            vehicleClass: r.vehicleClass?.replace(/_/g, ' ') || '—',
+            vehicleClass: formatReportVehicleClass(r.vehicleClass),
             od: r.od || 0,
             tp: r.tp || 0,
             premiumAmount: r.premiumAmount,
@@ -812,7 +820,7 @@ export class ReportService {
                 make: r.make || '—',
                 model: r.model || '—',
                 vehicleNumber: r.vehicleNumber || '—',
-                vehicleClass: r.vehicleClass?.replace(/_/g, ' ') || '—',
+                vehicleClass: formatReportVehicleClass(r.vehicleClass),
                 od: r.od || 0,
                 tp: r.tp || 0,
                 premiumAmount: r.premiumAmount,
@@ -865,7 +873,7 @@ export class ReportService {
             companyName: r.policy?.company?.name || '—',
             paidAmount: r.paidAmount ?? 0,
             pendingAmount: Math.max(0, Number(r.amount ?? 0) - Number(r.paidAmount ?? 0)),
-            vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
+            vehicleClass: formatReportVehicleClass(r.policy?.vehicleClass),
             amount: r.amount,
             dueDate: fmtDate(r.dueDate),
             paidDate: (r.paidAmount > 0 && r.paidDate) ? fmtDate(r.paidDate) : '—',
@@ -896,7 +904,7 @@ export class ReportService {
             policyNumber: r.policy?.policyNumber || '—',
             vehicleNumber: r.policy?.vehicleNumber || '—',
             make: r.policy?.make || '—',
-            vehicleClass: r.policy?.vehicleClass?.replace(/_/g, ' ') || '—',
+            vehicleClass: formatReportVehicleClass(r.policy?.vehicleClass),
             companyName: r.policy?.company?.name || '—',
             claimAmount: r.claimAmount,
             status: r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : '—',
@@ -1211,7 +1219,7 @@ export class ReportService {
                     { key: 'totalPremiumSum', label: 'Total Premium (₹)' },
                 ],
                 data: groups.map((g: any) => ({
-                    name: g.vehicleClass?.replace(/_/g, ' ') || 'N/A',
+                    name: formatReportVehicleClass(g.vehicleClass),
                     count: g._count._all,
                     premiumSum: g._sum.premiumAmount || 0,
                     totalPremiumSum: g._sum.totalPremium || 0,
@@ -2285,7 +2293,7 @@ export class ReportService {
 
         let curVehRow = vehHeaderIdx + 1;
         for (const veh of (summary.vehicles || [])) {
-            summarySheet.addRow([veh.name ? veh.name.replace(/_/g, ' ') : 'Other', veh.count, veh.premium]);
+            summarySheet.addRow([veh.name ? formatReportVehicleClass(veh.name) : 'Other', veh.count, veh.premium]);
             summarySheet.getRow(curVehRow).getCell(3).numFmt = '"₹"#,##0';
             curVehRow++;
         }

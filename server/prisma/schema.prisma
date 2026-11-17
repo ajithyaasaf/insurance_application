@@ -373,6 +373,8 @@ enum PolicyVehicleClass {
   PCV
   PVT
   GCV
+  THREE_WHEELER_PCV
+  THREE_WHEELER_GCV
   Misc_D
   CPM
   Fire

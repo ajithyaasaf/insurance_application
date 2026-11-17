@@ -141,5 +141,7 @@ export const scrollToFirstError = () => {
 
 export const formatVehicleClass = (v: string | null | undefined): string => {
     if (!v) return '—';
+    if (v === 'THREE_WHEELER_PCV') return '3 Wheeler PCV';
+    if (v === 'THREE_WHEELER_GCV') return '3 Wheeler GCV';
     return v.replace(/_/g, ' ');
 };

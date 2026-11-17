@@ -154,12 +154,15 @@ export class LeadService {
         vehicleClass?: string
     ) {
         const normalizedSearch = search?.toUpperCase().replace(/\s+/g, '_');
+        const searchVariant = normalizedSearch
+            ?.replace(/^3_?WHEELER_/, 'THREE_WHEELER_')
+            ?.replace(/^3W_/, 'THREE_WHEELER_');
         const VALID_VEHICLE_CLASSES = [
-            'TW', 'PCV', 'PVT', 'GCV', 'Misc_D', 'CPM', 'Fire', 
+            'TW', 'PCV', 'PVT', 'GCV', 'THREE_WHEELER_PCV', 'THREE_WHEELER_GCV', 'Misc_D', 'CPM', 'Fire', 
             'Public_Liability', 'SAOD_TW', 'SAOD_PVT', 'BUNDLED_POLICY_TW', 'BUNDLED_POLICY_PVT', 'CPA', 
             'Home_Insurance', 'RAK_Policy', 'Others'
         ];
-        const matchedClasses = [search?.toUpperCase(), normalizedSearch].filter(
+        const matchedClasses = [search?.toUpperCase(), normalizedSearch, searchVariant].filter(
             val => val && VALID_VEHICLE_CLASSES.includes(val)
         );
 
