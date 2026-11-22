@@ -18,6 +18,7 @@ export interface BatchReceiptData {
         allocatedAmount?: number | null;
         dueDate: string | Date;
         status: string;
+        batchStatus?: string;
         notes?: string | null;
         customer?: {
             name: string;
@@ -100,7 +101,7 @@ export const generateBatchReceiptPdf = (batch: BatchReceiptData): void => {
                 formatDate(p.dueDate),
                 `Rs. ${p.amount.toLocaleString('en-IN')}`,
                 allocDisplay,
-                p.status.toUpperCase() === 'PAID' ? 'CLEARED' : p.status.toUpperCase(),
+                ((p.batchStatus || p.status).toUpperCase() === 'PAID') ? 'CLEARED' : 'PARTIAL',
             ];
         });
 

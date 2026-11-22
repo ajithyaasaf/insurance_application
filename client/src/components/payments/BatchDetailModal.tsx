@@ -23,6 +23,8 @@ interface BatchDetailModalProps {
 export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({ batch, isOpen, onClose }) => {
     if (!batch) return null;
 
+    const allCleared = (batch.payments || []).length > 0 && (batch.payments || []).every((p: any) => (p.batchStatus || p.status) === 'paid');
+
     const handleDownloadPdf = () => {
         try {
             generateBatchReceiptPdf(batch);
@@ -64,7 +66,9 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({ batch, isOpe
                             {formatCurrency(batch.totalAmount)}
                         </p>
                         <p className="text-xs text-primary-200 mt-0.5">
-                            {batch.payments?.length === 1 ? '1 Policy Settled' : `${batch.payments?.length || 0} Policies Settled`}
+                            {batch.payments?.length === 1 
+                                ? (allCleared ? '1 Policy Settled' : '1 Policy (Part Payment)') 
+                                : `${batch.payments?.length || 0} Policies ${allCleared ? 'Settled' : 'Processed'}`}
                         </p>
                     </div>
                 </div>
@@ -166,13 +170,19 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({ batch, isOpe
                                                 {formatCurrency(allocAmt)}
                                             </td>
                                             <td className="px-3 py-2 text-center">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                    p.status === 'paid' 
-                                                        ? 'bg-emerald-100 text-emerald-800' 
-                                                        : 'bg-amber-100 text-amber-800'
-                                                }`}>
-                                                    {p.status === 'paid' ? 'CLEARED' : p.status.toUpperCase()}
-                                                </span>
+                                                {(() => {
+                                                    const itemStatus = p.batchStatus || p.status;
+                                                    const isCleared = itemStatus === 'paid';
+                                                    return (
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                                                            isCleared 
+                                                                ? 'bg-emerald-100 text-emerald-800' 
+                                                                : 'bg-amber-100 text-amber-800'
+                                                        }`}>
+                                                            {isCleared ? 'CLEARED' : 'PARTIAL'}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                         </tr>
                                     );

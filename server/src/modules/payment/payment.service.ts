@@ -676,16 +676,40 @@ export class PaymentService {
 
             const enrichedPayments = combinedPayments.map((p: any) => {
                 let allocatedAmount = p.paidAmount || p.amount;
+                let batchStatus = p.status;
+
                 if (p.notes) {
-                    const regex = new RegExp(`Batch #${batch.receiptNo}\\s*\\(\\+₹([0-9.]+)\\)`, 'i');
-                    const match = p.notes.match(regex);
-                    if (match && match[1]) {
-                        allocatedAmount = parseFloat(match[1]);
+                    const batchRegex = /Batch #([A-Z0-9-]+)\s+\(\+₹([0-9.]+)\)/g;
+                    let match;
+                    let totalBatchesSum = 0;
+                    const batchList: { receiptNo: string; amount: number }[] = [];
+
+                    while ((match = batchRegex.exec(p.notes)) !== null) {
+                        const rNo = match[1];
+                        const amt = parseFloat(match[2]);
+                        totalBatchesSum += amt;
+                        batchList.push({ receiptNo: rNo, amount: amt });
                     }
+
+                    const initialManual = Math.max(0, (p.paidAmount || 0) - totalBatchesSum);
+                    let runningTotal = initialManual;
+
+                    for (const b of batchList) {
+                        runningTotal += b.amount;
+                        if (b.receiptNo === batch.receiptNo) {
+                            allocatedAmount = b.amount;
+                            batchStatus = (runningTotal >= p.amount - 0.01) ? 'paid' : 'partial';
+                            break;
+                        }
+                    }
+                } else if (allocatedAmount < p.amount - 0.01) {
+                    batchStatus = 'partial';
                 }
+
                 return {
                     ...p,
                     allocatedAmount,
+                    batchStatus,
                 };
             });
 
