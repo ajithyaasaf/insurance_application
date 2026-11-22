@@ -202,7 +202,7 @@ export const BatchHistoryTab: React.FC<BatchHistoryTabProps> = ({ onOpenNewBatch
                                         </td>
                                         <td>
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-100 text-surface-700">
-                                                {b.payments?.length || 0} policies
+                                                {b.payments?.length === 1 ? '1 policy' : `${b.payments?.length || 0} policies`}
                                             </span>
                                         </td>
                                         <td className="text-right font-black text-sm text-emerald-600">
@@ -268,7 +268,7 @@ export const BatchHistoryTab: React.FC<BatchHistoryTabProps> = ({ onOpenNewBatch
                                     <div className="text-right">
                                         <p className="font-black text-base text-emerald-600">{formatCurrency(b.totalAmount)}</p>
                                         <span className="text-[11px] text-surface-500 font-medium">
-                                            {b.payments?.length || 0} policies settled
+                                            {b.payments?.length === 1 ? '1 policy settled' : `${b.payments?.length || 0} policies settled`}
                                         </span>
                                     </div>
                                 </div>

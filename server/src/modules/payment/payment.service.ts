@@ -632,8 +632,10 @@ export class PaymentService {
             }),
         ]);
 
+        const enrichedData = await this.enrichBatchesWithAllocations(data, userId, role);
+
         return {
-            data,
+            data: enrichedData,
             meta: {
                 page,
                 limit,
@@ -642,6 +644,56 @@ export class PaymentService {
                 totalCollected: stats._sum.totalAmount || 0,
             },
         };
+    }
+
+    private async enrichBatchesWithAllocations(batches: any[], userId: string, role: string) {
+        if (!batches || batches.length === 0) return batches;
+
+        const receiptNos = batches.map(b => b.receiptNo).filter(Boolean);
+        if (receiptNos.length === 0) return batches;
+
+        // Find any payments that record an allocation from any of these receipt numbers in notes
+        const additionalPayments = await prisma.payment.findMany({
+            where: {
+                ...ownerFilter(userId, role),
+                OR: receiptNos.map(r => ({ notes: { contains: r } })),
+            },
+            include: {
+                customer: true,
+                policy: {
+                    include: { company: true },
+                },
+            },
+        });
+
+        return batches.map(batch => {
+            const currentPayments = batch.payments || [];
+            const currentPaymentIds = new Set(currentPayments.map((p: any) => p.id));
+            const matchedAdditional = additionalPayments.filter(
+                (p: any) => !currentPaymentIds.has(p.id) && p.notes && p.notes.includes(batch.receiptNo)
+            );
+            const combinedPayments = [...currentPayments, ...matchedAdditional];
+
+            const enrichedPayments = combinedPayments.map((p: any) => {
+                let allocatedAmount = p.paidAmount || p.amount;
+                if (p.notes) {
+                    const regex = new RegExp(`Batch #${batch.receiptNo}\\s*\\(\\+₹([0-9.]+)\\)`, 'i');
+                    const match = p.notes.match(regex);
+                    if (match && match[1]) {
+                        allocatedAmount = parseFloat(match[1]);
+                    }
+                }
+                return {
+                    ...p,
+                    allocatedAmount,
+                };
+            });
+
+            return {
+                ...batch,
+                payments: enrichedPayments,
+            };
+        });
     }
 
     async getBatchById(userId: string, role: string, id: string) {
@@ -659,7 +711,8 @@ export class PaymentService {
             },
         });
         if (!batch) throw Object.assign(new Error('Batch receipt not found'), { statusCode: 404 });
-        return batch;
+        const [enriched] = await this.enrichBatchesWithAllocations([batch], userId, role);
+        return enriched;
     }
 
     async getPaymentHistory(userId: string, role: string, id: string) {

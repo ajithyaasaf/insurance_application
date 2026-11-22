@@ -64,7 +64,7 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({ batch, isOpe
                             {formatCurrency(batch.totalAmount)}
                         </p>
                         <p className="text-xs text-primary-200 mt-0.5">
-                            {batch.payments?.length || 0} Policies Settled
+                            {batch.payments?.length === 1 ? '1 Policy Settled' : `${batch.payments?.length || 0} Policies Settled`}
                         </p>
                     </div>
                 </div>
@@ -128,10 +128,11 @@ export const BatchDetailModal: React.FC<BatchDetailModalProps> = ({ batch, isOpe
                             </thead>
                             <tbody className="divide-y divide-surface-100 bg-white">
                                 {(batch.payments || []).map((p: any, idx: number) => {
-                                    // Parse allocated amount from notes if present
-                                    let allocAmt = p.paidAmount || p.amount;
-                                    if (p.notes) {
-                                        const match = p.notes.match(/\(\+₹([0-9.]+)\)/);
+                                    // Parse allocated amount: prefer backend-provided allocatedAmount, else extract specifically for this batch receipt from notes
+                                    let allocAmt = p.allocatedAmount ?? p.paidAmount ?? p.amount;
+                                    if (p.allocatedAmount === undefined && p.notes) {
+                                        const regex = new RegExp(`Batch #${batch.receiptNo}\\s*\\(\\+₹([0-9.]+)\\)`, 'i');
+                                        const match = p.notes.match(regex);
                                         if (match && match[1]) {
                                             allocAmt = parseFloat(match[1]);
                                         }

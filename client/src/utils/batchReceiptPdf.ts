@@ -15,6 +15,7 @@ export interface BatchReceiptData {
         id?: string;
         amount: number;
         paidAmount?: number | null;
+        allocatedAmount?: number | null;
         dueDate: string | Date;
         status: string;
         notes?: string | null;
@@ -80,14 +81,16 @@ export const generateBatchReceiptPdf = (batch: BatchReceiptData): void => {
 
         // 4. Table of settled policies
         const tableBody = (batch.payments || []).map((p, idx) => {
-            // Extract allocated amount from notes if available: "Batch #... (+₹500)"
-            let allocDisplay = p.paidAmount ? `Rs. ${p.paidAmount.toLocaleString('en-IN')}` : `Rs. ${p.amount.toLocaleString('en-IN')}`;
-            if (p.notes) {
-                const match = p.notes.match(/\(\+₹([0-9.]+)\)/);
+            // Extract allocated amount from allocatedAmount or notes if available for this specific batch
+            let allocVal = p.allocatedAmount ?? p.paidAmount ?? p.amount;
+            if (p.allocatedAmount === undefined && p.notes) {
+                const regex = new RegExp(`Batch #${batch.receiptNo}\\s*\\(\\+₹([0-9.]+)\\)`, 'i');
+                const match = p.notes.match(regex);
                 if (match && match[1]) {
-                    allocDisplay = `Rs. ${parseFloat(match[1]).toLocaleString('en-IN')}`;
+                    allocVal = parseFloat(match[1]);
                 }
             }
+            const allocDisplay = `Rs. ${allocVal.toLocaleString('en-IN')}`;
 
             return [
                 idx + 1,
